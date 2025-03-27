@@ -53,6 +53,13 @@ export const GoogleSheetsService = {
         throw error;
       }
       
+      // Filter out empty headers
+      if (data && data.headers) {
+        data.headers = data.headers.filter((header: string) => 
+          header && header.trim() !== ''
+        );
+      }
+      
       return data;
     } catch (error: any) {
       if (error.message === 'Sheet validation timed out') {
@@ -106,6 +113,9 @@ export const GoogleSheetsService = {
         return [];
       }
       
+      // Filter out empty headers
+      const validHeaders = headers.filter(header => header && header.trim() !== '');
+      
       // Create a Set of mapped fields for faster lookup
       const mappedFields = new Set(Object.values(mapping).filter(Boolean));
       
@@ -140,7 +150,7 @@ export const GoogleSheetsService = {
           };
           
           // Add all unmapped columns to extra_data
-          headers.forEach(header => {
+          validHeaders.forEach(header => {
             if (!mappedFields.has(header)) {
               product.extra_data[header] = row[header];
             }

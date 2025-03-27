@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,7 +77,6 @@ const AdminProducts = () => {
   const filterProducts = () => {
     let filtered = [...products];
     
-    // Apply search query filter
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -88,12 +86,10 @@ const AdminProducts = () => {
       );
     }
     
-    // Apply brand filter
     if (brandFilter) {
       filtered = filtered.filter(product => product.brand_id === brandFilter);
     }
     
-    // Apply category filter
     if (categoryFilter) {
       filtered = filtered.filter(product => product.category === categoryFilter);
     }
@@ -101,7 +97,6 @@ const AdminProducts = () => {
     setFilteredProducts(filtered);
   };
 
-  // Get distinct categories from products
   const getUniqueCategories = () => {
     const categories = new Set<string>();
     products.forEach(product => {
@@ -112,20 +107,17 @@ const AdminProducts = () => {
     return Array.from(categories);
   };
   
-  // Handle adding/editing product
   const handleSaveProduct = async (data: any) => {
     try {
       setIsSubmitting(true);
       
       if (editingProduct) {
-        // Update existing product
         await ProductService.updateProduct(editingProduct.id, data);
         toast({
           title: "Product Updated",
           description: "Product has been updated successfully",
         });
       } else {
-        // Create new product
         await ProductService.createProduct(data);
         toast({
           title: "Product Added",
@@ -133,10 +125,8 @@ const AdminProducts = () => {
         });
       }
       
-      // Refresh product list
       await fetchData();
       
-      // Close the form dialog
       setIsFormOpen(false);
       setEditingProduct(null);
       
@@ -152,18 +142,15 @@ const AdminProducts = () => {
     }
   };
   
-  // Handle product edit click
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setIsFormOpen(true);
   };
   
-  // Handle product delete
   const handleDeleteProduct = async (productId: string) => {
     try {
       await ProductService.deleteProduct(productId);
       
-      // Update local state
       setProducts(prevProducts => 
         prevProducts.filter(product => product.id !== productId)
       );
@@ -182,18 +169,14 @@ const AdminProducts = () => {
     }
   };
   
-  // Handle multiple products delete
   const handleDeleteMultipleProducts = async (productIds: string[]) => {
     try {
-      // Create a promise for each delete operation
       const deletePromises = productIds.map(id => 
         ProductService.deleteProduct(id)
       );
       
-      // Wait for all deletes to complete
       await Promise.all(deletePromises);
       
-      // Update local state
       setProducts(prevProducts => 
         prevProducts.filter(product => !productIds.includes(product.id))
       );
@@ -212,7 +195,6 @@ const AdminProducts = () => {
     }
   };
   
-  // Open product form dialog for new product
   const handleAddProduct = () => {
     setEditingProduct(null);
     setIsFormOpen(true);
@@ -263,7 +245,7 @@ const AdminProducts = () => {
                   <SelectValue placeholder="Filter by brand" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Brands</SelectItem>
+                  <SelectItem value="all">All Brands</SelectItem>
                   {brands.map(brand => (
                     <SelectItem key={brand.id} value={brand.id}>
                       {brand.name}
@@ -278,7 +260,7 @@ const AdminProducts = () => {
                   <SelectValue placeholder="Filter by category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   {getUniqueCategories().map(category => (
                     <SelectItem key={category} value={category}>
                       {category}
@@ -305,7 +287,6 @@ const AdminProducts = () => {
         </CardContent>
       </Card>
       
-      {/* Product Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-[900px]">
           <DialogHeader>
