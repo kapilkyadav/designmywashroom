@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { ProjectService } from '@/services/ProjectService';
 
 const CustomerDetailsStep = () => {
   const { state, setCustomerDetails, calculateEstimate, prevStep, nextStep } = useCalculator();
@@ -75,6 +76,17 @@ const CustomerDetailsStep = () => {
     try {
       setIsSubmitting(true);
       
+      // Check for rate limiting before processing
+      const isRateLimited = ProjectService.isRateLimited(formData.email.trim());
+      if (isRateLimited) {
+        toast({
+          title: "Too many submissions",
+          description: "Please wait a moment before submitting again.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       // Make sure we're sending non-empty strings to avoid "N/A" in the admin panel
       const customerDetails = {
         name: formData.name.trim(),
@@ -102,11 +114,21 @@ const CustomerDetailsStep = () => {
       
     } catch (error) {
       console.error('Error submitting details:', error);
-      toast({
-        title: "Error calculating estimate",
-        description: "Please try again later.",
-        variant: "destructive"
-      });
+      
+      // Check if error is rate limiting
+      if (error instanceof Error && error.message === 'RATE_LIMITED') {
+        toast({
+          title: "Too many submissions",
+          description: "Please wait a moment before submitting again.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error calculating estimate",
+          description: "Please try again later.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
