@@ -161,11 +161,11 @@ const calculatorReducer = (state: State, action: Action): State => {
     case 'GO_TO_STEP':
       return { ...state, currentStep: action.payload };
     case 'NEXT_STEP':
-      return { ...state, currentStep: state.currentStep < 6 ? state.currentStep + 1 : state.currentStep };
+      return { ...state, currentStep: state.currentStep < 7 ? state.currentStep + 1 : state.currentStep };
     case 'PREV_STEP':
       return { ...state, currentStep: state.currentStep > 1 ? state.currentStep - 1 : state.currentStep };
     case 'RESET':
-      return initialState;
+      return { ...initialState, currentStep: 1 };
     default:
       return state;
   }
@@ -201,6 +201,8 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
 
   const calculateEstimate = async () => {
     try {
+      console.log('Calculating estimate with state:', state);
+      
       // Prepare calculator state for API
       const calculatorState: CalculatorState = {
         projectType: state.projectType,
@@ -213,12 +215,15 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
       
       // Calculate estimate using the service
       const estimateResult = await CalculatorService.calculateEstimate(calculatorState);
+      console.log('Estimate calculation result:', estimateResult);
       
       // Save the estimate to database
       await CalculatorService.saveEstimate(calculatorState, estimateResult);
       
       // Update state with the calculated estimate
       dispatch({ type: 'SET_ESTIMATE', payload: estimateResult });
+      
+      return estimateResult;
     } catch (error) {
       console.error('Error calculating estimate:', error);
       throw error;

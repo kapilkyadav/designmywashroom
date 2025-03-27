@@ -7,7 +7,7 @@ import FixturesStep from './FixturesStep';
 import TimelineStep from './TimelineStep';
 import BrandSelectionStep from './BrandSelectionStep';
 import CustomerDetailsStep from './CustomerDetailsStep';
-import EstimateSummary from './EstimateSummary';
+import Summary from './Summary';
 
 const CalculatorForm = () => {
   const { state } = useCalculator();
@@ -28,7 +28,7 @@ const CalculatorForm = () => {
       case 6:
         return <CustomerDetailsStep />;
       case 7:
-        return <EstimateSummary />;
+        return <Summary />;
       default:
         return <ProjectTypeStep />;
     }
@@ -36,7 +36,7 @@ const CalculatorForm = () => {
   
   return (
     <div className="space-y-8">
-      {/* Progress bar */}
+      {/* Progress bar - Show only for steps 1-6 */}
       {state.currentStep < 7 && (
         <div className="max-w-4xl mx-auto">
           <div className="relative h-1 w-full bg-secondary rounded-full overflow-hidden">

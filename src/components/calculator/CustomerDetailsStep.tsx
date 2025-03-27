@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 const CustomerDetailsStep = () => {
-  const { state, setCustomerDetails, calculateEstimate, prevStep } = useCalculator();
+  const { state, setCustomerDetails, calculateEstimate, prevStep, nextStep } = useCalculator();
   const [formData, setFormData] = useState({
     name: state.customerDetails.name || '',
     email: state.customerDetails.email || '',
@@ -85,8 +86,21 @@ const CustomerDetailsStep = () => {
       // Calculate estimate and save to database
       await calculateEstimate();
       
+      // Important: Move to the next step after successful calculation
+      nextStep();
+      
+      toast({
+        title: "Estimate calculated successfully",
+        description: "Your washroom renovation estimate is ready.",
+      });
+      
     } catch (error) {
       console.error('Error submitting details:', error);
+      toast({
+        title: "Error calculating estimate",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }

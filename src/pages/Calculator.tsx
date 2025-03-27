@@ -5,10 +5,12 @@ import CalculatorForm from '@/components/calculator/CalculatorForm';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Separator } from '@/components/ui/separator';
+import { Toaster } from '@/components/ui/sonner';
 
 const Calculator = () => {
   return (
     <div className="min-h-screen flex flex-col">
+      <Toaster />
       <Header />
       <main className="flex-grow pt-24 pb-16">
         <div className="container mx-auto px-4">
