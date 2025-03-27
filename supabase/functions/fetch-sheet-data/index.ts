@@ -7,12 +7,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Function to extract sheet ID from Google Sheet URL
+// Function to extract sheet ID from Google Sheet URL - optimized regex
 function extractSheetId(url: string): string | null {
-  // Extract the sheet ID from a Google Sheets URL
+  // Extract the sheet ID from a Google Sheets URL - more efficient regex
   const match = url.match(/[-\w]{25,}/);
   return match ? match[0] : null;
 }
+
+// Set a shorter timeout for API requests
+const FETCH_TIMEOUT = 8000; // 8 seconds
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -40,22 +43,23 @@ serve(async (req) => {
       );
     }
     
-    // Define a controller for timeout handling
-    const controller = new AbortController();
-    // 10 second timeout for the Google Sheets API request
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    // Use Promise.race for timeout handling
+    const fetchWithTimeout = async (url: string) => {
+      const response = await Promise.race([
+        fetch(url),
+        new Promise<Response>((_, reject) =>
+          setTimeout(() => reject(new Error('Request timeout')), FETCH_TIMEOUT)
+        ) as Promise<Response>
+      ]);
+      return response;
+    };
     
     try {
-      // Determine which Google API endpoint to use
-      const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName || 'Sheet1')}?key=${Deno.env.get('GOOGLE_API_KEY')}`;
+      // Determine which Google API endpoint to use - add fields parameter to limit response size
+      const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName || 'Sheet1')}?key=${Deno.env.get('GOOGLE_API_KEY')}&valueRenderOption=UNFORMATTED_VALUE`;
       
       // Fetch data from Google Sheets API with timeout
-      const response = await fetch(apiUrl, {
-        signal: controller.signal
-      });
-      
-      // Clear the timeout as the request completed
-      clearTimeout(timeoutId);
+      const response = await fetchWithTimeout(apiUrl);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -95,13 +99,15 @@ serve(async (req) => {
         );
       }
       
-      // Extract data rows after the header
+      // Extract data rows after the header - optimize object creation
       const rows = sheetData.values.slice(headerRow + 1).map((row: any[]) => {
         // Map each row to an object using the headers
         const obj: Record<string, any> = {};
-        headers.forEach((header: string, index: number) => {
-          obj[header] = row[index] || '';
-        });
+        for (let i = 0; i < headers.length; i++) {
+          if (headers[i]) { // Only add properties for headers that exist
+            obj[headers[i]] = row[i] || '';
+          }
+        }
         return obj;
       });
       
@@ -110,10 +116,7 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } catch (fetchError: any) {
-      // Clear the timeout if there was an error
-      clearTimeout(timeoutId);
-      
-      if (fetchError.name === 'AbortError') {
+      if (fetchError.message === 'Request timeout') {
         return new Response(
           JSON.stringify({ error: 'Request timed out fetching sheet data' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 408 }

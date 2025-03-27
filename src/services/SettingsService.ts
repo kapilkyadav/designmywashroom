@@ -1,10 +1,21 @@
 
 import { supabase, Settings } from '@/lib/supabase';
 
+// Cache for settings to reduce database calls
+let settingsCache: Settings | null = null;
+let settingsCacheTimestamp: number = 0;
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+
 export const SettingsService = {
   // Get app settings (singleton record)
   async getSettings(): Promise<Settings> {
     try {
+      // Check if we have a valid cache
+      const now = Date.now();
+      if (settingsCache && (now - settingsCacheTimestamp < CACHE_EXPIRY)) {
+        return settingsCache;
+      }
+      
       const { data, error } = await supabase
         .from('settings')
         .select('*')
@@ -14,11 +25,19 @@ export const SettingsService = {
       if (error) {
         // If no settings exist, return default values
         if (error.code === 'PGRST116') {
-          return this.createDefaultSettings();
+          const defaults = await this.createDefaultSettings();
+          // Update cache
+          settingsCache = defaults;
+          settingsCacheTimestamp = now;
+          return defaults;
         }
         console.error('Error fetching settings:', error);
         throw error;
       }
+      
+      // Update cache
+      settingsCache = data as Settings;
+      settingsCacheTimestamp = now;
       
       return data as Settings;
     } catch (error) {
@@ -75,6 +94,9 @@ export const SettingsService = {
         console.error('Error updating settings:', error);
         throw error;
       }
+      
+      // Invalidate cache on update
+      settingsCache = null;
       
       return data as Settings;
     } catch (error) {

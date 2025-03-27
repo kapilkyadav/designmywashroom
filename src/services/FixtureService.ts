@@ -1,10 +1,38 @@
 
 import { supabase, Fixture } from '@/lib/supabase';
 
+// Cache implementation for fixtures
+const fixtureCache = {
+  all: null as Fixture[] | null,
+  categories: {} as Record<string, Fixture[]>,
+  byId: {} as Record<string, Fixture>,
+  timestamp: 0,
+  CACHE_EXPIRY: 2 * 60 * 1000 // 2 minutes
+};
+
 export const FixtureService = {
+  // Clear cache (useful after mutations)
+  clearCache() {
+    fixtureCache.all = null;
+    fixtureCache.categories = {};
+    fixtureCache.byId = {};
+    fixtureCache.timestamp = 0;
+  },
+  
+  // Check if cache is valid
+  isCacheValid() {
+    return fixtureCache.all !== null && 
+           (Date.now() - fixtureCache.timestamp < fixtureCache.CACHE_EXPIRY);
+  },
+  
   // Get all fixtures
   async getAllFixtures(): Promise<Fixture[]> {
     try {
+      // Return from cache if valid
+      if (this.isCacheValid()) {
+        return fixtureCache.all as Fixture[];
+      }
+      
       const { data, error } = await supabase
         .from('fixtures')
         .select('*')
@@ -13,6 +41,17 @@ export const FixtureService = {
       if (error) {
         console.error('Error fetching fixtures:', error);
         throw error;
+      }
+      
+      // Update cache
+      fixtureCache.all = data || [];
+      fixtureCache.timestamp = Date.now();
+      
+      // Populate id cache for faster lookups
+      if (data) {
+        data.forEach(fixture => {
+          fixtureCache.byId[fixture.id] = fixture;
+        });
       }
       
       return data || [];
@@ -25,6 +64,18 @@ export const FixtureService = {
   // Get fixtures by category
   async getFixturesByCategory(category: 'electrical' | 'plumbing' | 'additional'): Promise<Fixture[]> {
     try {
+      // Check category cache first
+      if (fixtureCache.categories[category] && this.isCacheValid()) {
+        return fixtureCache.categories[category];
+      }
+      
+      // If we have all fixtures cached, filter from there
+      if (this.isCacheValid() && fixtureCache.all) {
+        const filtered = fixtureCache.all.filter(f => f.category === category);
+        fixtureCache.categories[category] = filtered;
+        return filtered;
+      }
+      
       const { data, error } = await supabase
         .from('fixtures')
         .select('*')
@@ -36,6 +87,9 @@ export const FixtureService = {
         throw error;
       }
       
+      // Update category cache
+      fixtureCache.categories[category] = data || [];
+      
       return data || [];
     } catch (error) {
       console.error('Error in getFixturesByCategory:', error);
@@ -46,6 +100,11 @@ export const FixtureService = {
   // Get a fixture by ID
   async getFixtureById(id: string): Promise<Fixture> {
     try {
+      // Check id cache first
+      if (fixtureCache.byId[id] && this.isCacheValid()) {
+        return fixtureCache.byId[id];
+      }
+      
       const { data, error } = await supabase
         .from('fixtures')
         .select('*')
@@ -56,6 +115,9 @@ export const FixtureService = {
         console.error('Error fetching fixture:', error);
         throw error;
       }
+      
+      // Update id cache
+      fixtureCache.byId[id] = data as Fixture;
       
       return data as Fixture;
     } catch (error) {
@@ -88,6 +150,9 @@ export const FixtureService = {
         console.error('Error creating fixture:', error);
         throw error;
       }
+      
+      // Invalidate caches after mutation
+      this.clearCache();
       
       return data as Fixture;
     } catch (error) {
@@ -137,6 +202,9 @@ export const FixtureService = {
         throw error;
       }
       
+      // Invalidate caches after mutation
+      this.clearCache();
+      
       return data as Fixture;
     } catch (error) {
       console.error('Error in updateFixture:', error);
@@ -156,6 +224,9 @@ export const FixtureService = {
         console.error('Error deleting fixture:', error);
         throw error;
       }
+      
+      // Invalidate caches after mutation
+      this.clearCache();
     } catch (error) {
       console.error('Error in deleteFixture:', error);
       throw error;
