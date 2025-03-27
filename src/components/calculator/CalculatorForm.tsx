@@ -8,9 +8,11 @@ import TimelineStep from './TimelineStep';
 import BrandSelectionStep from './BrandSelectionStep';
 import CustomerDetailsStep from './CustomerDetailsStep';
 import Summary from './Summary';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const CalculatorForm = () => {
   const { state } = useCalculator();
+  const isMobile = useIsMobile();
   
   // Render the appropriate step based on the current step in the state
   const renderStep = () => {
@@ -35,7 +37,7 @@ const CalculatorForm = () => {
   };
   
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* Progress bar - Show only for steps 1-6 */}
       {state.currentStep < 7 && (
         <div className="max-w-4xl mx-auto">
@@ -45,19 +47,32 @@ const CalculatorForm = () => {
               style={{ width: `${(state.currentStep / 6) * 100}%` }}
             ></div>
           </div>
-          <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-            <span>Project Type</span>
-            <span>Dimensions</span>
-            <span>Fixtures</span>
-            <span>Timeline</span>
-            <span>Brand</span>
-            <span>Contact</span>
+          <div className="flex justify-between mt-2 text-[8px] xs:text-xs text-muted-foreground">
+            {!isMobile ? (
+              <>
+                <span>Project Type</span>
+                <span>Dimensions</span>
+                <span>Fixtures</span>
+                <span>Timeline</span>
+                <span>Brand</span>
+                <span>Contact</span>
+              </>
+            ) : (
+              <>
+                <span>Type</span>
+                <span>Size</span>
+                <span>Fix.</span>
+                <span>Time</span>
+                <span>Brand</span>
+                <span>Info</span>
+              </>
+            )}
           </div>
         </div>
       )}
       
       {/* Step content */}
-      <div className="pb-12">
+      <div className="pb-8 md:pb-12">
         {renderStep()}
       </div>
     </div>
