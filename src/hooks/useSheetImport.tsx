@@ -164,61 +164,7 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
   
   const handleMappingComplete = (mapping: SheetMapping) => {
     setColumnMapping(mapping);
-    importProducts(mapping);
-  };
-  
-  const importProducts = async (mapping: SheetMapping) => {
-    if (!isValid || !mapping) {
-      return;
-    }
-    
-    try {
-      setImporting(true);
-      setCurrentStep('importing');
-      
-      // Fetch sheet data
-      const { headers, data } = await GoogleSheetsService.fetchSheetData(
-        sheetUrl,
-        sheetName,
-        parseInt(headerRow, 10) - 1 // Adjust for zero-based indexing
-      );
-      
-      // Map sheet data to products
-      const products = GoogleSheetsService.mapSheetDataToProducts(
-        data,
-        headers,
-        mapping,
-        brandId
-      );
-      
-      // Schedule daily sync
-      await GoogleSheetsService.scheduleSync(brandId);
-      
-      setScheduled(true);
-      setCurrentStep('complete');
-      
-      toast({
-        title: "Import successful",
-        description: `Successfully imported ${products.length} products and scheduled daily sync`,
-      });
-      
-      // Complete after a short delay to show the success state
-      setTimeout(() => {
-        onComplete();
-      }, 1500);
-      
-    } catch (error: any) {
-      console.error('Import error:', error);
-      setError('Failed to import products from the sheet: ' + (error.message || ''));
-      
-      toast({
-        title: "Import Failed",
-        description: "Could not import products from the Google Sheet",
-        variant: "destructive",
-      });
-    } finally {
-      setImporting(false);
-    }
+    setCurrentStep('importing');
   };
   
   const handleOpenSheet = () => {
@@ -242,6 +188,7 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
     scheduled,
     error,
     currentStep,
+    setCurrentStep,
     progress,
     sheetHeaders,
     

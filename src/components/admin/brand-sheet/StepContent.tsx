@@ -18,6 +18,9 @@ interface StepContentProps {
   scheduled: boolean;
   isValid: boolean | null;
   error: string;
+  brandId?: string;
+  products?: any[];
+  importedCount?: number;
   onUrlChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSheetNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onHeaderRowChange: (value: string) => void;
@@ -26,6 +29,8 @@ interface StepContentProps {
   onImport: () => void;
   onOpenSheet: () => void;
   onMappingComplete: (mapping: SheetMapping) => void;
+  onImportComplete?: () => void;
+  onImportError?: (error: Error) => void;
 }
 
 const StepContent: React.FC<StepContentProps> = ({
@@ -39,6 +44,9 @@ const StepContent: React.FC<StepContentProps> = ({
   scheduled,
   isValid,
   error,
+  brandId,
+  products,
+  importedCount,
   onUrlChange,
   onSheetNameChange,
   onHeaderRowChange,
@@ -46,7 +54,9 @@ const StepContent: React.FC<StepContentProps> = ({
   onCancel,
   onImport,
   onOpenSheet,
-  onMappingComplete
+  onMappingComplete,
+  onImportComplete,
+  onImportError
 }) => {
   switch (currentStep) {
     case 'connection':
@@ -80,10 +90,17 @@ const StepContent: React.FC<StepContentProps> = ({
       );
       
     case 'importing':
-      return <ImportingStep />;
+      return (
+        <ImportingStep 
+          brandId={brandId}
+          products={products}
+          onComplete={onImportComplete}
+          onError={onImportError}
+        />
+      );
       
     case 'complete':
-      return <CompleteStep />;
+      return <CompleteStep importedCount={importedCount} brandId={brandId} />;
       
     default:
       return null;

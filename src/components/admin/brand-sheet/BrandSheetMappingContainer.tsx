@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -23,6 +23,9 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
   brandId, 
   onComplete 
 }) => {
+  const [mappedProducts, setMappedProducts] = useState<any[]>([]);
+  const [importedCount, setImportedCount] = useState(0);
+  
   const {
     // State
     sheetUrl,
@@ -45,8 +48,24 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
     validateSheet,
     cancelValidation,
     handleMappingComplete,
-    handleOpenSheet
+    handleOpenSheet,
+    setCurrentStep
   } = useSheetImport({ brandId, onComplete });
+
+  const handleImportComplete = () => {
+    setCurrentStep('complete');
+  };
+
+  const handleImportError = (error: Error) => {
+    console.error('Import error:', error);
+  };
+
+  const handleProductMapping = (mapping: any) => {
+    // Store products from mapping for the import step
+    setMappedProducts(mapping.products || []);
+    setImportedCount(mapping.products?.length || 0);
+    handleMappingComplete(mapping);
+  };
 
   return (
     <Card className="max-w-3xl mx-auto">
@@ -74,6 +93,9 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
           scheduled={scheduled}
           isValid={isValid}
           error={error}
+          brandId={brandId}
+          products={mappedProducts}
+          importedCount={importedCount}
           onUrlChange={handleUrlChange}
           onSheetNameChange={(e) => setSheetName(e.target.value)}
           onHeaderRowChange={setHeaderRow}
@@ -81,7 +103,9 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
           onCancel={cancelValidation}
           onImport={() => {}}
           onOpenSheet={handleOpenSheet}
-          onMappingComplete={handleMappingComplete}
+          onMappingComplete={handleProductMapping}
+          onImportComplete={handleImportComplete}
+          onImportError={handleImportError}
         />
       </CardContent>
       <CardFooter>
