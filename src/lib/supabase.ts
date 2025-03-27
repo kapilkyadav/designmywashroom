@@ -16,11 +16,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true
   },
+  // Fix the spread operator error by removing it
   global: {
-    fetch: (...args) => fetch(...args)
+    fetch: function(...args) { return fetch(args[0], args[1]); }
   },
   db: {
     schema: 'public'
+  },
+  // Add request timeouts for better reliability
+  realtime: {
+    timeout: 30000 // 30 seconds
   }
 });
 

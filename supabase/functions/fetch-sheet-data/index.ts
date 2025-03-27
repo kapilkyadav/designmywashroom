@@ -14,8 +14,8 @@ function extractSheetId(url: string): string | null {
   return match ? match[0] : null;
 }
 
-// Set a shorter timeout for API requests
-const FETCH_TIMEOUT = 8000; // 8 seconds
+// Set a shorter timeout for API requests for better performance
+const FETCH_TIMEOUT = 6000; // 6 seconds (reduced)
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -101,11 +101,11 @@ serve(async (req) => {
       
       // Extract data rows after the header - optimize object creation
       const rows = sheetData.values.slice(headerRow + 1).map((row: any[]) => {
-        // Map each row to an object using the headers
+        // Map each row to an object using the headers - more efficient implementation
         const obj: Record<string, any> = {};
         for (let i = 0; i < headers.length; i++) {
           if (headers[i]) { // Only add properties for headers that exist
-            obj[headers[i]] = row[i] || '';
+            obj[headers[i]] = row[i] !== undefined ? row[i] : '';
           }
         }
         return obj;

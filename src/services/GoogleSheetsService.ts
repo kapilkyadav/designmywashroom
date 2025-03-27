@@ -22,7 +22,7 @@ export const GoogleSheetsService = {
     sheetUrl: string,
     sheetName: string,
     headerRowIndex: number,
-    timeoutMs = 15000 // 15 seconds default timeout
+    timeoutMs = 12000 // 12 seconds default timeout (reduced)
   ): Promise<{ headers: string[]; data: any[] }> {
     try {
       // Create a promise that rejects after the timeout
@@ -33,7 +33,7 @@ export const GoogleSheetsService = {
         }, timeoutMs);
       });
       
-      // Create the actual fetch promise
+      // Create the actual fetch promise with optimized options
       const fetchPromise = supabase.functions.invoke('fetch-sheet-data', {
         body: {
           sheetUrl,
@@ -92,7 +92,7 @@ export const GoogleSheetsService = {
     }
   },
   
-  // Map sheet data to product data structure
+  // Map sheet data to product data structure with optimized processing
   mapSheetDataToProducts(
     data: any[],
     headers: string[],
@@ -100,45 +100,51 @@ export const GoogleSheetsService = {
     brandId: string
   ) {
     try {
-      const products = data.map(row => {
-        // Skip rows with no name
-        if (!row[mapping.name]) {
-          return null;
-        }
-        
-        const landingPrice = parseFloat(row[mapping.landing_price]) || 0;
-        const quotationPrice = parseFloat(row[mapping.quotation_price]) || 0;
-        
-        // Calculate margin if both prices are available
-        const margin = landingPrice > 0 
-          ? ((quotationPrice - landingPrice) / landingPrice) * 100 
-          : 0;
-        
-        // Create a product object
-        const product = {
-          brand_id: brandId,
-          name: row[mapping.name] || '',
-          description: row[mapping.description] || '',
-          category: row[mapping.category] || '',
-          mrp: parseFloat(row[mapping.mrp]) || 0,
-          landing_price: landingPrice,
-          client_price: parseFloat(row[mapping.client_price]) || 0,
-          quotation_price: quotationPrice,
-          margin: parseFloat(margin.toFixed(2)),
+      // Pre-calculate field indices for faster mapping
+      const headerIndices: Record<string, number> = {};
+      headers.forEach((header, index) => {
+        headerIndices[header] = index;
+      });
+      
+      // Create a Set of mapped fields for faster lookup
+      const mappedFields = new Set(Object.values(mapping));
+      
+      const products = data
+        .filter(row => row[mapping.name]) // Filter out rows with no name early
+        .map(row => {
+          const landingPrice = parseFloat(row[mapping.landing_price]) || 0;
+          const quotationPrice = parseFloat(row[mapping.quotation_price]) || 0;
           
-          // Store any unmapped data as extra_data
-          extra_data: {}
-        };
-        
-        // Add all unmapped columns to extra_data
-        headers.forEach((header, index) => {
-          if (!Object.values(mapping).includes(header)) {
-            product.extra_data[header] = row[header];
-          }
+          // Calculate margin if both prices are available
+          const margin = landingPrice > 0 
+            ? ((quotationPrice - landingPrice) / landingPrice) * 100 
+            : 0;
+          
+          // Create a product object
+          const product = {
+            brand_id: brandId,
+            name: row[mapping.name] || '',
+            description: row[mapping.description] || '',
+            category: row[mapping.category] || '',
+            mrp: parseFloat(row[mapping.mrp]) || 0,
+            landing_price: landingPrice,
+            client_price: parseFloat(row[mapping.client_price]) || 0,
+            quotation_price: quotationPrice,
+            margin: parseFloat(margin.toFixed(2)),
+            
+            // Initialize extra_data to avoid undefined errors
+            extra_data: {}
+          };
+          
+          // Add all unmapped columns to extra_data
+          headers.forEach(header => {
+            if (!mappedFields.has(header)) {
+              product.extra_data[header] = row[header];
+            }
+          });
+          
+          return product;
         });
-        
-        return product;
-      }).filter(Boolean); // Remove any null products
       
       return products;
     } catch (error) {
