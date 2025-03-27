@@ -1,3 +1,4 @@
+
 import { supabase, Product } from '@/lib/supabase';
 
 export const ProductService = {
@@ -62,6 +63,7 @@ export const ProductService = {
       .from('products')
       .insert({
         ...product,
+        quantity: product.quantity || 0, // Ensure quantity is included
         margin: parseFloat(margin.toFixed(2)),
       })
       .select()
@@ -173,6 +175,7 @@ export const ProductService = {
         return {
           ...product,
           brand_id: brandId,
+          quantity: product.quantity || 0, // Ensure quantity is included
           margin: parseFloat(margin.toFixed(2))
         };
       });

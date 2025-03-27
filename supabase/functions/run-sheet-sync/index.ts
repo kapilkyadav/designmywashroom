@@ -23,6 +23,7 @@ interface ColumnMapping {
   landing_price: string;
   client_price: string;
   quotation_price: string;
+  quantity: string;
 }
 
 serve(async (req) => {
@@ -159,7 +160,8 @@ async function processSheet(brandId: string, supabase: any, googleApiKey: string
       mrp: headers.find(h => h.toLowerCase().includes('mrp')) || '',
       landing_price: headers.find(h => (h.toLowerCase().includes('land') && h.toLowerCase().includes('price'))) || '',
       client_price: headers.find(h => (h.toLowerCase().includes('client') && h.toLowerCase().includes('price'))) || '',
-      quotation_price: headers.find(h => (h.toLowerCase().includes('quot') && h.toLowerCase().includes('price'))) || ''
+      quotation_price: headers.find(h => (h.toLowerCase().includes('quot') && h.toLowerCase().includes('price'))) || '',
+      quantity: headers.find(h => (h.toLowerCase().includes('qty') || h.toLowerCase().includes('quant'))) || ''
     };
     
     // Update brand with the default mapping
@@ -171,10 +173,11 @@ async function processSheet(brandId: string, supabase: any, googleApiKey: string
   
   // Map sheet data to product structure using the column mapping
   const products = rows
-    .filter((row: any) => columnMapping.name && row[columnMapping.name]) // Filter out rows without names
+    .filter((row: any) => columnMapping.name && row[columnMapping.name]) // Filter out rows with no names
     .map((row: any) => {
       const landingPrice = columnMapping.landing_price ? parseFloat(row[columnMapping.landing_price]) || 0 : 0;
       const quotationPrice = columnMapping.quotation_price ? parseFloat(row[columnMapping.quotation_price]) || 0 : 0;
+      const quantity = columnMapping.quantity ? parseInt(row[columnMapping.quantity], 10) || 0 : 0;
       
       // Calculate margin
       const margin = landingPrice > 0 
@@ -191,6 +194,7 @@ async function processSheet(brandId: string, supabase: any, googleApiKey: string
         landing_price: landingPrice,
         client_price: columnMapping.client_price ? (parseFloat(row[columnMapping.client_price]) || 0) : 0,
         quotation_price: quotationPrice,
+        quantity: quantity,
         margin: parseFloat(margin.toFixed(2)),
         extra_data: {} as Record<string, any>
       };

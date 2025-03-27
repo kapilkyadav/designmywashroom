@@ -14,6 +14,7 @@ export interface SheetMapping {
   landing_price: string;
   client_price: string;
   quotation_price: string;
+  quantity: string;
 }
 
 export const GoogleSheetsService = {
@@ -133,6 +134,10 @@ export const GoogleSheetsService = {
             ? ((quotationPrice - landingPrice) / landingPrice) * 100 
             : 0;
           
+          // Get quantity from the sheet or default to 0
+          const quantity = mapping.quantity ? 
+            (parseInt(row[mapping.quantity], 10) || 0) : 0;
+          
           // Create a product object with mapped fields
           const product = {
             brand_id: brandId,
@@ -143,6 +148,7 @@ export const GoogleSheetsService = {
             landing_price: landingPrice,
             client_price: mapping.client_price ? (parseFloat(row[mapping.client_price]) || 0) : 0,
             quotation_price: quotationPrice,
+            quantity: quantity,
             margin: parseFloat(margin.toFixed(2)),
             
             // Initialize extra_data to store unmapped columns

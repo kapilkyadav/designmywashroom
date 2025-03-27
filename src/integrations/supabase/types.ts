@@ -55,6 +55,7 @@ export type Database = {
           margin: number
           mrp: number
           name: string
+          quantity: number
           quotation_price: number
           updated_at: string
         }
@@ -67,6 +68,7 @@ export type Database = {
           margin?: number
           mrp?: number
           name: string
+          quantity?: number
           quotation_price?: number
           updated_at?: string
         }
@@ -79,6 +81,7 @@ export type Database = {
           margin?: number
           mrp?: number
           name?: string
+          quantity?: number
           quotation_price?: number
           updated_at?: string
         }
@@ -97,6 +100,7 @@ export type Database = {
           margin: number
           mrp: number
           name: string
+          quantity: number
           quotation_price: number
           updated_at: string
         }
@@ -112,6 +116,7 @@ export type Database = {
           margin?: number
           mrp?: number
           name: string
+          quantity?: number
           quotation_price?: number
           updated_at?: string
         }
@@ -127,6 +132,7 @@ export type Database = {
           margin?: number
           mrp?: number
           name?: string
+          quantity?: number
           quotation_price?: number
           updated_at?: string
         }

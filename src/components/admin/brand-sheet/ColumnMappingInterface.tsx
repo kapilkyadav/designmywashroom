@@ -20,6 +20,7 @@ export interface ColumnMapping {
   landing_price: string;
   client_price: string;
   quotation_price: string;
+  quantity: string;
 }
 
 interface ColumnMappingInterfaceProps {
@@ -84,6 +85,8 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
           detectedMapping.client_price = header;
         } else if (headerLower.includes('quot') || headerLower.includes('offer') || headerLower.includes('yds')) {
           detectedMapping.quotation_price = header;
+        } else if (headerLower.includes('qty') || headerLower.includes('quant') || headerLower.includes('amount')) {
+          detectedMapping.quantity = header;
         }
       });
       
@@ -120,7 +123,8 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
           mrp: mapping.mrp || '',
           landing_price: mapping.landing_price || '',
           client_price: mapping.client_price || '',
-          quotation_price: mapping.quotation_price || ''
+          quotation_price: mapping.quotation_price || '',
+          quantity: mapping.quantity || ''
         };
         
         console.log('Saving mapping:', completeMapping);
@@ -312,6 +316,29 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
             <Select
               value={mapping.quotation_price || ""}
               onValueChange={(value) => handleFieldChange('quotation_price', value)}
+              disabled={isLoading || loading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select column" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {validHeaders.map((header) => (
+                  <SelectItem key={header} value={header}>
+                    {header}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Quantity
+            </label>
+            <Select
+              value={mapping.quantity || ""}
+              onValueChange={(value) => handleFieldChange('quantity', value)}
               disabled={isLoading || loading}
             >
               <SelectTrigger>
