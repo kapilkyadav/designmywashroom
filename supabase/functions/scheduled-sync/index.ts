@@ -25,7 +25,7 @@ serve(async (req) => {
     // Find jobs that are scheduled to run
     const { data: jobs, error: jobsError } = await supabase
       .from('scheduled_jobs')
-      .select('*')
+      .select('id, brand_id, job_type, status, last_run')
       .eq('job_type', 'sheet_sync')
       .eq('status', 'active');
     
@@ -34,8 +34,8 @@ serve(async (req) => {
     const now = new Date();
     const results = [];
     
-    // Process each job that's due to run
-    for (const job of jobs) {
+    // Use Promise.all for parallel processing of jobs
+    const processingPromises = jobs.map(async (job) => {
       try {
         // Call the run-sheet-sync function for each job
         const syncResponse = await fetch(
@@ -55,30 +55,34 @@ serve(async (req) => {
         }
         
         const result = await syncResponse.json();
-        results.push(result);
         
         // Update job's last_run timestamp
         await supabase
           .from('scheduled_jobs')
           .update({ last_run: now.toISOString() })
           .eq('id', job.id);
+          
+        return { ...result, success: true };
       } catch (error) {
         console.error(`Error processing job ${job.id}:`, error);
-        results.push({
+        return {
           jobId: job.id,
           brandId: job.brand_id,
           error: error.message,
           success: false
-        });
+        };
       }
-    }
+    });
+    
+    // Wait for all jobs to complete
+    const jobResults = await Promise.all(processingPromises);
     
     return new Response(
       JSON.stringify({ 
         success: true, 
         timestamp: now.toISOString(),
         jobsProcessed: jobs.length,
-        results
+        results: jobResults
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

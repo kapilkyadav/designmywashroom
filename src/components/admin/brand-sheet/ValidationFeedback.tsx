@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { AlertCircle, Check } from 'lucide-react';
 
 interface ValidationFeedbackProps {
@@ -7,7 +7,7 @@ interface ValidationFeedbackProps {
   error: string;
 }
 
-const ValidationFeedback: React.FC<ValidationFeedbackProps> = ({ isValid, error }) => {
+const ValidationFeedback: React.FC<ValidationFeedbackProps> = memo(({ isValid, error }) => {
   if (isValid === null) return null;
   
   if (isValid) {
@@ -29,6 +29,8 @@ const ValidationFeedback: React.FC<ValidationFeedbackProps> = ({ isValid, error 
   }
   
   return null;
-};
+});
+
+ValidationFeedback.displayName = 'ValidationFeedback';
 
 export default ValidationFeedback;
