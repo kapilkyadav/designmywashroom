@@ -1,10 +1,10 @@
 
 import { supabase, Project } from '@/lib/supabase';
-import { CacheManager } from '@/lib/cache';
+import { RateLimiter } from '@/lib/rateLimiter';
 
 // Rate limiter for project creation
 // Store email -> timestamp mapping to track submission frequency
-const submissionRateLimiter = new CacheManager<number>(5 * 60 * 1000); // 5 minute cache
+const submissionRateLimiter = new RateLimiter(5 * 60 * 1000); // 5 minute cache, 2 minute rate limit
 
 export const ProjectService = {
   // Get all projects
@@ -43,18 +43,13 @@ export const ProjectService = {
     if (!email) return false;
     
     const key = `submission_${email.toLowerCase()}`;
-    const lastSubmission = submissionRateLimiter.get(key);
-    const now = Date.now();
+    const isLimited = submissionRateLimiter.isRateLimited(key, 2 * 60 * 1000); // 2 minute rate limit
     
-    // If we have a previous submission within the last 2 minutes, rate limit
-    if (lastSubmission && (now - lastSubmission < 2 * 60 * 1000)) {
-      console.log(`Rate limiting submission for ${email}, last submission at ${new Date(lastSubmission).toISOString()}`);
-      return true;
+    if (isLimited) {
+      console.log(`Rate limiting submission for ${email}, too many requests`);
     }
     
-    // Update the last submission time
-    submissionRateLimiter.set(key, now);
-    return false;
+    return isLimited;
   },
   
   // Create a new project from calculator submission
