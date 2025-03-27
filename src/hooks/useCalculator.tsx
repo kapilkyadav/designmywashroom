@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import { CalculatorService, CalculatorState, EstimateResult } from '@/services/CalculatorService';
+import { CalculatorService, CalculatorState, EstimateResult } from '@/services/calculator';
 
 // Define state types
 interface State {
