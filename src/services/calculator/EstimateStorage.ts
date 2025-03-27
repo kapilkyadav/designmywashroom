@@ -21,7 +21,7 @@ export class EstimateStorage {
         throw new Error('MISSING_CUSTOMER_DETAILS');
       }
       
-      const { name, email } = calculatorState.customerDetails;
+      const { name, email, mobile, location } = calculatorState.customerDetails;
       
       // Verify customer details are not empty
       if (!name || name.trim() === '') {
@@ -34,11 +34,21 @@ export class EstimateStorage {
         throw new Error('MISSING_CUSTOMER_DETAILS');
       }
       
+      if (!mobile || mobile.trim() === '') {
+        console.error('Customer mobile is empty or missing.');
+        throw new Error('MISSING_CUSTOMER_DETAILS');
+      }
+      
+      if (!location || location.trim() === '') {
+        console.error('Customer location is empty or missing.');
+        throw new Error('MISSING_CUSTOMER_DETAILS');
+      }
+      
       const projectData = {
-        client_name: calculatorState.customerDetails.name,
-        client_email: calculatorState.customerDetails.email,
-        client_mobile: calculatorState.customerDetails.mobile || '',
-        client_location: calculatorState.customerDetails.location || '',
+        client_name: name.trim(),
+        client_email: email.trim(),
+        client_mobile: mobile.trim(),
+        client_location: location.trim(),
         project_type: calculatorState.projectType,
         length: calculatorState.dimensions.length,
         width: calculatorState.dimensions.width,

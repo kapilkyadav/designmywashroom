@@ -111,16 +111,19 @@ const CustomerDetailsStep = () => {
       // Log the details being saved for debugging
       console.log("Saving customer details:", customerDetails);
       
-      // Important: First update the context with customer details and wait for it
+      // First set customer details in context and wait for it to complete
       setCustomerDetails(customerDetails);
       
-      // Wait a small amount of time to ensure state is updated
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Add a small delay to ensure state is updated before calculating
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      console.log("About to calculate estimate with updated details:", customerDetails);
+      // Verify customer details have been saved
+      if (!customerDetails.name || !customerDetails.email) {
+        throw new Error('MISSING_CUSTOMER_DETAILS');
+      }
       
       try {
-        // Calculate estimate with the current customer details
+        // Now calculate the estimate with guaranteed updated customer details
         const calculationResult = await calculateEstimate();
         console.log("Estimate calculated successfully:", calculationResult);
         
