@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Select,
@@ -104,6 +105,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
   }, [validHeaders, initialMapping, autoDetected]);
   
   const handleFieldChange = (field: keyof ColumnMapping, value: string) => {
+    // Ensure we never set an empty string as a value - use null or a valid placeholder
     const newValue = value === "none" ? "" : value;
     
     setMapping(prev => {
