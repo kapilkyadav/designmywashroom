@@ -177,13 +177,17 @@ export function CalculatorProvider({ children }: { children: ReactNode }) {
     if (state.fixtures.additional.bathtub) fixtureCost += FIXTURE_PRICES.bathtub;
     if (state.fixtures.additional.jacuzzi) fixtureCost += FIXTURE_PRICES.jacuzzi;
     
+    // Ensure dimensions are not zero to avoid NaN or 0 results
+    const length = state.dimensions.length || 0;
+    const width = state.dimensions.width || 0;
+    
     // Calculate plumbing cost
-    const floorArea = state.dimensions.length * state.dimensions.width;
+    const floorArea = length * width;
     const plumbingCost = floorArea * PLUMBING_RATE_PER_SQFT;
     
     // Calculate tiling cost
     const wallHeight = 9; // Fixed at 9 feet
-    const wallArea = 2 * (state.dimensions.length + state.dimensions.width) * wallHeight;
+    const wallArea = 2 * (length + width) * wallHeight;
     const totalTilingArea = floorArea + wallArea;
     
     // Each 2x2 tile covers 4 sq. ft.
@@ -197,6 +201,8 @@ export function CalculatorProvider({ children }: { children: ReactNode }) {
     
     // Calculate total estimate
     const totalEstimate = fixtureCost + plumbingCost + totalTilingCost;
+    
+    console.log("Calculation dimensions:", {length, width, floorArea, wallArea});
     
     setState({
       ...state,
@@ -220,6 +226,7 @@ export function CalculatorProvider({ children }: { children: ReactNode }) {
   };
 
   const setDimensions = (dimensions: { length: number; width: number }) => {
+    console.log("Setting dimensions:", dimensions);
     setState({ ...state, dimensions });
   };
 

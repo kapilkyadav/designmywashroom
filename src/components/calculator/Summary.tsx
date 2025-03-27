@@ -66,8 +66,13 @@ const Summary = () => {
   };
 
   // Ensure dimensions are properly displayed by using the actual values from state
+  console.log("Summary dimensions:", state.dimensions);
+  
+  // Get dimensions and ensure they're numbers (not 0)
   const length = state.dimensions.length;
   const width = state.dimensions.width;
+  
+  // Calculate areas based on dimensions
   const floorArea = length * width;
   const wallArea = 2 * (length + width) * 9; // 9 feet height
 

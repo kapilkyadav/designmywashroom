@@ -8,8 +8,13 @@ import { Card } from '@/components/ui/card';
 
 const DimensionsStep = () => {
   const { state, setDimensions, nextStep, prevStep } = useCalculator();
-  const [length, setLength] = useState(state.dimensions.length.toString() || '');
-  const [width, setWidth] = useState(state.dimensions.width.toString() || '');
+  
+  // Use the state values, or empty strings if they're zero
+  const initialLength = state.dimensions.length > 0 ? state.dimensions.length.toString() : '';
+  const initialWidth = state.dimensions.width > 0 ? state.dimensions.width.toString() : '';
+  
+  const [length, setLength] = useState(initialLength);
+  const [width, setWidth] = useState(initialWidth);
   const [errors, setErrors] = useState({ length: '', width: '' });
   const [showPreview, setShowPreview] = useState(false);
 
@@ -58,9 +63,14 @@ const DimensionsStep = () => {
       return;
     }
 
+    const lengthNum = parseFloat(length);
+    const widthNum = parseFloat(width);
+    
+    console.log("Submitting dimensions:", {length: lengthNum, width: widthNum});
+    
     setDimensions({
-      length: parseFloat(length),
-      width: parseFloat(width)
+      length: lengthNum,
+      width: widthNum
     });
     nextStep();
   };
