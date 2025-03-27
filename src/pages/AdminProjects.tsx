@@ -86,7 +86,6 @@ const AdminProjects = () => {
   const filterAndSortProjects = () => {
     let filtered = [...projects];
     
-    // Apply search query filter
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -98,12 +97,10 @@ const AdminProjects = () => {
       );
     }
     
-    // Apply project type filter
     if (typeFilter) {
       filtered = filtered.filter(project => project.project_type === typeFilter);
     }
     
-    // Apply sorting
     switch(sortOption) {
       case 'newest':
         filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -127,12 +124,10 @@ const AdminProjects = () => {
     
     setFilteredProjects(filtered);
     
-    // Reset selection when filters change
     setSelectedProjects(new Set());
     setAllSelected(false);
   };
 
-  // Format currency in Indian Rupees
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -177,16 +172,13 @@ const AdminProjects = () => {
     try {
       setLoading(true);
       
-      // Delete selected projects one by one
       for (const id of selectedProjects) {
         await ProjectService.deleteProject(id);
       }
       
-      // Refresh the list
       const updatedProjects = projects.filter(p => !selectedProjects.has(p.id));
       setProjects(updatedProjects);
       
-      // Clear selection
       setSelectedProjects(new Set());
       setAllSelected(false);
       
@@ -209,10 +201,8 @@ const AdminProjects = () => {
 
   const handleSelectAll = () => {
     if (allSelected) {
-      // Deselect all
       setSelectedProjects(new Set());
     } else {
-      // Select all filtered projects
       const newSelection = new Set<string>();
       filteredProjects.forEach(project => newSelection.add(project.id));
       setSelectedProjects(newSelection);
@@ -232,15 +222,12 @@ const AdminProjects = () => {
     
     setSelectedProjects(newSelection);
     
-    // Update allSelected state
     setAllSelected(newSelection.size === filteredProjects.length && newSelection.size > 0);
   };
 
   const exportSelectedProjects = () => {
-    // Get selected projects data
     const selectedData = projects.filter(p => selectedProjects.has(p.id));
     
-    // Transform the data as needed for export
     const exportData = selectedData.map(p => ({
       client_name: p.client_name,
       client_email: p.client_email,
@@ -252,7 +239,6 @@ const AdminProjects = () => {
       created_at: new Date(p.created_at).toLocaleDateString()
     }));
     
-    // Convert to JSON and download
     const dataStr = JSON.stringify(exportData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
@@ -316,7 +302,7 @@ const AdminProjects = () => {
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="new-construction">New Construction</SelectItem>
               <SelectItem value="renovation">Renovation</SelectItem>
             </SelectContent>
@@ -339,7 +325,6 @@ const AdminProjects = () => {
         </div>
       </div>
 
-      {/* Display Active filters and reset button */}
       {(searchQuery || typeFilter !== '' || sortOption !== 'newest') && (
         <div className="flex items-center justify-between px-2 py-1 rounded-md bg-muted/40">
           <div className="text-sm text-muted-foreground">
@@ -482,7 +467,6 @@ const AdminProjects = () => {
             </Table>
           </div>
 
-          {/* Selection summary */}
           {selectedProjects.size > 0 && (
             <div className="flex items-center justify-between py-2 px-4 rounded-md bg-secondary animate-fade-in">
               <div className="flex items-center gap-2">
@@ -502,7 +486,6 @@ const AdminProjects = () => {
         </>
       )}
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -521,7 +504,6 @@ const AdminProjects = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Bulk Delete Confirmation Dialog */}
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
