@@ -50,7 +50,7 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
     validateSheet,
     cancelValidation,
     handleMappingComplete,
-    startImport,
+    importProducts, // Using the correct method name from the hook
     handleOpenSheet
   } = useSheetImport({ brandId, onComplete });
 
@@ -77,7 +77,7 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
     console.log('Mapping complete, starting import', mapping);
     
     // Start the import process with the mapping
-    startImport(mapping);
+    importProducts(mapping); // Using the correct method name
     
     // Let the hook handle the step change
     handleMappingComplete(mapping);
@@ -116,7 +116,7 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
             onHeaderRowChange={setHeaderRow}
             onValidate={validateSheet}
             onCancel={cancelValidation}
-            onImport={startImport}
+            onImport={importProducts} // Using the correct method name
             onOpenSheet={handleOpenSheet}
             onMappingComplete={handleProductMapping}
             onImportComplete={handleImportComplete}
