@@ -10,7 +10,12 @@ if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KE
   console.warn('Using default Supabase credentials. For production, set your own VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true
+  }
+});
 
 // Database types based on our schema
 export type User = {
