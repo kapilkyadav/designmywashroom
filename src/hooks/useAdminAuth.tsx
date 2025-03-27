@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { supabase, User } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 
@@ -58,38 +58,50 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    checkSession();
+    // Set up auth state change listener
+    const setupAuthListener = () => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (event === 'SIGNED_IN' && session) {
+            // Use setTimeout to prevent potential deadlocks with Supabase client
+            setTimeout(async () => {
+              // Fetch user details after sign in
+              const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', session.user.id)
+                .eq('role', 'admin')
+                .single();
 
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        // Fetch user details after sign in
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .eq('role', 'admin')
-          .single();
-
-        if (error || !data) {
-          setIsAuthenticated(false);
-          setUser(null);
-        } else {
-          setIsAuthenticated(true);
-          setUser(data as User);
+              if (error || !data) {
+                setIsAuthenticated(false);
+                setUser(null);
+              } else {
+                setIsAuthenticated(true);
+                setUser(data as User);
+              }
+            }, 0);
+          } else if (event === 'SIGNED_OUT') {
+            setIsAuthenticated(false);
+            setUser(null);
+          }
         }
-      } else if (event === 'SIGNED_OUT') {
-        setIsAuthenticated(false);
-        setUser(null);
-      }
-    });
+      );
+      
+      return subscription;
+    };
+
+    // Check session first, then set up listener
+    checkSession();
+    const subscription = setupAuthListener();
 
     return () => {
       subscription?.unsubscribe();
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  // Memoize login function to prevent unnecessary re-renders
+  const login = useCallback(async (email: string, password: string) => {
     try {
       setIsLoading(true);
       
@@ -134,9 +146,10 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  // Memoize logout function to prevent unnecessary re-renders
+  const logout = useCallback(async () => {
     try {
       setIsLoading(true);
       
@@ -162,10 +175,19 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    isAuthenticated, 
+    isLoading, 
+    user, 
+    login, 
+    logout
+  }), [isAuthenticated, isLoading, user, login, logout]);
 
   return (
-    <AdminAuthContext.Provider value={{ isAuthenticated, isLoading, user, login, logout }}>
+    <AdminAuthContext.Provider value={contextValue}>
       {children}
     </AdminAuthContext.Provider>
   );
