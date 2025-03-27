@@ -1,4 +1,3 @@
-
 import { supabase, Product } from '@/lib/supabase';
 
 export const ProductService = {
@@ -152,38 +151,51 @@ export const ProductService = {
     brandId: string,
     products: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'margin' | 'brand_id'>[]
   ): Promise<number> {
-    // Calculate margins and add brand_id to each product
-    const productsWithMargins = products.map(product => {
-      const landingPrice = product.landing_price || 0;
-      const quotationPrice = product.quotation_price || 0;
-      
-      // Calculate margin percentage
-      const margin = landingPrice > 0 
-        ? ((quotationPrice - landingPrice) / landingPrice) * 100 
-        : 0;
-      
-      return {
-        ...product,
-        brand_id: brandId,
-        margin: parseFloat(margin.toFixed(2))
-      };
-    });
-    
-    // Insert in batches if necessary
-    const { data, error } = await supabase
-      .from('products')
-      .insert(productsWithMargins)
-      .select('id');
-    
-    if (error) {
-      console.error('Error importing products:', error);
-      throw error;
+    if (!brandId) {
+      throw new Error('Brand ID is required for importing products');
     }
     
-    // Update product count for the brand
-    await this.updateBrandProductCount(brandId);
+    if (!products || products.length === 0) {
+      throw new Error('No products provided for import');
+    }
     
-    return data.length;
+    try {
+      // Calculate margins and add brand_id to each product
+      const productsWithMargins = products.map(product => {
+        const landingPrice = product.landing_price || 0;
+        const quotationPrice = product.quotation_price || 0;
+        
+        // Calculate margin percentage
+        const margin = landingPrice > 0 
+          ? ((quotationPrice - landingPrice) / landingPrice) * 100 
+          : 0;
+        
+        return {
+          ...product,
+          brand_id: brandId,
+          margin: parseFloat(margin.toFixed(2))
+        };
+      });
+      
+      // Insert in batches if necessary
+      const { data, error } = await supabase
+        .from('products')
+        .insert(productsWithMargins)
+        .select('id');
+      
+      if (error) {
+        console.error('Error importing products:', error);
+        throw error;
+      }
+      
+      // Update product count for the brand
+      await this.updateBrandProductCount(brandId);
+      
+      return data.length;
+    } catch (error) {
+      console.error('Error in importProductsFromSheet:', error);
+      throw error;
+    }
   },
   
   // Helper method to update product count for a brand
