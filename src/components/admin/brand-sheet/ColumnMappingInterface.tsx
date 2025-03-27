@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Select,
@@ -84,7 +83,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
   const handleFieldChange = (field: keyof ColumnMapping, value: string) => {
     setMapping(prev => ({
       ...prev,
-      [field]: value
+      [field]: value === "none" ? "" : value
     }));
   };
   
@@ -154,7 +153,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
                 <SelectValue placeholder="Select column" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {headers.map((header) => (
                   <SelectItem key={header} value={header}>
                     {header}
@@ -177,7 +176,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
                 <SelectValue placeholder="Select column" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {headers.map((header) => (
                   <SelectItem key={header} value={header}>
                     {header}
@@ -200,7 +199,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
                 <SelectValue placeholder="Select column" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {headers.map((header) => (
                   <SelectItem key={header} value={header}>
                     {header}
@@ -223,7 +222,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
                 <SelectValue placeholder="Select column" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {headers.map((header) => (
                   <SelectItem key={header} value={header}>
                     {header}
@@ -246,7 +245,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
                 <SelectValue placeholder="Select column" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {headers.map((header) => (
                   <SelectItem key={header} value={header}>
                     {header}
@@ -269,7 +268,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
                 <SelectValue placeholder="Select column" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {headers.map((header) => (
                   <SelectItem key={header} value={header}>
                     {header}
@@ -292,7 +291,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
                 <SelectValue placeholder="Select column" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {headers.map((header) => (
                   <SelectItem key={header} value={header}>
                     {header}
