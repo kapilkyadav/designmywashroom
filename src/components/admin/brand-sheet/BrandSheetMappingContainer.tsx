@@ -14,7 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { useSheetImport } from '@/hooks/useSheetImport';
 import StepContent from './StepContent';
 import FooterContent from './FooterContent';
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface BrandSheetMappingContainerProps {
   brandId: string;
@@ -45,6 +45,8 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
     setCurrentStep,
     progress,
     sheetHeaders,
+    mappedProducts,
+    importedCount,
     
     // Actions
     handleUrlChange,
@@ -121,12 +123,14 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
             isValid={isValid}
             error={error}
             brandId={brandId}
+            products={mappedProducts}
+            importedCount={importedCount}
             onUrlChange={handleUrlChange}
             onSheetNameChange={(e) => setSheetName(e.target.value)}
             onHeaderRowChange={setHeaderRow}
             onValidate={validateSheet}
             onCancel={cancelValidation}
-            onImport={handleImportAction} // Using the wrapper function that takes no arguments
+            onImport={handleImportAction}
             onOpenSheet={handleOpenSheet}
             onMappingComplete={handleProductMapping}
             onImportComplete={handleImportComplete}
@@ -143,25 +147,27 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
             isValid={isValid}
             onValidate={validateSheet}
             onCancel={cancelValidation}
-            onImport={handleImportAction} // Using the wrapper function that takes no arguments
+            onImport={handleImportAction}
             onOpenSheet={handleOpenSheet}
           />
         </CardFooter>
       </Card>
 
       <Dialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
-        <DialogContent className="sm:max-w-md">
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Error</h3>
-            <p>{errorMessage}</p>
-            <div className="flex justify-end">
-              <button 
-                onClick={() => setShowErrorDialog(false)}
-                className="bg-primary text-primary-foreground px-4 py-2 rounded"
-              >
-                Close
-              </button>
-            </div>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import Error</DialogTitle>
+            <DialogDescription>
+              {errorMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <button 
+              onClick={() => setShowErrorDialog(false)}
+              className="bg-primary text-primary-foreground px-4 py-2 rounded"
+            >
+              Close
+            </button>
           </div>
         </DialogContent>
       </Dialog>

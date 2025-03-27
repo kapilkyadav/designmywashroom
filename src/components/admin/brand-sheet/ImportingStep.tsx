@@ -19,16 +19,25 @@ const ImportingStep: React.FC<ImportingStepProps> = ({
 }) => {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
+    // Only run the import once
+    if (isImporting) return;
+    
     const importProducts = async () => {
+      // Validate inputs before proceeding
       if (!brandId || !products || products.length === 0) {
-        setError('No products to import or missing brand ID');
-        onError?.(new Error('No products to import or missing brand ID'));
+        const errorMessage = 'No products to import or missing brand ID';
+        console.error(errorMessage);
+        setError(errorMessage);
+        onError?.(new Error(errorMessage));
         return;
       }
 
       try {
+        setIsImporting(true);
+        
         // Start the import process
         console.log(`Importing ${products.length} products for brand ${brandId}`);
         setProgress(10);
@@ -61,7 +70,7 @@ const ImportingStep: React.FC<ImportingStepProps> = ({
     };
 
     importProducts();
-  }, [brandId, products, onComplete, onError]);
+  }, [brandId, products, onComplete, onError, isImporting]);
 
   if (error) {
     return (

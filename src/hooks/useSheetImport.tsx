@@ -33,6 +33,8 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
   const [sheetHeaders, setSheetHeaders] = useState<string[]>([]);
   const [columnMapping, setColumnMapping] = useState<SheetMapping | null>(null);
   const [sheetData, setSheetData] = useState<any[] | null>(null);
+  const [mappedProducts, setMappedProducts] = useState<any[] | null>(null);
+  const [importedCount, setImportedCount] = useState(0);
   
   // Progress steps
   const steps = {
@@ -171,6 +173,21 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
   
   const handleMappingComplete = (mapping: SheetMapping) => {
     setColumnMapping(mapping);
+    
+    // Map the sheet data to products immediately after mapping is complete
+    if (sheetData && mapping && brandId) {
+      const products = GoogleSheetsService.mapSheetDataToProducts(
+        sheetData,
+        sheetHeaders,
+        mapping,
+        brandId
+      );
+      setMappedProducts(products);
+      console.log(`Mapped ${products.length} products ready for import`);
+    } else {
+      console.error('Missing data required for product mapping');
+    }
+    
     setCurrentStep('importing');
   };
   
@@ -184,18 +201,25 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
     setImporting(true);
     
     try {
-      // Map the sheet data to products
-      const products = GoogleSheetsService.mapSheetDataToProducts(
+      // If we already have mapped products, use them, otherwise map the data
+      const products = mappedProducts || GoogleSheetsService.mapSheetDataToProducts(
         sheetData,
         sheetHeaders,
         mapping,
         brandId
       );
       
-      console.log(`Mapped ${products.length} products for import`);
+      if (!products || products.length === 0) {
+        throw new Error('No products were mapped from the sheet');
+      }
+      
+      console.log(`Importing ${products.length} products for brand ${brandId}`);
       
       // Import the products using the product service
-      await ProductService.importProductsFromSheet(brandId, products);
+      const count = await ProductService.importProductsFromSheet(brandId, products);
+      setImportedCount(count);
+      
+      console.log(`Successfully imported ${count} products`);
       
       // Schedule automatic sync
       try {
@@ -213,7 +237,7 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
       
       toast({
         title: "Import successful",
-        description: `${products.length} products imported successfully`,
+        description: `${count} products imported successfully`,
       });
       
       setCurrentStep('complete');
@@ -256,6 +280,8 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
     setCurrentStep,
     progress,
     sheetHeaders,
+    mappedProducts,
+    importedCount,
     
     // Actions
     handleUrlChange,
