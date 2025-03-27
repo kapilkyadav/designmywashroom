@@ -83,6 +83,15 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
     handleMappingComplete(mapping);
   };
 
+  // Create a wrapper function that doesn't require parameters
+  const handleImportAction = () => {
+    // This is only called from the footer when on the connection step
+    if (currentStep === 'connection' && isValid) {
+      // Just proceed to the next step without directly importing
+      setHeaderRow(headerRow);
+    }
+  };
+
   return (
     <>
       <Card className="max-w-3xl mx-auto">
@@ -116,7 +125,7 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
             onHeaderRowChange={setHeaderRow}
             onValidate={validateSheet}
             onCancel={cancelValidation}
-            onImport={importProducts} // Using the correct method name
+            onImport={handleImportAction} // Using the wrapper function that takes no arguments
             onOpenSheet={handleOpenSheet}
             onMappingComplete={handleProductMapping}
             onImportComplete={handleImportComplete}
@@ -133,7 +142,7 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
             isValid={isValid}
             onValidate={validateSheet}
             onCancel={cancelValidation}
-            onImport={() => currentStep === 'connection' && isValid ? setHeaderRow(headerRow) : null}
+            onImport={handleImportAction} // Using the wrapper function that takes no arguments
             onOpenSheet={handleOpenSheet}
           />
         </CardFooter>
