@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { CalculatorService, CalculatorState, EstimateResult } from '@/services/CalculatorService';
 
@@ -206,12 +207,14 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const setCustomerDetails = (details: { name: string; email: string; mobile: string; location: string }) => {
+    console.log('Setting customer details in context:', details);
     dispatch({ type: 'SET_CUSTOMER_DETAILS', payload: details });
   };
 
   const calculateEstimate = async (): Promise<EstimateResult> => {
     try {
       console.log('Calculating estimate with state:', state);
+      console.log('Customer details from state:', state.customerDetails);
       
       // Prepare calculator state for API
       const calculatorState: CalculatorState = {

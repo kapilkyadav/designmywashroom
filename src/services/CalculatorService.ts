@@ -176,6 +176,8 @@ export const CalculatorService = {
     estimateResult: EstimateResult
   ): Promise<Project> {
     try {
+      console.log('Saving estimate with customer details:', calculatorState.customerDetails);
+      
       const projectData = {
         client_name: calculatorState.customerDetails.name,
         client_email: calculatorState.customerDetails.email,
@@ -193,6 +195,9 @@ export const CalculatorService = {
         tiling_cost: estimateResult.tilingCost.total,
         final_estimate: estimateResult.total
       };
+      
+      // Log the project data being sent to the database
+      console.log('Creating project with data:', projectData);
       
       return await ProjectService.createProject(projectData);
     } catch (error) {
