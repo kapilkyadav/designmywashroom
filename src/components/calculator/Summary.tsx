@@ -65,6 +65,12 @@ const Summary = () => {
     return selected;
   };
 
+  // Ensure dimensions are properly displayed by using the actual values from state
+  const length = state.dimensions.length;
+  const width = state.dimensions.width;
+  const floorArea = length * width;
+  const wallArea = 2 * (length + width) * 9; // 9 feet height
+
   return (
     <div className="animate-fade-in">
       <div className="max-w-4xl mx-auto">
@@ -98,10 +104,13 @@ const Summary = () => {
               <div>
                 <h5 className="text-sm font-medium text-muted-foreground mb-2">Washroom Dimensions</h5>
                 <p className="text-base">
-                  {state.dimensions.length} × {state.dimensions.width} × 9 feet
+                  {length} × {width} × 9 feet
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Floor Area: {(state.dimensions.length * state.dimensions.width).toFixed(2)} sq ft
+                  Floor Area: {floorArea.toFixed(2)} sq ft
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Wall Area: {wallArea.toFixed(2)} sq ft
                 </p>
               </div>
               
