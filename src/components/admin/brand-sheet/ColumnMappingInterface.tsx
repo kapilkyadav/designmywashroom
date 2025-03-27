@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Select,
@@ -34,6 +35,9 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
   onMappingComplete,
   isLoading = false
 }) => {
+  // Filter out any empty headers to prevent empty values being passed to SelectItem
+  const validHeaders = headers.filter(header => header && header.trim() !== '');
+  
   const [mapping, setMapping] = useState<Partial<ColumnMapping>>({
     ...initialMapping
   });
@@ -52,11 +56,11 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
   
   // Auto-detect fields from headers (best-effort matching)
   useEffect(() => {
-    if (headers.length > 0 && Object.keys(initialMapping).length === 0) {
+    if (validHeaders.length > 0 && Object.keys(initialMapping).length === 0) {
       const detectedMapping: Partial<ColumnMapping> = {};
       
       // Try to match common naming patterns
-      headers.forEach(header => {
+      validHeaders.forEach(header => {
         const headerLower = header.toLowerCase();
         
         if (headerLower.includes('name') || headerLower.includes('product')) {
@@ -78,7 +82,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
       
       setMapping(detectedMapping);
     }
-  }, [headers, initialMapping]);
+  }, [validHeaders, initialMapping]);
   
   const handleFieldChange = (field: keyof ColumnMapping, value: string) => {
     setMapping(prev => ({
@@ -117,12 +121,12 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
     }
   };
   
-  if (headers.length === 0) {
+  if (validHeaders.length === 0) {
     return (
       <Alert variant="destructive" className="mb-4">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          No headers found in the sheet. Please make sure the sheet contains headers.
+          No valid headers found in the sheet. Please make sure the sheet contains headers.
         </AlertDescription>
       </Alert>
     );
@@ -154,7 +158,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
-                {headers.map((header) => (
+                {validHeaders.map((header) => (
                   <SelectItem key={header} value={header}>
                     {header}
                   </SelectItem>
@@ -177,7 +181,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
-                {headers.map((header) => (
+                {validHeaders.map((header) => (
                   <SelectItem key={header} value={header}>
                     {header}
                   </SelectItem>
@@ -200,7 +204,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
-                {headers.map((header) => (
+                {validHeaders.map((header) => (
                   <SelectItem key={header} value={header}>
                     {header}
                   </SelectItem>
@@ -223,7 +227,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
-                {headers.map((header) => (
+                {validHeaders.map((header) => (
                   <SelectItem key={header} value={header}>
                     {header}
                   </SelectItem>
@@ -246,7 +250,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
-                {headers.map((header) => (
+                {validHeaders.map((header) => (
                   <SelectItem key={header} value={header}>
                     {header}
                   </SelectItem>
@@ -269,7 +273,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
-                {headers.map((header) => (
+                {validHeaders.map((header) => (
                   <SelectItem key={header} value={header}>
                     {header}
                   </SelectItem>
@@ -292,7 +296,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
-                {headers.map((header) => (
+                {validHeaders.map((header) => (
                   <SelectItem key={header} value={header}>
                     {header}
                   </SelectItem>
