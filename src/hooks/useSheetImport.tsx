@@ -195,7 +195,8 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
       console.log(`Mapped ${products.length} products for import`);
       
       // Import the products using the product service
-      await ProductService.importProducts(products, brandId);
+      // Fix: Change from importProducts to importProductsFromSheet
+      await ProductService.importProductsFromSheet(brandId, products);
       
       // Schedule automatic sync
       try {
