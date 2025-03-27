@@ -35,9 +35,22 @@ export const ProjectService = {
   
   // Create a new project from calculator submission
   async createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
+    // Ensure all string fields have valid values or empty strings, not null/undefined
+    const sanitizedProject = {
+      ...project,
+      client_name: project.client_name || '',
+      client_email: project.client_email || '',
+      client_mobile: project.client_mobile || '',
+      client_location: project.client_location || '',
+      project_type: project.project_type || 'new-construction',
+      selected_brand: project.selected_brand || ''
+    };
+    
+    console.log('Creating project with data:', sanitizedProject);
+    
     const { data, error } = await supabase
       .from('projects')
-      .insert(project)
+      .insert(sanitizedProject)
       .select()
       .single();
     
@@ -51,10 +64,26 @@ export const ProjectService = {
   
   // Update a project
   async updateProject(id: string, project: Partial<Project>): Promise<Project> {
+    // Sanitize any potential undefined/null values for string fields
+    const updateData = { ...project };
+    
+    if ('client_name' in updateData && !updateData.client_name) {
+      updateData.client_name = '';
+    }
+    if ('client_email' in updateData && !updateData.client_email) {
+      updateData.client_email = '';
+    }
+    if ('client_mobile' in updateData && !updateData.client_mobile) {
+      updateData.client_mobile = '';
+    }
+    if ('client_location' in updateData && !updateData.client_location) {
+      updateData.client_location = '';
+    }
+    
     const { data, error } = await supabase
       .from('projects')
       .update({
-        ...project,
+        ...updateData,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)

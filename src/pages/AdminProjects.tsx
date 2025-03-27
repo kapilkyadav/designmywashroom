@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { 
   Search, FileText, Loader2, Calendar, Download, Trash2, 
   MoreHorizontal, Eye, Edit, CheckSquare, ChevronUp, ChevronDown,
+  AlertCircle
 } from 'lucide-react';
 
 const AdminProjects = () => {
@@ -56,6 +58,7 @@ const AdminProjects = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [dataError, setDataError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProjects();
@@ -69,6 +72,22 @@ const AdminProjects = () => {
     try {
       setLoading(true);
       const data = await ProjectService.getAllProjects();
+      
+      // Check for data issues
+      let hasDataIssues = false;
+      data.forEach(project => {
+        if (!project.client_name && !project.client_email && !project.client_mobile) {
+          console.warn('Project with missing client data:', project.id);
+          hasDataIssues = true;
+        }
+      });
+      
+      if (hasDataIssues) {
+        setDataError("Some projects have incomplete customer information. This might indicate an issue with data capture.");
+      } else {
+        setDataError(null);
+      }
+      
       setProjects(data);
       setFilteredProjects(data);
     } catch (error) {
@@ -97,7 +116,7 @@ const AdminProjects = () => {
       );
     }
     
-    if (typeFilter) {
+    if (typeFilter && typeFilter !== 'all') {
       filtered = filtered.filter(project => project.project_type === typeFilter);
     }
     
@@ -229,10 +248,10 @@ const AdminProjects = () => {
     const selectedData = projects.filter(p => selectedProjects.has(p.id));
     
     const exportData = selectedData.map(p => ({
-      client_name: p.client_name,
-      client_email: p.client_email,
-      client_mobile: p.client_mobile,
-      client_location: p.client_location,
+      client_name: p.client_name || 'Unknown',
+      client_email: p.client_email || 'No email',
+      client_mobile: p.client_mobile || 'No mobile',
+      client_location: p.client_location || 'No location',
       project_type: p.project_type,
       dimensions: `${p.length} × ${p.width} ft`,
       final_estimate: p.final_estimate,
@@ -283,6 +302,16 @@ const AdminProjects = () => {
           )}
         </div>
       </div>
+
+      {dataError && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-3 flex items-start space-x-3 mb-4">
+          <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+          <div>
+            <p className="font-medium">{dataError}</p>
+            <p className="text-sm mt-1">Some contact data may be missing or not displaying correctly for projects.</p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="md:col-span-2">
@@ -387,15 +416,15 @@ const AdminProjects = () => {
                         />
                       </TableCell>
                       <TableCell className="font-medium">
-                        <div>{project.client_name || 'N/A'}</div>
+                        <div>{project.client_name || 'Unknown Client'}</div>
                         <div className="text-xs text-muted-foreground">
-                          {project.client_email || 'No email'}
+                          {project.client_email || 'No email provided'}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {project.client_mobile || 'No mobile'}
+                          {project.client_mobile || 'No mobile provided'}
                         </div>
                       </TableCell>
-                      <TableCell>{project.client_location || 'N/A'}</TableCell>
+                      <TableCell>{project.client_location || 'Unknown Location'}</TableCell>
                       <TableCell className="capitalize">
                         {project.project_type.replace('-', ' ')}
                       </TableCell>

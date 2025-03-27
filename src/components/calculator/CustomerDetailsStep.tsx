@@ -75,13 +75,19 @@ const CustomerDetailsStep = () => {
     try {
       setIsSubmitting(true);
       
+      // Make sure we're sending non-empty strings to avoid "N/A" in the admin panel
+      const customerDetails = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        mobile: formData.mobile.trim(),
+        location: formData.location.trim()
+      };
+      
+      // Log the details being saved for debugging
+      console.log("Saving customer details:", customerDetails);
+      
       // Update context with customer details
-      setCustomerDetails({
-        name: formData.name,
-        email: formData.email,
-        mobile: formData.mobile,
-        location: formData.location
-      });
+      setCustomerDetails(customerDetails);
       
       // Calculate estimate and save to database
       await calculateEstimate();
