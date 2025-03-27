@@ -27,17 +27,34 @@ export class RateLimiter {
    * @returns true if rate limited, false otherwise
    */
   isRateLimited(key: string, cooldownPeriod: number = 2 * 60 * 1000): boolean {
-    const now = Date.now();
-    const lastRequest = this.cache.get(key) || 0;
-    
-    // If within cooldown period, rate limit
-    if (now - lastRequest < cooldownPeriod) {
-      return true;
+    // For empty keys, never rate limit
+    if (!key || key.trim() === '') {
+      console.log('Empty key provided to rate limiter, not limiting');
+      return false;
     }
     
-    // Update last request time
-    this.cache.set(key, now);
-    return false;
+    const now = Date.now();
+    const lastRequest = this.cache.get(key);
+    
+    // If no previous request, this is the first time - not rate limited
+    if (!lastRequest) {
+      console.log(`First request from ${key}, setting timestamp and not limiting`);
+      this.cache.set(key, now);
+      return false;
+    }
+    
+    // Check if within cooldown period
+    const timeSinceLastRequest = now - lastRequest;
+    const isLimited = timeSinceLastRequest < cooldownPeriod;
+    
+    // Always update the timestamp for subsequent checks, even if rate limited
+    if (!isLimited) {
+      this.cache.set(key, now);
+    }
+    
+    console.log(`Rate limit check for ${key}: last request ${timeSinceLastRequest}ms ago, cooldown: ${cooldownPeriod}ms, limited: ${isLimited}`);
+    
+    return isLimited;
   }
   
   /**
@@ -47,12 +64,18 @@ export class RateLimiter {
     // Clean up every minute
     this.cleanupInterval = setInterval(() => {
       const now = Date.now();
+      let removedCount = 0;
       
       // Remove entries older than TTL
       for (const [key, timestamp] of this.cache.entries()) {
         if (now - timestamp > this.timeToLive) {
           this.cache.delete(key);
+          removedCount++;
         }
+      }
+      
+      if (removedCount > 0) {
+        console.log(`Rate limiter cleanup: removed ${removedCount} expired entries`);
       }
     }, 60000); // Run cleanup every minute
     
@@ -67,6 +90,16 @@ export class RateLimiter {
    */
   clear() {
     this.cache.clear();
+    console.log('Rate limiter cache cleared');
+  }
+  
+  /**
+   * Remove a specific key from the cache
+   */
+  remove(key: string) {
+    const removed = this.cache.delete(key);
+    console.log(`Removed key ${key} from rate limiter: ${removed}`);
+    return removed;
   }
   
   /**

@@ -4,7 +4,8 @@ import { RateLimiter } from '@/lib/rateLimiter';
 
 // Rate limiter for project creation
 // Store email -> timestamp mapping to track submission frequency
-const submissionRateLimiter = new RateLimiter(5 * 60 * 1000); // 5 minute cache, 2 minute rate limit
+// 5 minute cache with 1 minute rate limit (reduced from 2 minutes)
+const submissionRateLimiter = new RateLimiter(5 * 60 * 1000);
 
 export const ProjectService = {
   // Get all projects
@@ -40,13 +41,23 @@ export const ProjectService = {
   
   // Check if a user is submitting too frequently
   isRateLimited(email: string): boolean {
-    if (!email) return false;
+    if (!email || email.trim() === '') {
+      console.log('Empty email provided for rate limiting check, not limiting');
+      return false;
+    }
     
-    const key = `submission_${email.toLowerCase()}`;
-    const isLimited = submissionRateLimiter.isRateLimited(key);
+    // Normalize the email by trimming and converting to lowercase
+    const normalizedEmail = email.trim().toLowerCase();
+    const key = `submission_${normalizedEmail}`;
+    
+    // Reduced cooldown period to 1 minute for testing
+    const cooldownPeriod = 60 * 1000; // 1 minute
+    const isLimited = submissionRateLimiter.isRateLimited(key, cooldownPeriod);
     
     if (isLimited) {
-      console.log(`Rate limiting submission for ${email}, too many requests`);
+      console.log(`Rate limiting submission for ${normalizedEmail}, too many requests`);
+    } else {
+      console.log(`Submission from ${normalizedEmail} is within rate limits`);
     }
     
     return isLimited;
@@ -55,8 +66,11 @@ export const ProjectService = {
   // Create a new project from calculator submission
   async createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
     // Check rate limiting
-    if (project.client_email && this.isRateLimited(project.client_email)) {
-      throw new Error('RATE_LIMITED');
+    if (project.client_email) {
+      const isLimited = this.isRateLimited(project.client_email);
+      if (isLimited) {
+        throw new Error('RATE_LIMITED');
+      }
     }
     
     // Debug: Log the incoming project data

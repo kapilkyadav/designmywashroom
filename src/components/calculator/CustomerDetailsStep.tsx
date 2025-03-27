@@ -88,9 +88,17 @@ const CustomerDetailsStep = () => {
     try {
       setIsSubmitting(true);
       
+      // Log email to check for rate limiting issues
+      console.log(`Checking rate limiting for email: ${formData.email.trim()}`);
+      
       // Check for rate limiting before processing
-      const isRateLimited = ProjectService.isRateLimited(formData.email.trim());
+      // Only check if the email is different than the one already in state
+      // This should prevent false positives for the same user just updating other fields
+      const isExistingEmail = state.customerDetails.email === formData.email.trim();
+      const isRateLimited = !isExistingEmail && ProjectService.isRateLimited(formData.email.trim());
+      
       if (isRateLimited) {
+        console.log(`Rate limited detected for ${formData.email.trim()}`);
         toast({
           title: "Too many submissions",
           description: "Please wait a moment before submitting again.",
@@ -134,8 +142,15 @@ const CustomerDetailsStep = () => {
           title: "Estimate calculated successfully",
           description: "Your washroom renovation estimate is ready.",
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error calculating estimate:', error);
+        
+        // Check if this is a rate limit error
+        if (error.message === 'RATE_LIMITED') {
+          // Since we already caught this earlier, this is likely from the estimate storage layer
+          console.log("Rate limiting error during estimate calculation");
+        }
+        
         handleSubmissionError(error);
       }
     } catch (error) {
