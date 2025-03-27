@@ -9,7 +9,7 @@ import { calculatorReducer } from './calculatorReducer';
 export const CalculatorContext = createContext<CalculatorContextType>({
   state: initialState,
   setProjectType: () => {},
-  setDimensions: () => {},
+  setDimensions: () =>  {},
   setFixture: () => {},
   setTimeline: () => {},
   setBrand: () => {},
@@ -63,7 +63,12 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
   const calculateEstimate = async (): Promise<EstimateResult> => {
     try {
       console.log('Calculating estimate with state:', state);
-      console.log('Customer details from state:', state.customerDetails);
+      
+      // Validate customer details before proceeding
+      if (!state.customerDetails.name || !state.customerDetails.email) {
+        console.error('Missing customer details. Cannot calculate estimate.');
+        throw new Error('MISSING_CUSTOMER_DETAILS');
+      }
       
       // Prepare calculator state for API
       const calculatorState = {

@@ -84,11 +84,11 @@ const CustomerDetailsStep = () => {
           description: "Please wait a moment before submitting again.",
           variant: "destructive"
         });
+        setIsSubmitting(false);
         return;
       }
       
-      // IMPORTANT: First update context with customer details
-      // Make sure we're sending non-empty strings to avoid "N/A" in the admin panel
+      // Prepare customer details
       const customerDetails = {
         name: formData.name.trim(),
         email: formData.email.trim(),
@@ -99,33 +99,40 @@ const CustomerDetailsStep = () => {
       // Log the details being saved for debugging
       console.log("Saving customer details:", customerDetails);
       
-      // Update context with customer details - this must happen BEFORE calculate estimate
+      // Update context with customer details
       setCustomerDetails(customerDetails);
       
-      // Delay calculation slightly to ensure state is updated
-      setTimeout(async () => {
-        try {
-          // Calculate estimate and save to database
-          await calculateEstimate();
-          
-          // Move to the next step after successful calculation
-          nextStep();
-          
-          toast({
-            title: "Estimate calculated successfully",
-            description: "Your washroom renovation estimate is ready.",
+      // Using a Promise to ensure state is updated before continuing
+      // This is a more reliable approach than using setTimeout
+      await new Promise<void>((resolve) => {
+        // Use requestAnimationFrame to ensure state has updated
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            resolve();
           });
-        } catch (error) {
-          console.error('Error in delayed calculation:', error);
-          handleSubmissionError(error);
-        } finally {
-          setIsSubmitting(false);
-        }
-      }, 100); // Small delay to ensure state updates
+        });
+      });
       
+      try {
+        // Calculate estimate after ensuring state is updated
+        const estimateResult = await calculateEstimate();
+        console.log("Estimate calculated successfully:", estimateResult);
+        
+        // Move to the next step after successful calculation
+        nextStep();
+        
+        toast({
+          title: "Estimate calculated successfully",
+          description: "Your washroom renovation estimate is ready.",
+        });
+      } catch (error) {
+        console.error('Error calculating estimate:', error);
+        handleSubmissionError(error);
+      }
     } catch (error) {
       console.error('Error submitting details:', error);
       handleSubmissionError(error);
+    } finally {
       setIsSubmitting(false);
     }
   };
