@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { 
   ArrowLeft, Edit, Trash2, Calendar, LoaderCircle, 
-  Ruler, Home, Clock, Bath, Shower, Zap 
+  Ruler, Home, Clock, Bath, ShowerHead, Zap 
 } from 'lucide-react';
 import {
   AlertDialog,

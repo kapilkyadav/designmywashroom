@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,7 +20,7 @@ import AdminFixtures from "./pages/AdminFixtures";
 import AdminSettings from "./pages/AdminSettings";
 import AdminProjectDetail from "./pages/AdminProjectDetail";
 import AdminProjectEdit from "./pages/AdminProjectEdit";
-import { useState } from "react";
+import AdminProjects from "./pages/AdminProjects";
 
 const App = () => {
   const [queryClient] = useState(() => new QueryClient());
