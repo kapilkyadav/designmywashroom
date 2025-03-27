@@ -195,7 +195,6 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
       console.log(`Mapped ${products.length} products for import`);
       
       // Import the products using the product service
-      // Fix: Change from importProducts to importProductsFromSheet
       await ProductService.importProductsFromSheet(brandId, products);
       
       // Schedule automatic sync
@@ -217,6 +216,8 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
         description: `${products.length} products imported successfully`,
       });
       
+      setCurrentStep('complete');
+      
     } catch (error: any) {
       console.error('Error importing products:', error);
       setError(error.message || 'Failed to import products');
@@ -226,8 +227,6 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
         description: "Could not import products from sheet",
         variant: "destructive",
       });
-      
-      throw error; // Rethrow to be caught by the caller
     } finally {
       setImporting(false);
     }

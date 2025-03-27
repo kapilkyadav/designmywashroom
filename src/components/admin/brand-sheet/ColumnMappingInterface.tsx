@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Select,
@@ -10,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Save, AlertCircle } from 'lucide-react';
-import { GoogleSheetsService } from '@/services/GoogleSheetsService';
 
 export interface ColumnMapping {
   name: string;
@@ -20,7 +20,6 @@ export interface ColumnMapping {
   landing_price: string;
   client_price: string;
   quotation_price: string;
-  products?: any[];
 }
 
 interface ColumnMappingInterfaceProps {
@@ -105,18 +104,6 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
           client_price: mapping.client_price || '',
           quotation_price: mapping.quotation_price || ''
         };
-        
-        // At this point in a real implementation, we would get the data from the sheet
-        // and prepare it for import, before passing to the importing step
-        // For simplicity, we're mocking this data with some sample values
-        const mockProducts = [
-          { name: 'Sample Product 1', price: 100 },
-          { name: 'Sample Product 2', price: 200 },
-          { name: 'Sample Product 3', price: 300 },
-        ];
-        
-        // Include the products in the mapping data
-        completeMapping.products = mockProducts;
         
         // Allow the save operation to complete visually
         setTimeout(() => {

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -25,8 +25,6 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
   brandId, 
   onComplete 
 }) => {
-  const [mappedProducts, setMappedProducts] = useState<any[]>([]);
-  const [importedCount, setImportedCount] = useState(0);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   
@@ -52,23 +50,16 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
     validateSheet,
     cancelValidation,
     handleMappingComplete,
-    handleOpenSheet,
-    setCurrentStep,
-    importProducts
+    importProducts,
+    handleOpenSheet
   } = useSheetImport({ brandId, onComplete });
 
-  // Log current state for debugging
-  useEffect(() => {
-    console.log('Current step:', currentStep);
-    console.log('Sheet headers:', sheetHeaders);
-  }, [currentStep, sheetHeaders]);
-
   const handleImportComplete = () => {
-    setCurrentStep('complete');
     toast({
       title: "Import Complete",
-      description: `Successfully imported ${importedCount} products`,
+      description: "Products imported successfully",
     });
+    onComplete();
   };
 
   const handleImportError = (error: Error) => {
@@ -83,20 +74,13 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
   };
 
   const handleProductMapping = (mapping: any) => {
-    // Store products from mapping for the import step
-    if (mapping.products && mapping.products.length > 0) {
-      setMappedProducts(mapping.products);
-      setImportedCount(mapping.products.length);
-      
-      // Start the import process
-      importProducts(mapping);
-      
-      // Move to importing step
-      handleMappingComplete(mapping);
-    } else {
-      setErrorMessage('No products were found in the sheet with the current mapping');
-      setShowErrorDialog(true);
-    }
+    console.log('Mapping complete, starting import', mapping);
+    
+    // Start the import process with the mapping
+    importProducts(mapping);
+    
+    // Let the hook handle the step change
+    handleMappingComplete(mapping);
   };
 
   return (
@@ -127,8 +111,6 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
             isValid={isValid}
             error={error}
             brandId={brandId}
-            products={mappedProducts}
-            importedCount={importedCount}
             onUrlChange={handleUrlChange}
             onSheetNameChange={(e) => setSheetName(e.target.value)}
             onHeaderRowChange={setHeaderRow}
