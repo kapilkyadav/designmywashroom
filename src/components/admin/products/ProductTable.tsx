@@ -43,7 +43,7 @@ interface ProductTableProps {
   onDeleteMultiple: (productIds: string[]) => void;
 }
 
-type SortField = 'name' | 'brand' | 'category' | 'mrp' | 'landing_price' | 'client_price' | 'quotation_price' | 'margin';
+type SortField = 'name' | 'brand' | 'category' | 'mrp' | 'landing_price' | 'client_price' | 'quotation_price' | 'margin' | 'quantity';
 type SortDirection = 'asc' | 'desc';
 
 const ProductTable: React.FC<ProductTableProps> = ({
@@ -99,6 +99,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
       case 'category':
         valueA = (a.category || '').toLowerCase();
         valueB = (b.category || '').toLowerCase();
+        break;
+      case 'quantity':
+        valueA = a.quantity || 0;
+        valueB = b.quantity || 0;
         break;
       default:
         valueA = a[sortField];
@@ -228,6 +232,24 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 </TableHead>
                 <TableHead 
                   className="cursor-pointer"
+                  onClick={() => handleSort('quotation_price')}
+                >
+                  <div className="flex items-center">
+                    Quotation Price
+                    {getSortIcon('quotation_price')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer"
+                  onClick={() => handleSort('quantity')}
+                >
+                  <div className="flex items-center">
+                    Qty
+                    {getSortIcon('quantity')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer"
                   onClick={() => handleSort('margin')}
                 >
                   <div className="flex items-center">
@@ -260,6 +282,8 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     <TableCell>{formatCurrency(product.mrp)}</TableCell>
                     <TableCell>{formatCurrency(product.landing_price)}</TableCell>
                     <TableCell>{formatCurrency(product.client_price)}</TableCell>
+                    <TableCell>{formatCurrency(product.quotation_price)}</TableCell>
+                    <TableCell>{product.quantity || 0}</TableCell>
                     <TableCell>
                       <span className={product.margin > 0 ? "text-green-600" : "text-red-600"}>
                         {product.margin.toFixed(1)}%
@@ -288,7 +312,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                     No products found
                   </TableCell>
                 </TableRow>
