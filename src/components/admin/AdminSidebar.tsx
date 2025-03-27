@@ -17,7 +17,7 @@ import {
   Menu,
   X,
   BarChart,
-  RefreshCcw,
+  ClipboardList,
 } from 'lucide-react';
 
 const AdminSidebar = () => {
@@ -47,6 +47,11 @@ const AdminSidebar = () => {
       name: 'Dashboard',
       href: '/admin/dashboard',
       icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      name: 'Project Estimates',
+      href: '/admin/projects',
+      icon: <ClipboardList className="h-5 w-5" />,
     },
     {
       name: 'Brands',

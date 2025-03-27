@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,10 +17,11 @@ import AdminBrandAdd from "./pages/AdminBrandAdd";
 import AdminProducts from "./pages/AdminProducts";
 import AdminFixtures from "./pages/AdminFixtures";
 import AdminSettings from "./pages/AdminSettings";
+import AdminProjectDetail from "./pages/AdminProjectDetail";
+import AdminProjectEdit from "./pages/AdminProjectEdit";
 import { useState } from "react";
 
 const App = () => {
-  // Move QueryClient creation inside the component
   const [queryClient] = useState(() => new QueryClient());
 
   return (
@@ -47,6 +47,9 @@ const App = () => {
                     <Route path="fixtures" element={<AdminFixtures />} />
                     <Route path="settings" element={<AdminSettings />} />
                     <Route index element={<AdminDashboard />} />
+                    <Route path="projects" element={<AdminProjects />} />
+                    <Route path="projects/detail/:id" element={<AdminProjectDetail />} />
+                    <Route path="projects/edit/:id" element={<AdminProjectEdit />} />
                   </Route>
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
