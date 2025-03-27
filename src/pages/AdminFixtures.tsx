@@ -15,6 +15,19 @@ import { toast } from '@/hooks/use-toast';
 import { 
   Search, Plus, FilePenLine, Trash2, Loader2
 } from 'lucide-react';
+import { useMediaQuery } from '@/hooks/use-mobile';
+import FixtureDialog from '@/components/admin/fixtures/FixtureDialog';
+import FixtureDrawer from '@/components/admin/fixtures/FixtureDrawer';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const AdminFixtures = () => {
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
@@ -22,6 +35,14 @@ const AdminFixtures = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  
+  // Fixture dialog/drawer state
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedFixture, setSelectedFixture] = useState<Fixture | undefined>(undefined);
+  const [fixtureToDelete, setFixtureToDelete] = useState<string | null>(null);
+  
+  // Responsive handling
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {
     fetchFixtures();
@@ -76,12 +97,49 @@ const AdminFixtures = () => {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+  
+  // Open the form for adding a new fixture
+  const handleAddFixture = () => {
+    setSelectedFixture(undefined);
+    setIsFormOpen(true);
+  };
+  
+  // Open the form for editing an existing fixture
+  const handleEditFixture = (fixture: Fixture) => {
+    setSelectedFixture(fixture);
+    setIsFormOpen(true);
+  };
+  
+  // Close the form dialog/drawer
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setSelectedFixture(undefined);
+  };
+  
+  // Handle fixture deletion
+  const handleDeleteFixture = async (id: string) => {
+    try {
+      await FixtureService.deleteFixture(id);
+      toast({
+        title: "Success",
+        description: "Fixture deleted successfully",
+      });
+      fetchFixtures();
+    } catch (error) {
+      console.error('Error deleting fixture:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete fixture",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-3xl font-bold">Fixtures</h1>
-        <Button>
+        <Button onClick={handleAddFixture}>
           <Plus className="mr-2 h-4 w-4" /> Add Fixture
         </Button>
       </div>
@@ -144,10 +202,19 @@ const AdminFixtures = () => {
                       <td className="px-4 py-3 text-sm">{fixture.margin.toFixed(1)}%</td>
                       <td className="px-4 py-3">
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleEditFixture(fixture)}
+                          >
                             <FilePenLine className="h-4 w-4" />
                           </Button>
-                          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setFixtureToDelete(fixture.id)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -168,6 +235,52 @@ const AdminFixtures = () => {
           </div>
         </div>
       )}
+      
+      {/* Responsive Form UI - Dialog for desktop, Drawer for mobile */}
+      {isMobile ? (
+        <FixtureDrawer
+          isOpen={isFormOpen}
+          onClose={handleCloseForm}
+          fixture={selectedFixture}
+          onFixtureSaved={fetchFixtures}
+        />
+      ) : (
+        <FixtureDialog
+          isOpen={isFormOpen}
+          onClose={handleCloseForm}
+          fixture={selectedFixture}
+          onFixtureSaved={fetchFixtures}
+        />
+      )}
+      
+      {/* Delete confirmation dialog */}
+      <AlertDialog 
+        open={!!fixtureToDelete} 
+        onOpenChange={(open) => !open && setFixtureToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Fixture</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this fixture? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (fixtureToDelete) {
+                  handleDeleteFixture(fixtureToDelete);
+                  setFixtureToDelete(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
