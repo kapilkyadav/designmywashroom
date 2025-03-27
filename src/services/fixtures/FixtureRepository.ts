@@ -1,10 +1,17 @@
 
 import { supabase, Fixture } from '@/lib/supabase';
+import { FixturePricingService } from './FixturePricingService';
 
 /**
  * Repository responsible for Supabase data operations for fixtures
  */
 export class FixtureRepository {
+  private pricingService: FixturePricingService;
+  
+  constructor() {
+    this.pricingService = new FixturePricingService();
+  }
+  
   /**
    * Fetch all fixtures from the database
    */
@@ -81,16 +88,14 @@ export class FixtureRepository {
       const landingPrice = fixtureData.landing_price || 0;
       const quotationPrice = fixtureData.quotation_price || 0;
       
-      // Calculate margin percentage
-      const margin = landingPrice > 0 
-        ? ((quotationPrice - landingPrice) / landingPrice) * 100 
-        : 0;
+      // Calculate margin percentage using the pricing service
+      const margin = this.pricingService.calculateMargin(landingPrice, quotationPrice);
       
       const { data, error } = await supabase
         .from('fixtures')
         .insert({
           ...fixtureData,
-          margin: parseFloat(margin.toFixed(2)),
+          margin
         })
         .select()
         .single();
@@ -131,20 +136,11 @@ export class FixtureRepository {
           throw fetchError;
         }
         
-        const landingPrice = fixtureData.landing_price !== undefined 
-          ? fixtureData.landing_price 
-          : currentFixture.landing_price;
-        
-        const quotationPrice = fixtureData.quotation_price !== undefined 
-          ? fixtureData.quotation_price 
-          : currentFixture.quotation_price;
-        
-        // Calculate margin percentage
-        const margin = landingPrice > 0 
-          ? ((quotationPrice - landingPrice) / landingPrice) * 100 
-          : 0;
-        
-        updateData.margin = parseFloat(margin.toFixed(2));
+        // Use pricing service to prepare update data with correct margin
+        updateData = {
+          ...updateData,
+          ...this.pricingService.prepareFixtureForUpdate(currentFixture, fixtureData)
+        };
       }
       
       const { data, error } = await supabase

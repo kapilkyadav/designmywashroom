@@ -2,12 +2,22 @@
 import { Fixture } from '@/lib/supabase';
 import { fixtureCache } from './FixtureCache';
 import { fixtureRepository } from './FixtureRepository';
+import { FixtureValidator } from './FixtureValidator';
+import { FixturePricingService } from './FixturePricingService';
 
 /**
  * FixtureService provides a high-level interface for fixture operations
  * with caching built in
  */
 export class FixtureService {
+  private fixtureValidator: FixtureValidator;
+  private fixturePricingService: FixturePricingService;
+
+  constructor() {
+    this.fixtureValidator = new FixtureValidator();
+    this.fixturePricingService = new FixturePricingService();
+  }
+
   /**
    * Get all fixtures
    */
@@ -93,7 +103,14 @@ export class FixtureService {
    */
   async createFixture(fixture: Omit<Fixture, 'id' | 'created_at' | 'updated_at' | 'margin'>): Promise<Fixture> {
     try {
-      const newFixture = await fixtureRepository.create(fixture);
+      // Validate fixture data before creating
+      this.fixtureValidator.validateFixtureData(fixture);
+      
+      // Calculate margin and prepare fixture for creation
+      const fixtureWithMargin = this.fixturePricingService.prepareFixtureForCreation(fixture);
+      
+      // Create fixture in repository
+      const newFixture = await fixtureRepository.create(fixtureWithMargin);
       
       // Invalidate cache after mutation
       fixtureCache.clearAll();
@@ -110,6 +127,10 @@ export class FixtureService {
    */
   async updateFixture(id: string, fixture: Partial<Fixture>): Promise<Fixture> {
     try {
+      // Validate update data
+      this.fixtureValidator.validateFixtureUpdateData(fixture);
+      
+      // Update fixture in repository
       const updatedFixture = await fixtureRepository.update(id, fixture);
       
       // Invalidate cache after mutation
