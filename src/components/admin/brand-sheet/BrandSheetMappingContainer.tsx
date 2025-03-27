@@ -42,6 +42,7 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
     scheduled,
     error,
     currentStep,
+    setCurrentStep,
     progress,
     sheetHeaders,
     
@@ -50,7 +51,7 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
     validateSheet,
     cancelValidation,
     handleMappingComplete,
-    importProducts, // Using the correct method name from the hook
+    importProducts,
     handleOpenSheet
   } = useSheetImport({ brandId, onComplete });
 
@@ -77,7 +78,7 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
     console.log('Mapping complete, starting import', mapping);
     
     // Start the import process with the mapping
-    importProducts(mapping); // Using the correct method name
+    importProducts(mapping);
     
     // Let the hook handle the step change
     handleMappingComplete(mapping);
@@ -87,8 +88,8 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
   const handleImportAction = () => {
     // This is only called from the footer when on the connection step
     if (currentStep === 'connection' && isValid) {
-      // Just proceed to the next step without directly importing
-      setHeaderRow(headerRow);
+      // Proceed to the next step after validation
+      setCurrentStep('mapping');
     }
   };
 

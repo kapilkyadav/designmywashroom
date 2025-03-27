@@ -133,7 +133,7 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
         headerRowNum
       );
       
-      // Move to mapping step
+      // Automatically move to mapping step on successful validation
       setCurrentStep('mapping');
       
       toast({
