@@ -25,22 +25,28 @@ export const GoogleSheetsService = {
     timeoutMs = 15000 // 15 seconds default timeout
   ): Promise<{ headers: string[]; data: any[] }> {
     try {
-      // Create an AbortController for the timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      // Create a promise that rejects after the timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        const id = setTimeout(() => {
+          clearTimeout(id);
+          reject(new Error('Sheet validation timed out'));
+        }, timeoutMs);
+      });
       
-      // Use Supabase Edge Function to fetch sheet data with signal
-      const { data, error } = await supabase.functions.invoke('fetch-sheet-data', {
+      // Create the actual fetch promise
+      const fetchPromise = supabase.functions.invoke('fetch-sheet-data', {
         body: {
           sheetUrl,
           sheetName,
           headerRowIndex
-        },
-        signal: controller.signal
+        }
       });
       
-      // Clear the timeout
-      clearTimeout(timeoutId);
+      // Race the fetch against the timeout
+      const result = await Promise.race([fetchPromise, timeoutPromise]);
+      
+      // If we get here, fetchPromise won the race
+      const { data, error } = result as { data: any, error: any };
       
       if (error) {
         console.error('Error fetching sheet data:', error);
@@ -49,7 +55,7 @@ export const GoogleSheetsService = {
       
       return data;
     } catch (error: any) {
-      if (error.name === 'AbortError') {
+      if (error.message === 'Sheet validation timed out') {
         console.error('Sheet validation request timed out');
         throw new Error('Sheet validation timed out. Please try again or check your sheet URL and permissions.');
       }
