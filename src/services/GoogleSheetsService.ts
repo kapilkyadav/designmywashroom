@@ -17,15 +17,56 @@ export interface SheetMapping {
 }
 
 export const GoogleSheetsService = {
-  // Fetch data from a Google Sheet
+  // Fetch data from a Google Sheet with timeout
   async fetchSheetData(
     sheetUrl: string,
     sheetName: string,
-    headerRowIndex: number
+    headerRowIndex: number,
+    timeoutMs = 15000 // 15 seconds default timeout
   ): Promise<{ headers: string[]; data: any[] }> {
     try {
-      // Use Supabase Edge Function to fetch sheet data
+      // Create an AbortController for the timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      
+      // Use Supabase Edge Function to fetch sheet data with signal
       const { data, error } = await supabase.functions.invoke('fetch-sheet-data', {
+        body: {
+          sheetUrl,
+          sheetName,
+          headerRowIndex
+        },
+        signal: controller.signal
+      });
+      
+      // Clear the timeout
+      clearTimeout(timeoutId);
+      
+      if (error) {
+        console.error('Error fetching sheet data:', error);
+        throw error;
+      }
+      
+      return data;
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.error('Sheet validation request timed out');
+        throw new Error('Sheet validation timed out. Please try again or check your sheet URL and permissions.');
+      }
+      console.error('Error in fetchSheetData:', error);
+      throw error;
+    }
+  },
+  
+  // Validate sheet connection (lighter version just to check if sheet exists)
+  async validateSheet(
+    sheetUrl: string,
+    sheetName: string,
+    headerRowIndex: number
+  ): Promise<boolean> {
+    try {
+      // Create a lighter request to just validate sheet connection
+      const { data, error } = await supabase.functions.invoke('validate-sheet', {
         body: {
           sheetUrl,
           sheetName,
@@ -34,13 +75,13 @@ export const GoogleSheetsService = {
       });
       
       if (error) {
-        console.error('Error fetching sheet data:', error);
+        console.error('Error validating sheet:', error);
         throw error;
       }
       
-      return data;
+      return data.valid === true;
     } catch (error) {
-      console.error('Error in fetchSheetData:', error);
+      console.error('Error in validateSheet:', error);
       throw error;
     }
   },

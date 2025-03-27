@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Define CORS headers
 const corsHeaders = {
@@ -41,44 +40,92 @@ serve(async (req) => {
       );
     }
     
-    // Determine which Google API endpoint to use
-    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName || 'Sheet1')}?key=${Deno.env.get('GOOGLE_API_KEY')}`;
+    // Define a controller for timeout handling
+    const controller = new AbortController();
+    // 10 second timeout for the Google Sheets API request
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     
-    // Fetch data from Google Sheets API
-    const response = await fetch(apiUrl);
-    if (!response.ok) {
-      console.error('Google Sheets API error:', await response.text());
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch sheet data' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
-    
-    const sheetData = await response.json();
-    
-    // Get headers and data rows
-    const headerRow = headerRowIndex || 0;
-    const headers = sheetData.values[headerRow] || [];
-    
-    // Extract data rows after the header
-    const rows = sheetData.values.slice(headerRow + 1).map((row: any[]) => {
-      // Map each row to an object using the headers
-      const obj: Record<string, any> = {};
-      headers.forEach((header: string, index: number) => {
-        obj[header] = row[index] || '';
+    try {
+      // Determine which Google API endpoint to use
+      const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName || 'Sheet1')}?key=${Deno.env.get('GOOGLE_API_KEY')}`;
+      
+      // Fetch data from Google Sheets API with timeout
+      const response = await fetch(apiUrl, {
+        signal: controller.signal
       });
-      return obj;
-    });
-    
-    return new Response(
-      JSON.stringify({ headers, data: rows }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-    
-  } catch (error) {
+      
+      // Clear the timeout as the request completed
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Google Sheets API error:', errorText);
+        return new Response(
+          JSON.stringify({ error: `Failed to fetch sheet data: ${response.status} ${errorText}` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
+        );
+      }
+      
+      const sheetData = await response.json();
+      
+      // Validate that we have values
+      if (!sheetData.values || !Array.isArray(sheetData.values) || sheetData.values.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'Sheet contains no data' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+      
+      // Validate the header row exists
+      const headerRow = headerRowIndex || 0;
+      if (headerRow >= sheetData.values.length) {
+        return new Response(
+          JSON.stringify({ error: `Header row ${headerRow + 1} does not exist in the sheet` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+      
+      const headers = sheetData.values[headerRow] || [];
+      
+      // Check if we have data rows
+      if (sheetData.values.length <= headerRow + 1) {
+        return new Response(
+          JSON.stringify({ headers, data: [] }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Extract data rows after the header
+      const rows = sheetData.values.slice(headerRow + 1).map((row: any[]) => {
+        // Map each row to an object using the headers
+        const obj: Record<string, any> = {};
+        headers.forEach((header: string, index: number) => {
+          obj[header] = row[index] || '';
+        });
+        return obj;
+      });
+      
+      return new Response(
+        JSON.stringify({ headers, data: rows }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (fetchError: any) {
+      // Clear the timeout if there was an error
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({ error: 'Request timed out fetching sheet data' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 408 }
+        );
+      }
+      
+      throw fetchError;
+    }
+  } catch (error: any) {
     console.error('Error processing request:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || 'Unknown error occurred' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

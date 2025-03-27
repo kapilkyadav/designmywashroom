@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +27,8 @@ import {
   RefreshCcw,
   AlertCircle,
   ExternalLink,
-  Check
+  Check,
+  XCircle 
 } from 'lucide-react';
 
 interface BrandSheetMappingProps {
@@ -47,11 +49,20 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
   const [importing, setImporting] = useState(false);
   const [scheduled, setScheduled] = useState(false);
   const [error, setError] = useState('');
+  const [validationTimeout, setValidationTimeout] = useState<NodeJS.Timeout | null>(null);
   
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSheetUrl(e.target.value);
     setIsValid(null);
     setError('');
+  };
+  
+  // Abort current validation if in progress
+  const abortCurrentValidation = () => {
+    if (validationTimeout) {
+      clearTimeout(validationTimeout);
+      setValidationTimeout(null);
+    }
   };
   
   const validateSheet = async () => {
@@ -71,15 +82,37 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
       return;
     }
     
+    // Abort any in-progress validation
+    abortCurrentValidation();
+    
     try {
       setValidating(true);
       setError('');
+      setIsValid(null);
       
-      await GoogleSheetsService.fetchSheetData(
+      // Set a timeout to handle long-running validation
+      const timeout = setTimeout(() => {
+        setValidating(false);
+        setError('Validation timed out. Please check your sheet URL, name, and permissions.');
+        setIsValid(false);
+      }, 20000); // 20 second timeout
+      
+      setValidationTimeout(timeout);
+      
+      // First, try the lighter validation
+      const isSheetValid = await GoogleSheetsService.validateSheet(
         sheetUrl,
         sheetName,
         headerRowNum
       );
+      
+      // Clear the timeout since validation completed
+      clearTimeout(timeout);
+      setValidationTimeout(null);
+      
+      if (!isSheetValid) {
+        throw new Error('Could not validate sheet. Please check the URL, sheet name, and permissions.');
+      }
       
       setIsValid(true);
       
@@ -95,10 +128,10 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
         description: "Google Sheet successfully connected to the brand",
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sheet validation error:', error);
       setIsValid(false);
-      setError('Could not validate sheet. Please check the URL, sheet name, and make sure the sheet is publicly accessible.');
+      setError(error.message || 'Could not validate sheet. Please check the URL, sheet name, and make sure the sheet is publicly accessible.');
       
       toast({
         title: "Validation Failed",
@@ -107,6 +140,19 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
       });
     } finally {
       setValidating(false);
+      
+      if (validationTimeout) {
+        clearTimeout(validationTimeout);
+        setValidationTimeout(null);
+      }
+    }
+  };
+  
+  const cancelValidation = () => {
+    if (validating) {
+      abortCurrentValidation();
+      setValidating(false);
+      setError('Validation cancelled');
     }
   };
   
@@ -161,9 +207,9 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
         onComplete();
       }, 1500);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Import error:', error);
-      setError('Failed to import products from the sheet');
+      setError('Failed to import products from the sheet: ' + (error.message || ''));
       
       toast({
         title: "Import Failed",
@@ -274,22 +320,34 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
         </Button>
         
         <div className="flex gap-3 w-full sm:w-auto">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={validateSheet}
-            disabled={validating || importing || !sheetUrl || !sheetName}
-            className="flex-1 sm:flex-auto"
-          >
-            {validating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Validating...
-              </>
-            ) : (
-              'Validate'
-            )}
-          </Button>
+          {validating ? (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={cancelValidation}
+              className="flex-1 sm:flex-auto"
+            >
+              <XCircle className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={validateSheet}
+              disabled={validating || importing || !sheetUrl || !sheetName}
+              className="flex-1 sm:flex-auto"
+            >
+              {validating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Validating...
+                </>
+              ) : (
+                'Validate'
+              )}
+            </Button>
+          )}
           
           <Button
             type="button"
