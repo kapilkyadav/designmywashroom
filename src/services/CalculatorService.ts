@@ -58,73 +58,60 @@ export const CalculatorService = {
       // Calculate fixture costs
       let fixtureCost = 0;
       
-      // Get electrical fixtures
-      if (calculatorState.fixtures.electrical.ledMirror ||
-          calculatorState.fixtures.electrical.exhaustFan ||
-          calculatorState.fixtures.electrical.waterHeater) {
-        
-        const electricalFixtures = await FixtureService.getFixturesByCategory('electrical');
-        
-        for (const fixture of electricalFixtures) {
-          if (calculatorState.fixtures.electrical.ledMirror && fixture.name.toLowerCase().includes('led mirror')) {
-            fixtureCost += fixture.client_price;
-          }
-          if (calculatorState.fixtures.electrical.exhaustFan && fixture.name.toLowerCase().includes('exhaust fan')) {
-            fixtureCost += fixture.client_price;
-          }
-          if (calculatorState.fixtures.electrical.waterHeater && fixture.name.toLowerCase().includes('water heater')) {
-            fixtureCost += fixture.client_price;
-          }
+      // Get all fixtures from the database based on selection
+      const electricalFixtures = await FixtureService.getFixturesByCategory('electrical');
+      const plumbingFixtures = await FixtureService.getFixturesByCategory('plumbing');
+      const additionalFixtures = await FixtureService.getFixturesByCategory('additional');
+      
+      // Process electrical fixtures
+      for (const fixture of electricalFixtures) {
+        if (calculatorState.fixtures.electrical.ledMirror && 
+            fixture.name.toLowerCase().includes('led mirror')) {
+          fixtureCost += fixture.client_price;
+        }
+        if (calculatorState.fixtures.electrical.exhaustFan && 
+            fixture.name.toLowerCase().includes('exhaust fan')) {
+          fixtureCost += fixture.client_price;
+        }
+        if (calculatorState.fixtures.electrical.waterHeater && 
+            fixture.name.toLowerCase().includes('water heater')) {
+          fixtureCost += fixture.client_price;
         }
       }
       
-      // Get plumbing fixtures
-      if (calculatorState.fixtures.plumbing.completePlumbing ||
-          calculatorState.fixtures.plumbing.fixtureInstallationOnly) {
-        
-        const plumbingFixtures = await FixtureService.getFixturesByCategory('plumbing');
-        
-        for (const fixture of plumbingFixtures) {
-          if (calculatorState.fixtures.plumbing.completePlumbing && 
-              fixture.name.toLowerCase().includes('complete plumbing')) {
-            fixtureCost += fixture.client_price;
-          }
-          if (calculatorState.fixtures.plumbing.fixtureInstallationOnly && 
-              fixture.name.toLowerCase().includes('fixture installation')) {
-            fixtureCost += fixture.client_price;
-          }
+      // Process plumbing fixtures
+      for (const fixture of plumbingFixtures) {
+        if (calculatorState.fixtures.plumbing.completePlumbing && 
+            fixture.name.toLowerCase().includes('complete plumbing')) {
+          fixtureCost += fixture.client_price;
+        }
+        if (calculatorState.fixtures.plumbing.fixtureInstallationOnly && 
+            fixture.name.toLowerCase().includes('fixture installation')) {
+          fixtureCost += fixture.client_price;
         }
       }
       
-      // Get additional fixtures
-      if (calculatorState.fixtures.additional.showerPartition ||
-          calculatorState.fixtures.additional.vanity ||
-          calculatorState.fixtures.additional.bathtub ||
-          calculatorState.fixtures.additional.jacuzzi) {
-        
-        const additionalFixtures = await FixtureService.getFixturesByCategory('additional');
-        
-        for (const fixture of additionalFixtures) {
-          if (calculatorState.fixtures.additional.showerPartition && 
-              fixture.name.toLowerCase().includes('shower partition')) {
-            fixtureCost += fixture.client_price;
-          }
-          if (calculatorState.fixtures.additional.vanity && 
-              fixture.name.toLowerCase().includes('vanity')) {
-            fixtureCost += fixture.client_price;
-          }
-          if (calculatorState.fixtures.additional.bathtub && 
-              fixture.name.toLowerCase().includes('bathtub')) {
-            fixtureCost += fixture.client_price;
-          }
-          if (calculatorState.fixtures.additional.jacuzzi && 
-              fixture.name.toLowerCase().includes('jacuzzi')) {
-            fixtureCost += fixture.client_price;
-          }
+      // Process additional fixtures
+      for (const fixture of additionalFixtures) {
+        if (calculatorState.fixtures.additional.showerPartition && 
+            fixture.name.toLowerCase().includes('shower partition')) {
+          fixtureCost += fixture.client_price;
+        }
+        if (calculatorState.fixtures.additional.vanity && 
+            fixture.name.toLowerCase().includes('vanity')) {
+          fixtureCost += fixture.client_price;
+        }
+        if (calculatorState.fixtures.additional.bathtub && 
+            fixture.name.toLowerCase().includes('bathtub')) {
+          fixtureCost += fixture.client_price;
+        }
+        if (calculatorState.fixtures.additional.jacuzzi && 
+            fixture.name.toLowerCase().includes('jacuzzi')) {
+          fixtureCost += fixture.client_price;
         }
       }
       
-      // Calculate plumbing cost
+      // Calculate plumbing cost using settings from database
       const floorArea = calculatorState.dimensions.length * calculatorState.dimensions.width;
       const plumbingCost = floorArea * settings.plumbing_rate_per_sqft;
       
@@ -137,11 +124,11 @@ export const CalculatorService = {
       const tileCoverage = 4;
       const initialTileCount = Math.ceil(totalTilingArea / tileCoverage);
       
-      // Add percentage for breakage
+      // Add percentage for breakage from settings
       const breakageMultiplier = 1 + (settings.breakage_percentage / 100);
       const totalTileCount = Math.ceil(initialTileCount * breakageMultiplier);
       
-      // Calculate material and labor costs
+      // Calculate material and labor costs using settings from database
       const materialCost = totalTileCount * settings.tile_cost_per_unit;
       const laborCost = totalTilingArea * settings.tiling_labor_per_sqft;
       
