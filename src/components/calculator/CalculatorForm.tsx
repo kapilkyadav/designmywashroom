@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useCalculator } from '@/hooks/useCalculator';
+import { useCalculator } from '@/hooks/calculator';
 import ProjectTypeStep from './ProjectTypeStep';
 import DimensionsStep from './DimensionsStep';
 import FixturesStep from './FixturesStep';

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useCalculator } from '@/hooks/useCalculator';
+import { useCalculator } from '@/hooks/calculator';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';

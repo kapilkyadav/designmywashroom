@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { CalculatorProvider } from '@/hooks/useCalculator';
+import { CalculatorProvider } from '@/hooks/calculator';
 import CalculatorForm from '@/components/calculator/CalculatorForm';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';

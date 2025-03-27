@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useCalculator } from '@/hooks/useCalculator';
+import { useCalculator } from '@/hooks/calculator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';

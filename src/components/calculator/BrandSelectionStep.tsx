@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useCalculator } from '@/hooks/useCalculator';
+import { useCalculator } from '@/hooks/calculator';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Brand } from '@/lib/supabase';
