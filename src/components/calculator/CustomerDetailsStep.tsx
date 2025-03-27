@@ -1,131 +1,116 @@
+
 import React, { useState } from 'react';
 import { useCalculator } from '@/hooks/useCalculator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
-import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 const CustomerDetailsStep = () => {
-  const { state, setCustomerDetails, prevStep, calculateEstimate } = useCalculator();
-  const [isCalculating, setIsCalculating] = useState(false);
-  
-  const [formState, setFormState] = useState({
+  const { state, setCustomerDetails, calculateEstimate, prevStep } = useCalculator();
+  const [formData, setFormData] = useState({
     name: state.customerDetails.name || '',
     email: state.customerDetails.email || '',
     mobile: state.customerDetails.mobile || '',
-    location: state.customerDetails.location || '',
+    location: state.customerDetails.location || ''
   });
-  
   const [errors, setErrors] = useState({
     name: '',
     email: '',
     mobile: '',
-    location: '',
+    location: ''
   });
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormState({
-      ...formState,
-      [name]: value,
-    });
-    
-    if (errors[name as keyof typeof errors]) {
-      setErrors({
-        ...errors,
-        [name]: '',
-      });
-    }
-  };
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const validateForm = () => {
     const newErrors = {
       name: '',
       email: '',
       mobile: '',
-      location: '',
+      location: ''
     };
     
-    let isValid = true;
-    
-    if (!formState.name.trim()) {
+    if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
-      isValid = false;
     }
     
-    if (!formState.email.trim()) {
+    if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
-      isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formState.email)) {
-      newErrors.email = 'Please enter a valid email address';
-      isValid = false;
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email is invalid';
     }
     
-    if (!formState.mobile.trim()) {
+    if (!formData.mobile.trim()) {
       newErrors.mobile = 'Mobile number is required';
-      isValid = false;
-    } else if (!/^[6-9]\d{9}$/.test(formState.mobile.replace(/[^0-9]/g, ''))) {
-      newErrors.mobile = 'Please enter a valid 10-digit Indian mobile number';
-      isValid = false;
+    } else if (!/^[0-9]{10}$/.test(formData.mobile.replace(/[^0-9]/g, ''))) {
+      newErrors.mobile = 'Mobile number should have 10 digits';
     }
     
-    if (!formState.location.trim()) {
+    if (!formData.location.trim()) {
       newErrors.location = 'Location is required';
-      isValid = false;
     }
     
     setErrors(newErrors);
-    return isValid;
+    
+    // Return true if there are no errors
+    return !Object.values(newErrors).some(error => error);
+  };
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      try {
-        setIsCalculating(true);
-        setCustomerDetails(formState);
-        await calculateEstimate();
-        
-        toast({
-          title: "Estimate calculated successfully!",
-          description: "Your washroom design estimate is ready to view.",
-        });
-      } catch (error: any) {
-        console.error('Error calculating estimate:', error);
-        toast({
-          title: "Error calculating estimate",
-          description: error.message || "An unexpected error occurred.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsCalculating(false);
-      }
+    if (!validateForm()) {
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Update context with customer details
+      setCustomerDetails({
+        name: formData.name,
+        email: formData.email,
+        mobile: formData.mobile,
+        location: formData.location
+      });
+      
+      // Calculate estimate and save to database
+      await calculateEstimate();
+      
+    } catch (error) {
+      console.error('Error submitting details:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
   return (
     <div className="animate-fade-in">
-      <h2 className="text-2xl font-semibold mb-2 text-center">Your Contact Information</h2>
+      <h2 className="text-2xl font-semibold mb-2 text-center">Enter Your Contact Details</h2>
       <p className="text-muted-foreground mb-8 text-center">
-        Please provide your details to receive your personalized washroom estimate.
+        Provide your contact information to receive your washroom estimate.
       </p>
       
-      <Card className="max-w-xl mx-auto p-6">
-        <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-6">
+        <div className="space-y-4">
           <div>
-            <Label htmlFor="name" className="text-base">
-              Full Name
-            </Label>
+            <Label htmlFor="name" className="text-base">Full Name</Label>
             <Input
               id="name"
               name="name"
-              value={formState.name}
-              onChange={handleInputChange}
-              className={`mt-1 ${errors.name ? 'border-destructive focus:ring-destructive' : ''}`}
+              type="text"
               placeholder="Enter your full name"
+              value={formData.name}
+              onChange={handleChange}
+              className={`mt-1 text-base h-12 ${errors.name ? 'border-destructive' : ''}`}
             />
             {errors.name && (
               <p className="text-destructive text-sm mt-1">{errors.name}</p>
@@ -133,17 +118,15 @@ const CustomerDetailsStep = () => {
           </div>
           
           <div>
-            <Label htmlFor="email" className="text-base">
-              Email Address
-            </Label>
+            <Label htmlFor="email" className="text-base">Email Address</Label>
             <Input
               id="email"
               name="email"
               type="email"
-              value={formState.email}
-              onChange={handleInputChange}
-              className={`mt-1 ${errors.email ? 'border-destructive focus:ring-destructive' : ''}`}
-              placeholder="example@email.com"
+              placeholder="Enter your email address"
+              value={formData.email}
+              onChange={handleChange}
+              className={`mt-1 text-base h-12 ${errors.email ? 'border-destructive' : ''}`}
             />
             {errors.email && (
               <p className="text-destructive text-sm mt-1">{errors.email}</p>
@@ -151,17 +134,15 @@ const CustomerDetailsStep = () => {
           </div>
           
           <div>
-            <Label htmlFor="mobile" className="text-base">
-              Mobile Number
-            </Label>
+            <Label htmlFor="mobile" className="text-base">Mobile Number</Label>
             <Input
               id="mobile"
               name="mobile"
               type="tel"
-              value={formState.mobile}
-              onChange={handleInputChange}
-              className={`mt-1 ${errors.mobile ? 'border-destructive focus:ring-destructive' : ''}`}
-              placeholder="10-digit mobile number"
+              placeholder="Enter your mobile number"
+              value={formData.mobile}
+              onChange={handleChange}
+              className={`mt-1 text-base h-12 ${errors.mobile ? 'border-destructive' : ''}`}
             />
             {errors.mobile && (
               <p className="text-destructive text-sm mt-1">{errors.mobile}</p>
@@ -169,50 +150,46 @@ const CustomerDetailsStep = () => {
           </div>
           
           <div>
-            <Label htmlFor="location" className="text-base">
-              Location
-            </Label>
+            <Label htmlFor="location" className="text-base">Location</Label>
             <Input
               id="location"
               name="location"
-              value={formState.location}
-              onChange={handleInputChange}
-              className={`mt-1 ${errors.location ? 'border-destructive focus:ring-destructive' : ''}`}
-              placeholder="City, State"
+              type="text"
+              placeholder="Enter your location"
+              value={formData.location}
+              onChange={handleChange}
+              className={`mt-1 text-base h-12 ${errors.location ? 'border-destructive' : ''}`}
             />
             {errors.location && (
               <p className="text-destructive text-sm mt-1">{errors.location}</p>
             )}
           </div>
-          
-          <div className="pt-2">
-            <p className="text-xs text-muted-foreground mb-4">
-              By submitting this form, you agree to our <a href="/terms" className="underline hover:text-foreground">Terms of Service</a> and <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>. Your information will be used to provide you with the requested services and updates.
-            </p>
-            
-            <div className="flex justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={prevStep}
-                disabled={isCalculating}
-              >
-                Back
-              </Button>
-              <Button type="submit" disabled={isCalculating}>
-                {isCalculating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Calculating...
-                  </>
-                ) : (
-                  "Calculate Estimate"
-                )}
-              </Button>
-            </div>
-          </div>
-        </form>
-      </Card>
+        </div>
+        
+        <div className="flex justify-between pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={prevStep}
+            disabled={isSubmitting}
+          >
+            Back
+          </Button>
+          <Button 
+            type="submit"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Calculating Estimate...
+              </>
+            ) : (
+              'Get Your Estimate'
+            )}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };

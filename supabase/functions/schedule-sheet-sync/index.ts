@@ -18,78 +18,88 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
   
-  // Create Supabase client
+  // Create Supabase client with service role key for admin access
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   
   try {
     // Parse the request
     const { brandId } = await req.json();
     
-    // Validate input
     if (!brandId) {
-      return new Response(
-        JSON.stringify({ error: 'Brand ID is required' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+      throw new Error('Brand ID is required');
     }
     
-    // Check if a scheduled job already exists for this brand
-    const { data: existingJobs, error: jobFetchError } = await supabase
+    // Check if brand exists
+    const { data: brand, error: brandError } = await supabase
+      .from('brands')
+      .select('id, name, sheet_url, sheet_name')
+      .eq('id', brandId)
+      .single();
+    
+    if (brandError || !brand) {
+      throw new Error('Brand not found');
+    }
+    
+    // Validate brand has sheet information
+    if (!brand.sheet_url || !brand.sheet_name) {
+      throw new Error('Brand does not have sheet URL or sheet name configured');
+    }
+    
+    // Check if a sync job already exists for this brand
+    const { data: existingJob, error: jobError } = await supabase
       .from('scheduled_jobs')
       .select('*')
       .eq('brand_id', brandId)
-      .eq('job_type', 'sheet_sync');
+      .eq('job_type', 'sheet_sync')
+      .maybeSingle();
     
-    if (jobFetchError) {
-      console.error('Error fetching existing jobs:', jobFetchError);
+    if (jobError) {
+      throw jobError;
+    }
+    
+    // If job already exists, return it
+    if (existingJob) {
       return new Response(
-        JSON.stringify({ error: 'Failed to check existing scheduled jobs' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        JSON.stringify({
+          message: 'Sync job already exists for this brand',
+          jobId: existingJob.id,
+          scheduled: true,
+          existing: true
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // If job exists, update it, otherwise create a new one
-    let result;
-    if (existingJobs && existingJobs.length > 0) {
-      // Update existing job
-      const { data, error } = await supabase
-        .from('scheduled_jobs')
-        .update({
-          last_updated: new Date().toISOString(),
-          status: 'active'
-        })
-        .eq('id', existingJobs[0].id)
-        .select();
-      
-      if (error) throw error;
-      result = { ...data[0], message: 'Sync schedule updated' };
-    } else {
-      // Create a new scheduled job
-      const { data, error } = await supabase
-        .from('scheduled_jobs')
-        .insert({
-          brand_id: brandId,
-          job_type: 'sheet_sync',
-          schedule: '0 10 * * *', // Run daily at 10 AM
-          status: 'active',
-          last_run: null
-        })
-        .select();
-      
-      if (error) throw error;
-      result = { ...data[0], message: 'Sync scheduled successfully' };
+    // Create a new scheduled job for daily sync at 10:00 AM
+    const { data: job, error: createError } = await supabase
+      .from('scheduled_jobs')
+      .insert({
+        brand_id: brandId,
+        job_type: 'sheet_sync',
+        schedule: '0 10 * * *', // Run at 10:00 AM every day
+        status: 'active',
+      })
+      .select()
+      .single();
+    
+    if (createError) {
+      throw createError;
     }
     
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify({
+        message: `Daily sync scheduled for ${brand.name} at 10:00 AM`,
+        jobId: job.id,
+        scheduled: true,
+        existing: false
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-    
   } catch (error) {
     console.error('Error scheduling sync:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
   }
 });

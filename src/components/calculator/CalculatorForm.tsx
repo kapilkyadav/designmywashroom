@@ -1,76 +1,63 @@
 
 import React from 'react';
 import { useCalculator } from '@/hooks/useCalculator';
-import StepIndicator from '@/components/ui/StepIndicator';
 import ProjectTypeStep from './ProjectTypeStep';
 import DimensionsStep from './DimensionsStep';
 import FixturesStep from './FixturesStep';
 import TimelineStep from './TimelineStep';
-import BrandsStep from './BrandsStep';
+import BrandSelectionStep from './BrandSelectionStep';
 import CustomerDetailsStep from './CustomerDetailsStep';
-import Summary from './Summary';
-import { cn } from '@/lib/utils';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import EstimateSummary from './EstimateSummary';
 
 const CalculatorForm = () => {
-  const { state, goToStep } = useCalculator();
+  const { state } = useCalculator();
   
-  const stepComponents = [
-    ProjectTypeStep,
-    DimensionsStep,
-    FixturesStep,
-    TimelineStep,
-    BrandsStep,
-    CustomerDetailsStep,
-  ];
-  
-  const stepLabels = [
-    'Project Type',
-    'Dimensions',
-    'Fixtures',
-    'Timeline',
-    'Brands',
-    'Your Details'
-  ];
-  
+  // Render the appropriate step based on the current step in the state
   const renderStep = () => {
-    if (state.estimateCalculated) {
-      return <Summary />;
+    switch (state.currentStep) {
+      case 1:
+        return <ProjectTypeStep />;
+      case 2:
+        return <DimensionsStep />;
+      case 3:
+        return <FixturesStep />;
+      case 4:
+        return <TimelineStep />;
+      case 5:
+        return <BrandSelectionStep />;
+      case 6:
+        return <CustomerDetailsStep />;
+      case 7:
+        return <EstimateSummary />;
+      default:
+        return <ProjectTypeStep />;
     }
-    
-    const CurrentStepComponent = stepComponents[state.currentStep - 1];
-    return <CurrentStepComponent />;
   };
   
   return (
-    <div className="container mx-auto px-4 py-8">
-      {!state.estimateCalculated && (
-        <div className="max-w-3xl mx-auto mb-10">
-          <StepIndicator 
-            currentStep={state.currentStep} 
-            totalSteps={stepComponents.length}
-            labels={stepLabels}
-            onStepClick={goToStep}
-            className="mb-4"
-          />
-          
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <ArrowLeft size={14} />
-              <span>Previous</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span>Next</span>
-              <ArrowRight size={14} />
-            </div>
+    <div className="space-y-8">
+      {/* Progress bar */}
+      {state.currentStep < 7 && (
+        <div className="max-w-4xl mx-auto">
+          <div className="relative h-1 w-full bg-secondary rounded-full overflow-hidden">
+            <div
+              className="absolute h-full bg-primary transition-all duration-300 ease-in-out"
+              style={{ width: `${(state.currentStep / 6) * 100}%` }}
+            ></div>
+          </div>
+          <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+            <span>Project Type</span>
+            <span>Dimensions</span>
+            <span>Fixtures</span>
+            <span>Timeline</span>
+            <span>Brand</span>
+            <span>Contact</span>
           </div>
         </div>
       )}
       
-      <div className={cn(
-        "transition-opacity duration-500",
-        state.estimateCalculated ? "opacity-100" : ""
-      )}>
+      {/* Step content */}
+      <div className="pb-12">
         {renderStep()}
       </div>
     </div>

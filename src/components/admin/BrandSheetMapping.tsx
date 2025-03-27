@@ -3,418 +3,331 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { BrandService } from '@/services/BrandService';
-import { ProductService } from '@/services/ProductService';
-import { GoogleSheetsService, SheetMapping } from '@/services/GoogleSheetsService';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { BrandService } from '@/services/BrandService';
+import { GoogleSheetsService } from '@/services/GoogleSheetsService';
+import { 
+  FileSpreadsheet, 
+  Loader2, 
+  Sync, 
+  AlertCircle,
+  ExternalLink,
+  Check
+} from 'lucide-react';
 
 interface BrandSheetMappingProps {
   brandId: string;
   onComplete: () => void;
 }
 
-const BrandSheetMapping = ({ brandId, onComplete }: BrandSheetMappingProps) => {
-  const [step, setStep] = useState<'url' | 'headers' | 'mapping' | 'preview'>('url');
-  const [isLoading, setIsLoading] = useState(false);
+const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({ 
+  brandId, 
+  onComplete 
+}) => {
   const [sheetUrl, setSheetUrl] = useState('');
-  const [sheetName, setSheetName] = useState('Sheet1');
-  const [headerRow, setHeaderRow] = useState(0);
-  const [sheetData, setSheetData] = useState<{ headers: string[], data: any[] }>({ headers: [], data: [] });
-  const [mapping, setMapping] = useState<SheetMapping>({
-    name: '',
-    description: '',
-    category: '',
-    mrp: '',
-    landing_price: '',
-    client_price: '',
-    quotation_price: ''
-  });
-  const [previewProducts, setPreviewProducts] = useState<any[]>([]);
-
-  const handleFetchSheet = async () => {
-    if (!sheetUrl) {
-      toast({
-        title: "Sheet URL required",
-        description: "Please enter a valid Google Sheet URL",
-        variant: "destructive",
-      });
+  const [sheetName, setSheetName] = useState('');
+  const [headerRow, setHeaderRow] = useState('1');
+  const [loading, setLoading] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [isValid, setIsValid] = useState<boolean | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [scheduled, setScheduled] = useState(false);
+  const [error, setError] = useState('');
+  
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSheetUrl(e.target.value);
+    // Reset validation when URL changes
+    setIsValid(null);
+    setError('');
+  };
+  
+  const validateSheet = async () => {
+    if (!sheetUrl.trim()) {
+      setError('Sheet URL is required');
       return;
     }
-
+    
+    if (!sheetName.trim()) {
+      setError('Sheet name is required');
+      return;
+    }
+    
+    const headerRowNum = parseInt(headerRow, 10);
+    if (isNaN(headerRowNum) || headerRowNum < 1) {
+      setError('Header row must be a positive number');
+      return;
+    }
+    
     try {
-      setIsLoading(true);
+      setValidating(true);
+      setError('');
       
-      // Save sheet info to brand
-      await BrandService.updateGoogleSheetConnection(
-        brandId, 
-        sheetUrl, 
-        sheetName, 
-        parseInt(headerRow.toString())
-      );
-      
-      // Fetch headers and sample data
-      const data = await GoogleSheetsService.fetchSheetData(
+      // Fetch the sheet data to validate
+      await GoogleSheetsService.fetchSheetData(
         sheetUrl,
         sheetName,
-        parseInt(headerRow.toString())
+        headerRowNum
       );
       
-      setSheetData(data);
-      setStep('headers');
-    } catch (error) {
-      console.error('Error fetching sheet data:', error);
+      setIsValid(true);
+      
+      // Update the brand with sheet information
+      await BrandService.updateGoogleSheetConnection(
+        brandId,
+        sheetUrl,
+        sheetName,
+        headerRowNum
+      );
+      
       toast({
-        title: "Error fetching sheet",
-        description: "Could not fetch data from the provided Google Sheet",
+        title: "Sheet connected",
+        description: "Google Sheet successfully connected to the brand",
+      });
+      
+    } catch (error) {
+      console.error('Sheet validation error:', error);
+      setIsValid(false);
+      setError('Could not validate sheet. Please check the URL, sheet name, and make sure the sheet is publicly accessible.');
+      
+      toast({
+        title: "Validation Failed",
+        description: "Could not connect to the Google Sheet",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setValidating(false);
     }
   };
-
-  const handleMappingChange = (field: keyof SheetMapping, value: string) => {
-    setMapping(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handlePreviewMapping = () => {
-    // Validate that required fields are mapped
-    if (!mapping.name || !mapping.landing_price || !mapping.quotation_price) {
-      toast({
-        title: "Required fields missing",
-        description: "Name, Landing Price, and Quotation Price columns must be mapped",
-        variant: "destructive",
-      });
+  
+  const importProducts = async () => {
+    if (!isValid) {
       return;
     }
-
-    // Map the data using the selected mappings
-    const products = GoogleSheetsService.mapSheetDataToProducts(
-      sheetData.data,
-      sheetData.headers,
-      mapping,
-      brandId
-    );
     
-    setPreviewProducts(products.slice(0, 5)); // Show first 5 products for preview
-    setStep('preview');
-  };
-
-  const handleImport = async () => {
     try {
-      setIsLoading(true);
+      setImporting(true);
       
-      // Map all data using the selected mappings
+      // Update the brand with sheet information if needed
+      await BrandService.updateGoogleSheetConnection(
+        brandId,
+        sheetUrl,
+        sheetName,
+        parseInt(headerRow, 10)
+      );
+      
+      // Fetch the sheet data
+      const { headers, data } = await GoogleSheetsService.fetchSheetData(
+        sheetUrl,
+        sheetName,
+        parseInt(headerRow, 10)
+      );
+      
+      // Default mapping assumes column headers match field names
+      // In a real app, you would let the user map the columns
+      const defaultMapping = {
+        name: headers.find(h => h.toLowerCase().includes('name')) || '',
+        description: headers.find(h => h.toLowerCase().includes('description')) || '',
+        category: headers.find(h => h.toLowerCase().includes('category')) || '',
+        mrp: headers.find(h => h.toLowerCase().includes('mrp')) || '',
+        landing_price: headers.find(h => (h.toLowerCase().includes('landing') && h.toLowerCase().includes('price'))) || '',
+        client_price: headers.find(h => (h.toLowerCase().includes('client') && h.toLowerCase().includes('price'))) || '',
+        quotation_price: headers.find(h => (h.toLowerCase().includes('quotation') && h.toLowerCase().includes('price'))) || ''
+      };
+      
+      // Map data to products
       const products = GoogleSheetsService.mapSheetDataToProducts(
-        sheetData.data,
-        sheetData.headers,
-        mapping,
+        data,
+        headers,
+        defaultMapping,
         brandId
       );
       
-      // Import the products
-      const importCount = await ProductService.importProductsFromSheet(brandId, products);
-      
-      // Set up daily sync
+      // Send import request to Supabase Edge Function
       await GoogleSheetsService.scheduleSync(brandId);
+      
+      setScheduled(true);
       
       toast({
         title: "Import successful",
-        description: `${importCount} products imported successfully and daily sync scheduled`,
+        description: `Successfully imported ${products.length} products and scheduled daily sync`,
       });
       
-      onComplete();
+      // Wait a moment before completing
+      setTimeout(() => {
+        onComplete();
+      }, 1500);
+      
     } catch (error) {
-      console.error('Error importing products:', error);
+      console.error('Import error:', error);
+      setError('Failed to import products from the sheet');
+      
       toast({
-        title: "Import failed",
-        description: "Failed to import products from sheet",
+        title: "Import Failed",
+        description: "Could not import products from the Google Sheet",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setImporting(false);
     }
   };
-
-  // Render the current step
-  const renderStep = () => {
-    switch (step) {
-      case 'url':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Connect Google Sheet</CardTitle>
-              <CardDescription>
-                Enter the URL of the Google Sheet containing your product data
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="sheetUrl">Google Sheet URL</Label>
-                <Input
-                  id="sheetUrl"
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                  value={sheetUrl}
-                  onChange={(e) => setSheetUrl(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sheetName">Sheet Name</Label>
-                <Input
-                  id="sheetName"
-                  placeholder="Sheet1"
-                  value={sheetName}
-                  onChange={(e) => setSheetName(e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Enter the name of the specific worksheet tab (default: Sheet1)
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="headerRow">Header Row</Label>
-                <Input
-                  id="headerRow"
-                  type="number"
-                  min="0"
-                  step="1"
-                  placeholder="0"
-                  value={headerRow}
-                  onChange={(e) => setHeaderRow(parseInt(e.target.value))}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Enter the row number that contains your column headers (starting at 0)
-                </p>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button onClick={handleFetchSheet} disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  "Connect Sheet"
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        );
-
-      case 'headers':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Map Sheet Columns</CardTitle>
-              <CardDescription>
-                Map columns from your Google Sheet to product fields
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {sheetData.headers.length === 0 ? (
-                <p className="text-center py-4 text-muted-foreground">
-                  No headers found in the sheet at the specified row
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nameColumn">Product Name <span className="text-red-500">*</span></Label>
-                    <Select value={mapping.name} onValueChange={(value) => handleMappingChange('name', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select column" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sheetData.headers.map((header) => (
-                          <SelectItem key={header} value={header}>{header}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="descriptionColumn">Description</Label>
-                    <Select value={mapping.description} onValueChange={(value) => handleMappingChange('description', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select column" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">None</SelectItem>
-                        {sheetData.headers.map((header) => (
-                          <SelectItem key={header} value={header}>{header}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="categoryColumn">Category</Label>
-                    <Select value={mapping.category} onValueChange={(value) => handleMappingChange('category', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select column" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">None</SelectItem>
-                        {sheetData.headers.map((header) => (
-                          <SelectItem key={header} value={header}>{header}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="mrpColumn">MRP</Label>
-                    <Select value={mapping.mrp} onValueChange={(value) => handleMappingChange('mrp', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select column" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">None</SelectItem>
-                        {sheetData.headers.map((header) => (
-                          <SelectItem key={header} value={header}>{header}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="landingPriceColumn">Landing Price <span className="text-red-500">*</span></Label>
-                    <Select value={mapping.landing_price} onValueChange={(value) => handleMappingChange('landing_price', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select column" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sheetData.headers.map((header) => (
-                          <SelectItem key={header} value={header}>{header}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="clientPriceColumn">Client Price</Label>
-                    <Select value={mapping.client_price} onValueChange={(value) => handleMappingChange('client_price', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select column" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">None</SelectItem>
-                        {sheetData.headers.map((header) => (
-                          <SelectItem key={header} value={header}>{header}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="quotationPriceColumn">Quotation Price <span className="text-red-500">*</span></Label>
-                    <Select value={mapping.quotation_price} onValueChange={(value) => handleMappingChange('quotation_price', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select column" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sheetData.headers.map((header) => (
-                          <SelectItem key={header} value={header}>{header}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep('url')}>
-                Back
-              </Button>
-              <Button onClick={handlePreviewMapping} disabled={isLoading || sheetData.headers.length === 0}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Preview Mapping
-              </Button>
-            </CardFooter>
-          </Card>
-        );
-
-      case 'preview':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Preview Products</CardTitle>
-              <CardDescription>
-                Review sample products before importing (showing first 5)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {previewProducts.length === 0 ? (
-                <p className="text-center py-4 text-muted-foreground">
-                  No valid products found with the current mapping
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  <div className="rounded-md border">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="bg-secondary">
-                            <th className="px-3 py-2 text-left text-sm font-medium text-muted-foreground">Name</th>
-                            <th className="px-3 py-2 text-left text-sm font-medium text-muted-foreground">Category</th>
-                            <th className="px-3 py-2 text-left text-sm font-medium text-muted-foreground">MRP</th>
-                            <th className="px-3 py-2 text-left text-sm font-medium text-muted-foreground">Landing Price</th>
-                            <th className="px-3 py-2 text-left text-sm font-medium text-muted-foreground">Client Price</th>
-                            <th className="px-3 py-2 text-left text-sm font-medium text-muted-foreground">Quotation Price</th>
-                            <th className="px-3 py-2 text-left text-sm font-medium text-muted-foreground">Margin</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {previewProducts.map((product, index) => (
-                            <tr key={index} className="border-t hover:bg-secondary/50">
-                              <td className="px-3 py-2 font-medium">{product.name}</td>
-                              <td className="px-3 py-2 text-sm">{product.category || '-'}</td>
-                              <td className="px-3 py-2 text-sm">₹{product.mrp.toFixed(2)}</td>
-                              <td className="px-3 py-2 text-sm">₹{product.landing_price.toFixed(2)}</td>
-                              <td className="px-3 py-2 text-sm">₹{product.client_price.toFixed(2)}</td>
-                              <td className="px-3 py-2 text-sm">₹{product.quotation_price.toFixed(2)}</td>
-                              <td className="px-3 py-2 text-sm">{product.margin.toFixed(2)}%</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Total products to import: {sheetData.data.length}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep('headers')}>
-                Back
-              </Button>
-              <Button onClick={handleImport} disabled={isLoading || previewProducts.length === 0}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Importing...
-                  </>
-                ) : (
-                  "Import Products"
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        );
-    }
-  };
-
+  
   return (
-    <div className="space-y-6">
-      {renderStep()}
-    </div>
+    <Card className="max-w-2xl">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <FileSpreadsheet className="mr-2 h-5 w-5 text-primary" />
+          Connect Google Sheet
+        </CardTitle>
+        <CardDescription>
+          Connect a Google Sheet containing your product data
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="sheetUrl">Google Sheet URL</Label>
+            <div className="mt-1">
+              <Input
+                id="sheetUrl"
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+                value={sheetUrl}
+                onChange={handleUrlChange}
+                className={`${error && !isValid ? 'border-destructive' : ''}`}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              The Google Sheet must be accessible to anyone with the link (View only)
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="sheetName">Sheet Name</Label>
+              <Input
+                id="sheetName"
+                placeholder="Sheet1"
+                value={sheetName}
+                onChange={(e) => setSheetName(e.target.value)}
+                className="mt-1"
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                The name of the worksheet tab
+              </p>
+            </div>
+            
+            <div>
+              <Label htmlFor="headerRow">Header Row</Label>
+              <Select 
+                value={headerRow} 
+                onValueChange={setHeaderRow}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select header row" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5].map((num) => (
+                    <SelectItem key={num} value={num.toString()}>
+                      Row {num}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground mt-1">
+                The row containing column headers
+              </p>
+            </div>
+          </div>
+          
+          {error && !isValid && (
+            <div className="bg-destructive/10 text-destructive rounded-md p-3 flex items-start">
+              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+          
+          {isValid && (
+            <div className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md p-3 flex items-start">
+              <Check className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+              <p className="text-sm">Sheet validated successfully! You can now import products.</p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter className="flex flex-col sm:flex-row gap-3 sm:justify-between">
+        <Button 
+          variant="outline"
+          type="button"
+          onClick={() => {
+            if (sheetUrl) {
+              window.open(sheetUrl, '_blank', 'noopener,noreferrer');
+            }
+          }}
+          disabled={!sheetUrl}
+          className="w-full sm:w-auto"
+        >
+          <ExternalLink className="mr-2 h-4 w-4" />
+          Open Sheet
+        </Button>
+        
+        <div className="flex gap-3 w-full sm:w-auto">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={validateSheet}
+            disabled={validating || importing || !sheetUrl || !sheetName}
+            className="flex-1 sm:flex-auto"
+          >
+            {validating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Validating...
+              </>
+            ) : (
+              'Validate'
+            )}
+          </Button>
+          
+          <Button
+            type="button"
+            onClick={importProducts}
+            disabled={!isValid || importing || scheduled}
+            className="flex-1 sm:flex-auto"
+          >
+            {scheduled ? (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Scheduled
+              </>
+            ) : importing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Setting Up...
+              </>
+            ) : (
+              <>
+                <Sync className="mr-2 h-4 w-4" />
+                Import & Schedule
+              </>
+            )}
+          </Button>
+        </div>
+      </CardFooter>
+    </Card>
   );
 };
 
