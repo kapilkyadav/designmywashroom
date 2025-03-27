@@ -57,6 +57,12 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
 
   const setCustomerDetails = (details: { name: string; email: string; mobile: string; location: string }) => {
     console.log('Setting customer details in context:', details);
+    
+    // Validate that required fields are not empty
+    if (!details.name || !details.email) {
+      console.warn('Attempted to set customer details with missing required fields:', details);
+    }
+    
     dispatch({ type: 'SET_CUSTOMER_DETAILS', payload: details });
   };
 

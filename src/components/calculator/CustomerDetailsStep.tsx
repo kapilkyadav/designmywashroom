@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCalculator } from '@/hooks/useCalculator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,18 @@ const CustomerDetailsStep = () => {
     location: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // If customer details are already in state, use them
+  useEffect(() => {
+    if (state.customerDetails.name || state.customerDetails.email) {
+      setFormData({
+        name: state.customerDetails.name || '',
+        email: state.customerDetails.email || '',
+        mobile: state.customerDetails.mobile || '',
+        location: state.customerDetails.location || ''
+      });
+    }
+  }, [state.customerDetails]);
   
   const validateForm = () => {
     const newErrors = {
@@ -99,24 +111,14 @@ const CustomerDetailsStep = () => {
       // Log the details being saved for debugging
       console.log("Saving customer details:", customerDetails);
       
-      // Update context with customer details
+      // Update context with customer details - using the direct dispatch approach
       setCustomerDetails(customerDetails);
       
-      // Using a Promise to ensure state is updated before continuing
-      // This is a more reliable approach than using setTimeout
-      await new Promise<void>((resolve) => {
-        // Use requestAnimationFrame to ensure state has updated
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            resolve();
-          });
-        });
-      });
-      
+      // Ensure customer details are properly set before calculating estimate
+      // by using the direct values instead of relying on state
       try {
-        // Calculate estimate after ensuring state is updated
-        const estimateResult = await calculateEstimate();
-        console.log("Estimate calculated successfully:", estimateResult);
+        const calculationResult = await calculateEstimate();
+        console.log("Estimate calculated successfully:", calculationResult);
         
         // Move to the next step after successful calculation
         nextStep();
@@ -143,6 +145,12 @@ const CustomerDetailsStep = () => {
       toast({
         title: "Too many submissions",
         description: "Please wait a moment before submitting again.",
+        variant: "destructive"
+      });
+    } else if (error instanceof Error && error.message === 'MISSING_CUSTOMER_DETAILS') {
+      toast({
+        title: "Missing information",
+        description: "Please provide your name and email to continue.",
         variant: "destructive"
       });
     } else {
