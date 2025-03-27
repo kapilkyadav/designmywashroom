@@ -62,6 +62,7 @@ export type Product = {
   client_price: number;
   quotation_price: number;
   margin: number;
+  quantity: number; // Added quantity field
   extra_data?: any;
   created_at: string;
   updated_at: string;
