@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 // Types for our calculator data
 export interface CalculatorState {
@@ -138,7 +138,23 @@ const CalculatorContext = createContext<CalculatorContextType | undefined>(undef
 
 // Provider component
 export function CalculatorProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<CalculatorState>(initialCalculatorState);
+  const [state, setState] = useState<CalculatorState>(() => {
+    // Check if we have saved state in session storage
+    const savedState = sessionStorage.getItem('calculatorState');
+    if (savedState) {
+      try {
+        return JSON.parse(savedState);
+      } catch (e) {
+        console.error("Failed to parse saved calculator state", e);
+      }
+    }
+    return initialCalculatorState;
+  });
+
+  // Save state to session storage when it changes
+  useEffect(() => {
+    sessionStorage.setItem('calculatorState', JSON.stringify(state));
+  }, [state]);
 
   // Mock the actual calculation function (in a real app, this would use actual pricing data)
   const calculateEstimate = () => {
@@ -177,9 +193,16 @@ export function CalculatorProvider({ children }: { children: ReactNode }) {
     if (state.fixtures.additional.bathtub) fixtureCost += FIXTURE_PRICES.bathtub;
     if (state.fixtures.additional.jacuzzi) fixtureCost += FIXTURE_PRICES.jacuzzi;
     
-    // Ensure dimensions are not zero to avoid NaN or 0 results
-    const length = state.dimensions.length || 0;
-    const width = state.dimensions.width || 0;
+    // Log the current state
+    console.log("Current state when calculating estimate:", state);
+    
+    // Ensure dimensions exist and are not NaN
+    const length = typeof state.dimensions.length === 'number' ? state.dimensions.length : 0;
+    const width = typeof state.dimensions.width === 'number' ? state.dimensions.width : 0;
+    
+    if (length === 0 || width === 0) {
+      console.warn("Invalid dimensions detected:", {length, width});
+    }
     
     // Calculate plumbing cost
     const floorArea = length * width;
@@ -202,10 +225,16 @@ export function CalculatorProvider({ children }: { children: ReactNode }) {
     // Calculate total estimate
     const totalEstimate = fixtureCost + plumbingCost + totalTilingCost;
     
-    console.log("Calculation dimensions:", {length, width, floorArea, wallArea});
+    console.log("Calculation dimensions:", {
+      length, 
+      width, 
+      floorArea, 
+      wallArea, 
+      totalEstimate
+    });
     
-    setState({
-      ...state,
+    setState((prevState) => ({
+      ...prevState,
       estimateCalculated: true,
       estimate: {
         fixtureCost,
@@ -217,7 +246,7 @@ export function CalculatorProvider({ children }: { children: ReactNode }) {
         },
         total: totalEstimate,
       },
-    });
+    }));
   };
 
   // Utility functions to update the state
@@ -226,8 +255,16 @@ export function CalculatorProvider({ children }: { children: ReactNode }) {
   };
 
   const setDimensions = (dimensions: { length: number; width: number }) => {
-    console.log("Setting dimensions:", dimensions);
-    setState({ ...state, dimensions });
+    console.log("Setting dimensions in context:", dimensions);
+    
+    // Validate dimensions to ensure they are proper numbers
+    const length = isNaN(dimensions.length) ? 0 : dimensions.length;
+    const width = isNaN(dimensions.width) ? 0 : dimensions.width;
+    
+    setState((prevState) => ({
+      ...prevState,
+      dimensions: { length, width }
+    }));
   };
 
   const setFixture = (
@@ -283,6 +320,7 @@ export function CalculatorProvider({ children }: { children: ReactNode }) {
   };
 
   const resetCalculator = () => {
+    sessionStorage.removeItem('calculatorState');
     setState(initialCalculatorState);
   };
 
