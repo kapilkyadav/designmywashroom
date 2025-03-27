@@ -50,7 +50,9 @@ const Header = () => {
           <NavItem to="/about" label="About" delay="0.4s" />
           <NavItem to="/contact" label="Contact" delay="0.5s" />
           <div className="animate-fade-in" style={{ animationDelay: '0.6s' }}>
-            <Button className="btn-transition">Get Started</Button>
+            <Button asChild className="btn-transition">
+              <Link to="/calculator">Get Started</Link>
+            </Button>
           </div>
         </nav>
 
@@ -77,7 +79,9 @@ const Header = () => {
             <MobileNavItem to="/about" label="About" onClick={() => setMobileMenuOpen(false)} />
             <MobileNavItem to="/contact" label="Contact" onClick={() => setMobileMenuOpen(false)} />
             <div className="pt-4">
-              <Button className="w-full">Get Started</Button>
+              <Button asChild className="w-full">
+                <Link to="/calculator">Get Started</Link>
+              </Button>
             </div>
           </nav>
         </div>
