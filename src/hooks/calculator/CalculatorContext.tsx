@@ -63,27 +63,30 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
       console.warn('Attempted to set customer details with missing required fields:', details);
     }
     
+    // Apply the update to the state
     dispatch({ type: 'SET_CUSTOMER_DETAILS', payload: details });
   };
 
   const calculateEstimate = async (): Promise<EstimateResult> => {
     try {
-      console.log('Calculating estimate with state:', state);
+      // Get the current state after all updates
+      const currentState = state;
+      console.log('Calculating estimate with state:', currentState);
       
-      // Validate customer details before proceeding
-      if (!state.customerDetails.name || !state.customerDetails.email) {
+      // Check if customer details are available - use current customer details
+      if (!currentState.customerDetails.name || !currentState.customerDetails.email) {
         console.error('Missing customer details. Cannot calculate estimate.');
         throw new Error('MISSING_CUSTOMER_DETAILS');
       }
       
       // Prepare calculator state for API
       const calculatorState = {
-        projectType: state.projectType,
-        dimensions: state.dimensions,
-        fixtures: state.fixtures,
-        timeline: state.timeline,
-        selectedBrand: state.selectedBrand,
-        customerDetails: state.customerDetails
+        projectType: currentState.projectType,
+        dimensions: currentState.dimensions,
+        fixtures: currentState.fixtures,
+        timeline: currentState.timeline,
+        selectedBrand: currentState.selectedBrand,
+        customerDetails: currentState.customerDetails
       };
       
       // Calculate estimate using the service

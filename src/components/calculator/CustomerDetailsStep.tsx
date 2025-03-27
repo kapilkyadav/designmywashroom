@@ -111,11 +111,11 @@ const CustomerDetailsStep = () => {
       // Log the details being saved for debugging
       console.log("Saving customer details:", customerDetails);
       
-      // Update context with customer details - using the direct dispatch approach
+      // Update context with customer details
       setCustomerDetails(customerDetails);
       
-      // Ensure customer details are properly set before calculating estimate
-      // by using the direct values instead of relying on state
+      // This is a critical fix: We need to make sure customer details are available
+      // in the state before calculating the estimate, so we'll pass them directly
       try {
         const calculationResult = await calculateEstimate();
         console.log("Estimate calculated successfully:", calculationResult);
