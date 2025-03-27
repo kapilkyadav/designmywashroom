@@ -1,9 +1,10 @@
 
-import React, { createContext, useReducer, ReactNode, useState, useRef } from 'react';
+import React, { createContext, useReducer, ReactNode, useRef, useEffect } from 'react';
 import { CalculatorService, EstimateResult } from '@/services/calculator';
 import { CalculatorState, CalculatorContextType } from './types';
 import { initialState } from './initialState';
 import { calculatorReducer } from './calculatorReducer';
+import { toast } from '@/components/ui/use-toast';
 
 // Create context
 export const CalculatorContext = createContext<CalculatorContextType>({
@@ -37,6 +38,15 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
   // Use a ref to track the latest customer details to avoid state sync issues
   const customerDetailsRef = useRef(initialState.customerDetails);
 
+  // Synchronize the ref whenever state.customerDetails changes
+  useEffect(() => {
+    if (state.customerDetails) {
+      customerDetailsRef.current = state.customerDetails;
+      // Debug log to see when this effect runs
+      console.log('CustomerDetails state updated, ref synced:', state.customerDetails);
+    }
+  }, [state.customerDetails]);
+
   const setProjectType = (type: 'new-construction' | 'renovation') => {
     dispatch({ type: 'SET_PROJECT_TYPE', payload: type });
   };
@@ -63,10 +73,17 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
     // Validate that required fields are not empty
     if (!details.name || !details.email) {
       console.warn('Attempted to set customer details with missing required fields:', details);
+      toast({
+        variant: "destructive",
+        title: "Missing information",
+        description: "Please provide your name and email to continue."
+      });
+      return; // Don't proceed with empty values
     }
     
-    // Update our ref to the latest customer details
+    // Update our ref immediately with the latest details
     customerDetailsRef.current = details;
+    console.log('Customer details ref updated:', customerDetailsRef.current);
     
     // Apply the update to the state
     dispatch({ type: 'SET_CUSTOMER_DETAILS', payload: details });
@@ -76,11 +93,16 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Always use the most up-to-date customer details from our ref
       const customerDetails = customerDetailsRef.current;
-      console.log('Calculating estimate with customerDetails:', customerDetails);
+      console.log('Calculating estimate with customerDetails from ref:', customerDetails);
       
       // Double-check customer details before proceeding
       if (!customerDetails || !customerDetails.name || !customerDetails.email) {
         console.error('Missing customer details. Cannot calculate estimate.', customerDetails);
+        toast({
+          variant: "destructive",
+          title: "Missing information",
+          description: "Please provide your name and email to continue."
+        });
         throw new Error('MISSING_CUSTOMER_DETAILS');
       }
       
@@ -94,14 +116,40 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
         customerDetails: customerDetails
       };
       
-      console.log('Sending calculator state to API:', calculatorState);
+      console.log('Sending calculator state to API:', JSON.stringify(calculatorState));
       
       // Calculate estimate using the service
       const estimateResult = await CalculatorService.calculateEstimate(calculatorState);
       console.log('Estimate calculation result:', estimateResult);
       
       // Save the estimate to database
-      await CalculatorService.saveEstimate(calculatorState, estimateResult);
+      try {
+        await CalculatorService.saveEstimate(calculatorState, estimateResult);
+        console.log('Estimate saved successfully to database');
+      } catch (error: any) {
+        console.error('Error saving estimate to database:', error);
+        if (error.message === 'MISSING_CUSTOMER_DETAILS') {
+          toast({
+            variant: "destructive",
+            title: "Missing information",
+            description: "Please provide your name and email to continue."
+          });
+          throw error; // Re-throw to prevent continuing
+        } else if (error.message === 'RATE_LIMITED') {
+          toast({
+            variant: "destructive",
+            title: "Too many requests",
+            description: "Please wait a few minutes before submitting again."
+          });
+          throw error; // Re-throw to prevent continuing
+        }
+        // For other errors, continue but show warning
+        toast({
+          variant: "destructive",
+          title: "Warning",
+          description: "Your estimate was calculated but couldn't be saved. Please try again."
+        });
+      }
       
       // Update state with the calculated estimate
       dispatch({ type: 'SET_ESTIMATE', payload: estimateResult });

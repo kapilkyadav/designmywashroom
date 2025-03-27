@@ -2,6 +2,7 @@
 import { ProjectService } from '@/services/ProjectService';
 import { Project } from '@/lib/supabase';
 import { CalculatorState, EstimateResult } from './types';
+import { toast } from '@/components/ui/use-toast';
 
 export class EstimateStorage {
   /**
@@ -12,35 +13,53 @@ export class EstimateStorage {
     estimateResult: EstimateResult
   ): Promise<Project> {
     try {
-      // Debug data coming in
-      console.log('Saving estimate with customer details:', JSON.stringify(calculatorState.customerDetails));
+      // Extra debug check to see what we're getting
+      console.log('Saving estimate with full calculator state:', JSON.stringify(calculatorState));
       
       // Perform strict validation of customer details
       if (!calculatorState.customerDetails) {
-        console.error('Customer details object is undefined.');
+        console.error('Customer details object is undefined or null');
+        toast({
+          variant: "destructive",
+          title: "Missing information",
+          description: "Please provide your contact details to continue."
+        });
         throw new Error('MISSING_CUSTOMER_DETAILS');
       }
       
       const { name, email, mobile, location } = calculatorState.customerDetails;
       
-      // Verify customer details are not empty
+      // Enhanced validation - log specific missing fields
+      let missingFields = [];
+      
       if (!name || name.trim() === '') {
-        console.error('Customer name is empty or missing.');
-        throw new Error('MISSING_CUSTOMER_DETAILS');
+        console.error('Customer name is empty or missing');
+        missingFields.push('name');
       }
       
       if (!email || email.trim() === '') {
-        console.error('Customer email is empty or missing.');
-        throw new Error('MISSING_CUSTOMER_DETAILS');
+        console.error('Customer email is empty or missing');
+        missingFields.push('email');
       }
       
       if (!mobile || mobile.trim() === '') {
-        console.error('Customer mobile is empty or missing.');
-        throw new Error('MISSING_CUSTOMER_DETAILS');
+        console.error('Customer mobile is empty or missing');
+        missingFields.push('mobile');
       }
       
       if (!location || location.trim() === '') {
-        console.error('Customer location is empty or missing.');
+        console.error('Customer location is empty or missing');
+        missingFields.push('location');
+      }
+      
+      if (missingFields.length > 0) {
+        const errorMessage = `Missing customer details: ${missingFields.join(', ')}`;
+        console.error(errorMessage);
+        toast({
+          variant: "destructive",
+          title: "Missing information",
+          description: "Please provide your name and email to continue."
+        });
         throw new Error('MISSING_CUSTOMER_DETAILS');
       }
       
@@ -62,8 +81,22 @@ export class EstimateStorage {
         final_estimate: estimateResult.total
       };
       
-      // Log the project data being sent to the database
-      console.log('Creating project with data:', JSON.stringify(projectData));
+      // Log the sanitized project data being sent to the database
+      console.log('Creating project with sanitized data:', JSON.stringify(projectData));
+      
+      // Double-check one more time
+      if (!projectData.client_name || !projectData.client_email) {
+        console.error('Final validation failed. Missing required fields:', {
+          name: projectData.client_name,
+          email: projectData.client_email
+        });
+        toast({
+          variant: "destructive",
+          title: "Missing information",
+          description: "Please provide your name and email to continue."
+        });
+        throw new Error('MISSING_CUSTOMER_DETAILS');
+      }
       
       return await ProjectService.createProject(projectData);
     } catch (error) {
