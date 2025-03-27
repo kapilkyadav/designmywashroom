@@ -50,7 +50,14 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
   
   // Validate mapping on change
   useEffect(() => {
-    const hasMissingRequiredFields = requiredFields.some(field => !mapping[field as keyof ColumnMapping]);
+    const hasMissingRequiredFields = requiredFields.some(field => {
+      const value = mapping[field as keyof ColumnMapping];
+      return !value || value === '';
+    });
+    
+    console.log('Validating mapping:', mapping);
+    console.log('Missing required fields?', hasMissingRequiredFields);
+    
     setIsValid(!hasMissingRequiredFields);
   }, [mapping]);
   
@@ -75,20 +82,28 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
           detectedMapping.landing_price = header;
         } else if (headerLower.includes('client') && headerLower.includes('price')) {
           detectedMapping.client_price = header;
-        } else if (headerLower.includes('quot') && headerLower.includes('price')) {
+        } else if (headerLower.includes('quot') || headerLower.includes('offer') || headerLower.includes('yds')) {
           detectedMapping.quotation_price = header;
         }
       });
       
+      console.log('Auto-detected mapping:', detectedMapping);
       setMapping(detectedMapping);
     }
   }, [validHeaders, initialMapping]);
   
   const handleFieldChange = (field: keyof ColumnMapping, value: string) => {
-    setMapping(prev => ({
-      ...prev,
-      [field]: value === "none" ? "" : value
-    }));
+    const newValue = value === "none" ? "" : value;
+    
+    setMapping(prev => {
+      const newMapping = {
+        ...prev,
+        [field]: newValue
+      };
+      
+      console.log(`Field ${field} changed to "${newValue}"`, newMapping);
+      return newMapping;
+    });
   };
   
   const handleSaveMapping = async () => {
@@ -108,6 +123,8 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
           quotation_price: mapping.quotation_price || ''
         };
         
+        console.log('Saving mapping:', completeMapping);
+        
         // Allow the save operation to complete visually
         setTimeout(() => {
           onMappingComplete(completeMapping);
@@ -118,6 +135,8 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
         console.error('Error saving mapping:', error);
         setLoading(false);
       }
+    } else {
+      console.warn('Cannot save mapping - validation failed');
     }
   };
   
@@ -131,6 +150,10 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
       </Alert>
     );
   }
+  
+  console.log('Current mapping state:', mapping);
+  console.log('Is valid?', isValid);
+  console.log('Button disabled?', !isValid || isLoading || loading);
   
   return (
     <Card>
@@ -149,7 +172,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
               Product Name <span className="text-destructive">*</span>
             </label>
             <Select
-              value={mapping.name}
+              value={mapping.name || ""}
               onValueChange={(value) => handleFieldChange('name', value)}
               disabled={isLoading || loading}
             >
@@ -172,7 +195,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
               Description
             </label>
             <Select
-              value={mapping.description}
+              value={mapping.description || ""}
               onValueChange={(value) => handleFieldChange('description', value)}
               disabled={isLoading || loading}
             >
@@ -195,7 +218,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
               Category/Area
             </label>
             <Select
-              value={mapping.category}
+              value={mapping.category || ""}
               onValueChange={(value) => handleFieldChange('category', value)}
               disabled={isLoading || loading}
             >
@@ -218,7 +241,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
               MRP
             </label>
             <Select
-              value={mapping.mrp}
+              value={mapping.mrp || ""}
               onValueChange={(value) => handleFieldChange('mrp', value)}
               disabled={isLoading || loading}
             >
@@ -241,7 +264,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
               Landing Price <span className="text-destructive">*</span>
             </label>
             <Select
-              value={mapping.landing_price}
+              value={mapping.landing_price || ""}
               onValueChange={(value) => handleFieldChange('landing_price', value)}
               disabled={isLoading || loading}
             >
@@ -264,7 +287,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
               Client Price
             </label>
             <Select
-              value={mapping.client_price}
+              value={mapping.client_price || ""}
               onValueChange={(value) => handleFieldChange('client_price', value)}
               disabled={isLoading || loading}
             >
@@ -287,7 +310,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
               Quotation Price <span className="text-destructive">*</span>
             </label>
             <Select
-              value={mapping.quotation_price}
+              value={mapping.quotation_price || ""}
               onValueChange={(value) => handleFieldChange('quotation_price', value)}
               disabled={isLoading || loading}
             >
