@@ -87,6 +87,7 @@ const CustomerDetailsStep = () => {
         return;
       }
       
+      // IMPORTANT: First update context with customer details
       // Make sure we're sending non-empty strings to avoid "N/A" in the admin panel
       const customerDetails = {
         name: formData.name.trim(),
@@ -98,39 +99,51 @@ const CustomerDetailsStep = () => {
       // Log the details being saved for debugging
       console.log("Saving customer details:", customerDetails);
       
-      // Update context with customer details
+      // Update context with customer details - this must happen BEFORE calculate estimate
       setCustomerDetails(customerDetails);
       
-      // Calculate estimate and save to database
-      await calculateEstimate();
-      
-      // Important: Move to the next step after successful calculation
-      nextStep();
-      
-      toast({
-        title: "Estimate calculated successfully",
-        description: "Your washroom renovation estimate is ready.",
-      });
+      // Delay calculation slightly to ensure state is updated
+      setTimeout(async () => {
+        try {
+          // Calculate estimate and save to database
+          await calculateEstimate();
+          
+          // Move to the next step after successful calculation
+          nextStep();
+          
+          toast({
+            title: "Estimate calculated successfully",
+            description: "Your washroom renovation estimate is ready.",
+          });
+        } catch (error) {
+          console.error('Error in delayed calculation:', error);
+          handleSubmissionError(error);
+        } finally {
+          setIsSubmitting(false);
+        }
+      }, 100); // Small delay to ensure state updates
       
     } catch (error) {
       console.error('Error submitting details:', error);
-      
-      // Check if error is rate limiting
-      if (error instanceof Error && error.message === 'RATE_LIMITED') {
-        toast({
-          title: "Too many submissions",
-          description: "Please wait a moment before submitting again.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Error calculating estimate",
-          description: "Please try again later.",
-          variant: "destructive"
-        });
-      }
-    } finally {
+      handleSubmissionError(error);
       setIsSubmitting(false);
+    }
+  };
+  
+  const handleSubmissionError = (error: any) => {
+    // Check if error is rate limiting
+    if (error instanceof Error && error.message === 'RATE_LIMITED') {
+      toast({
+        title: "Too many submissions",
+        description: "Please wait a moment before submitting again.",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Error calculating estimate",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
     }
   };
   

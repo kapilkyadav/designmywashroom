@@ -43,7 +43,7 @@ export const ProjectService = {
     if (!email) return false;
     
     const key = `submission_${email.toLowerCase()}`;
-    const isLimited = submissionRateLimiter.isRateLimited(key, 2 * 60 * 1000); // 2 minute rate limit
+    const isLimited = submissionRateLimiter.isRateLimited(key);
     
     if (isLimited) {
       console.log(`Rate limiting submission for ${email}, too many requests`);
@@ -59,6 +59,9 @@ export const ProjectService = {
       throw new Error('RATE_LIMITED');
     }
     
+    // Debug: Log the incoming project data
+    console.log('Creating project with raw data:', JSON.stringify(project));
+    
     // Ensure all string fields have valid values or empty strings, not null/undefined
     const sanitizedProject = {
       ...project,
@@ -70,7 +73,17 @@ export const ProjectService = {
       selected_brand: project.selected_brand || ''
     };
     
-    console.log('Creating project with data:', sanitizedProject);
+    console.log('Creating project with sanitized data:', sanitizedProject);
+    
+    // Check for empty strings in critical fields to help debug
+    if (!sanitizedProject.client_name || !sanitizedProject.client_email) {
+      console.warn('Warning: Creating project with empty client details', {
+        name: sanitizedProject.client_name,
+        email: sanitizedProject.client_email,
+        mobile: sanitizedProject.client_mobile,
+        location: sanitizedProject.client_location
+      });
+    }
     
     const { data, error } = await supabase
       .from('projects')
@@ -82,6 +95,9 @@ export const ProjectService = {
       console.error('Error creating project:', error);
       throw error;
     }
+    
+    // Debug: Log the created project data from database
+    console.log('Project created successfully:', data);
     
     return data as Project;
   },
