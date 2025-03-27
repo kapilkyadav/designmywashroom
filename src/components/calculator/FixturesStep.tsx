@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Zap, ShowerHead, Lightbulb, Fan, Thermometer, Shower, Palette, Bath, Waves } from 'lucide-react';
+import { Zap, ShowerHead, Lightbulb, Fan, Thermometer, Bath, Palette, Waves } from 'lucide-react';
 
 const FixturesStep = () => {
   const { state, setFixture, nextStep, prevStep } = useCalculator();
@@ -32,15 +32,15 @@ const FixturesStep = () => {
       icon: <ShowerHead className="h-5 w-5" />,
       options: [
         { name: 'completePlumbing', label: 'Complete Plumbing', icon: <ShowerHead size={16} /> },
-        { name: 'fixtureInstallationOnly', label: 'Fixture Installation Only', icon: <Shower size={16} /> }
+        { name: 'fixtureInstallationOnly', label: 'Fixture Installation Only', icon: <Bath size={16} /> } // Changed from Shower to Bath
       ]
     },
     {
       id: 'additional',
       title: 'Additional Fixtures',
-      icon: <Shower className="h-5 w-5" />,
+      icon: <ShowerHead className="h-5 w-5" />, // Changed from Shower to ShowerHead
       options: [
-        { name: 'showerPartition', label: 'Shower Partition', icon: <Shower size={16} /> },
+        { name: 'showerPartition', label: 'Shower Partition', icon: <ShowerHead size={16} /> }, // Changed from Shower to ShowerHead
         { name: 'vanity', label: 'Vanity', icon: <Palette size={16} /> },
         { name: 'bathtub', label: 'Bathtub', icon: <Bath size={16} /> },
         { name: 'jacuzzi', label: 'Jacuzzi', icon: <Waves size={16} /> }
@@ -85,7 +85,7 @@ const FixturesStep = () => {
                     </div>
                     <Switch
                       id={`${category.id}-${option.name}`}
-                      checked={state.fixtures[category.id as 'electrical' | 'plumbing' | 'additional'][option.name as keyof typeof state.fixtures[typeof category.id]]}
+                      checked={state.fixtures[category.id as 'electrical' | 'plumbing' | 'additional'][option.name]}
                       onCheckedChange={(checked) => handleFixtureChange(category.id as 'electrical' | 'plumbing' | 'additional', option.name, checked)}
                     />
                   </div>

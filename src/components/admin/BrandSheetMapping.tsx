@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,7 +23,7 @@ import { GoogleSheetsService } from '@/services/GoogleSheetsService';
 import { 
   FileSpreadsheet, 
   Loader2, 
-  Sync, 
+  RefreshCcw,
   AlertCircle,
   ExternalLink,
   Check
@@ -51,7 +50,6 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
   
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSheetUrl(e.target.value);
-    // Reset validation when URL changes
     setIsValid(null);
     setError('');
   };
@@ -77,7 +75,6 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
       setValidating(true);
       setError('');
       
-      // Fetch the sheet data to validate
       await GoogleSheetsService.fetchSheetData(
         sheetUrl,
         sheetName,
@@ -86,7 +83,6 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
       
       setIsValid(true);
       
-      // Update the brand with sheet information
       await BrandService.updateGoogleSheetConnection(
         brandId,
         sheetUrl,
@@ -122,7 +118,6 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
     try {
       setImporting(true);
       
-      // Update the brand with sheet information if needed
       await BrandService.updateGoogleSheetConnection(
         brandId,
         sheetUrl,
@@ -130,15 +125,12 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
         parseInt(headerRow, 10)
       );
       
-      // Fetch the sheet data
       const { headers, data } = await GoogleSheetsService.fetchSheetData(
         sheetUrl,
         sheetName,
         parseInt(headerRow, 10)
       );
       
-      // Default mapping assumes column headers match field names
-      // In a real app, you would let the user map the columns
       const defaultMapping = {
         name: headers.find(h => h.toLowerCase().includes('name')) || '',
         description: headers.find(h => h.toLowerCase().includes('description')) || '',
@@ -149,7 +141,6 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
         quotation_price: headers.find(h => (h.toLowerCase().includes('quotation') && h.toLowerCase().includes('price'))) || ''
       };
       
-      // Map data to products
       const products = GoogleSheetsService.mapSheetDataToProducts(
         data,
         headers,
@@ -157,7 +148,6 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
         brandId
       );
       
-      // Send import request to Supabase Edge Function
       await GoogleSheetsService.scheduleSync(brandId);
       
       setScheduled(true);
@@ -167,7 +157,6 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
         description: `Successfully imported ${products.length} products and scheduled daily sync`,
       });
       
-      // Wait a moment before completing
       setTimeout(() => {
         onComplete();
       }, 1500);
@@ -320,7 +309,7 @@ const BrandSheetMapping: React.FC<BrandSheetMappingProps> = ({
               </>
             ) : (
               <>
-                <Sync className="mr-2 h-4 w-4" />
+                <RefreshCcw className="mr-2 h-4 w-4" />
                 Import & Schedule
               </>
             )}
