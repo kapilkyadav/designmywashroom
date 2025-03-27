@@ -1,17 +1,15 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Define default values for development if env vars are missing
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://afbmlkeplnimkfltwchy.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmYm1sa2VwbG5pbWtmbHR3Y2h5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwNjU1NjIsImV4cCI6MjA1ODY0MTU2Mn0.NsaKmqtoy3LB9xEK5nnhCoaq7IxM5NbbGrRi-roMu8U';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables. Please check your .env file.');
+// Check if we have the required values and log a message if they're being used from defaults
+if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  console.warn('Using default Supabase credentials. For production, set your own VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
 }
 
-export const supabase = createClient(
-  supabaseUrl || '',
-  supabaseAnonKey || ''
-);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Database types based on our schema
 export type User = {
