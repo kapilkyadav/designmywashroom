@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Select,
@@ -45,6 +44,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
   
   const [isValid, setIsValid] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [autoDetected, setAutoDetected] = useState(false);
   
   // Required fields that must be mapped
   const requiredFields = ['name', 'landing_price', 'quotation_price'];
@@ -62,9 +62,9 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
     setIsValid(!hasMissingRequiredFields);
   }, [mapping]);
   
-  // Auto-detect fields from headers (best-effort matching)
+  // Auto-detect fields from headers (best-effort matching) - only once
   useEffect(() => {
-    if (validHeaders.length > 0 && Object.keys(initialMapping).length === 0) {
+    if (validHeaders.length > 0 && !autoDetected) {
       const detectedMapping: Partial<ColumnMapping> = {};
       
       // Try to match common naming patterns
@@ -91,9 +91,17 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
       });
       
       console.log('Auto-detected mapping:', detectedMapping);
-      setMapping(detectedMapping);
+      
+      // Apply initial mapping on top of detected mapping if provided
+      if (Object.keys(initialMapping).length > 0) {
+        setMapping({...detectedMapping, ...initialMapping});
+      } else {
+        setMapping(detectedMapping);
+      }
+      
+      setAutoDetected(true);
     }
-  }, [validHeaders, initialMapping]);
+  }, [validHeaders, initialMapping, autoDetected]);
   
   const handleFieldChange = (field: keyof ColumnMapping, value: string) => {
     const newValue = value === "none" ? "" : value;
