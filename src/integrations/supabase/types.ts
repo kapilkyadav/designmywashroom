@@ -9,7 +9,230 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      brands: {
+        Row: {
+          created_at: string
+          description: string | null
+          header_row: number | null
+          id: string
+          name: string
+          product_count: number
+          sheet_name: string | null
+          sheet_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          header_row?: number | null
+          id?: string
+          name: string
+          product_count?: number
+          sheet_name?: string | null
+          sheet_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          header_row?: number | null
+          id?: string
+          name?: string
+          product_count?: number
+          sheet_name?: string | null
+          sheet_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fixtures: {
+        Row: {
+          category: string
+          client_price: number
+          created_at: string
+          id: string
+          landing_price: number
+          margin: number
+          mrp: number
+          name: string
+          quotation_price: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          client_price?: number
+          created_at?: string
+          id?: string
+          landing_price?: number
+          margin?: number
+          mrp?: number
+          name: string
+          quotation_price?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          client_price?: number
+          created_at?: string
+          id?: string
+          landing_price?: number
+          margin?: number
+          mrp?: number
+          name?: string
+          quotation_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          brand_id: string
+          category: string | null
+          client_price: number
+          created_at: string
+          description: string | null
+          extra_data: Json | null
+          id: string
+          landing_price: number
+          margin: number
+          mrp: number
+          name: string
+          quotation_price: number
+          updated_at: string
+        }
+        Insert: {
+          brand_id: string
+          category?: string | null
+          client_price?: number
+          created_at?: string
+          description?: string | null
+          extra_data?: Json | null
+          id?: string
+          landing_price?: number
+          margin?: number
+          mrp?: number
+          name: string
+          quotation_price?: number
+          updated_at?: string
+        }
+        Update: {
+          brand_id?: string
+          category?: string | null
+          client_price?: number
+          created_at?: string
+          description?: string | null
+          extra_data?: Json | null
+          id?: string
+          landing_price?: number
+          margin?: number
+          mrp?: number
+          name?: string
+          quotation_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          client_email: string
+          client_location: string
+          client_mobile: string
+          client_name: string
+          created_at: string
+          final_estimate: number
+          fixture_cost: number
+          height: number
+          id: string
+          length: number
+          plumbing_cost: number
+          project_type: string
+          selected_brand: string
+          selected_fixtures: Json | null
+          tiling_cost: number
+          timeline: string
+          updated_at: string
+          width: number
+        }
+        Insert: {
+          client_email: string
+          client_location: string
+          client_mobile: string
+          client_name: string
+          created_at?: string
+          final_estimate?: number
+          fixture_cost?: number
+          height?: number
+          id?: string
+          length: number
+          plumbing_cost?: number
+          project_type: string
+          selected_brand: string
+          selected_fixtures?: Json | null
+          tiling_cost?: number
+          timeline: string
+          updated_at?: string
+          width: number
+        }
+        Update: {
+          client_email?: string
+          client_location?: string
+          client_mobile?: string
+          client_name?: string
+          created_at?: string
+          final_estimate?: number
+          fixture_cost?: number
+          height?: number
+          id?: string
+          length?: number
+          plumbing_cost?: number
+          project_type?: string
+          selected_brand?: string
+          selected_fixtures?: Json | null
+          tiling_cost?: number
+          timeline?: string
+          updated_at?: string
+          width?: number
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          breakage_percentage: number
+          created_at: string
+          id: string
+          plumbing_rate_per_sqft: number
+          tile_cost_per_unit: number
+          tiling_labor_per_sqft: number
+          updated_at: string
+        }
+        Insert: {
+          breakage_percentage?: number
+          created_at?: string
+          id?: string
+          plumbing_rate_per_sqft?: number
+          tile_cost_per_unit?: number
+          tiling_labor_per_sqft?: number
+          updated_at?: string
+        }
+        Update: {
+          breakage_percentage?: number
+          created_at?: string
+          id?: string
+          plumbing_rate_per_sqft?: number
+          tile_cost_per_unit?: number
+          tiling_labor_per_sqft?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
