@@ -32,15 +32,15 @@ const FixturesStep = () => {
       icon: <ShowerHead className="h-5 w-5" />,
       options: [
         { name: 'completePlumbing', label: 'Complete Plumbing', icon: <ShowerHead size={16} /> },
-        { name: 'fixtureInstallationOnly', label: 'Fixture Installation Only', icon: <Bath size={16} /> } // Changed from Shower to Bath
+        { name: 'fixtureInstallationOnly', label: 'Fixture Installation Only', icon: <Bath size={16} /> }
       ]
     },
     {
       id: 'additional',
       title: 'Additional Fixtures',
-      icon: <ShowerHead className="h-5 w-5" />, // Changed from Shower to ShowerHead
+      icon: <ShowerHead className="h-5 w-5" />,
       options: [
-        { name: 'showerPartition', label: 'Shower Partition', icon: <ShowerHead size={16} /> }, // Changed from Shower to ShowerHead
+        { name: 'showerPartition', label: 'Shower Partition', icon: <ShowerHead size={16} /> },
         { name: 'vanity', label: 'Vanity', icon: <Palette size={16} /> },
         { name: 'bathtub', label: 'Bathtub', icon: <Bath size={16} /> },
         { name: 'jacuzzi', label: 'Jacuzzi', icon: <Waves size={16} /> }

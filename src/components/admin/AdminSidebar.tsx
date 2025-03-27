@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   BarChart,
+  RefreshCcw,
 } from 'lucide-react';
 
 const AdminSidebar = () => {
