@@ -1,81 +1,64 @@
-
 import React, { useState, useEffect } from 'react';
 import { useCalculator } from '@/hooks/useCalculator';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Search, Check } from 'lucide-react';
-
-// Mock brands data (in a real app, this would come from an API)
-const MOCK_BRANDS = [
-  {
-    id: 'jaquar',
-    name: 'Jaquar',
-    description: 'Premium bathroom solutions with cutting-edge technology',
-    productCount: 235,
-    logo: '⬢',
-  },
-  {
-    id: 'kohler',
-    name: 'Kohler',
-    description: 'Luxury bathroom fixtures with innovative designs',
-    productCount: 189,
-    logo: '⬡',
-  },
-  {
-    id: 'hindware',
-    name: 'Hindware',
-    description: 'Quality bathroom products with modern aesthetics',
-    productCount: 156,
-    logo: '◆',
-  },
-  {
-    id: 'cera',
-    name: 'Cera',
-    description: 'Stylish and durable bathroom fittings',
-    productCount: 142,
-    logo: '◇',
-  },
-  {
-    id: 'parryware',
-    name: 'Parryware',
-    description: 'Contemporary bathroom solutions',
-    productCount: 128,
-    logo: '■',
-  },
-  {
-    id: 'grohe',
-    name: 'Grohe',
-    description: 'German engineering with premium quality',
-    productCount: 112,
-    logo: '□',
-  },
-];
+import { Search, Check, Loader2 } from 'lucide-react';
+import { BrandService } from '@/services/BrandService';
+import { Brand } from '@/lib/supabase';
+import { toast } from '@/hooks/use-toast';
 
 const BrandsStep = () => {
   const { state, setBrand, nextStep, prevStep } = useCalculator();
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredBrands, setFilteredBrands] = useState(MOCK_BRANDS);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [filteredBrands, setFilteredBrands] = useState<Brand[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Fetch brands from API
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        setLoading(true);
+        const data = await BrandService.getAllBrands();
+        setBrands(data);
+        setFilteredBrands(data);
+      } catch (error) {
+        console.error('Error fetching brands:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load brands",
+          variant: "destructive",
+        });
+        // Fallback to mock data if API fails
+        setBrands(MOCK_BRANDS);
+        setFilteredBrands(MOCK_BRANDS);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchBrands();
+  }, []);
   
   // Filter brands based on search query
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setFilteredBrands(MOCK_BRANDS);
+      setFilteredBrands(brands);
       return;
     }
     
     const lowercaseQuery = searchQuery.toLowerCase();
-    const filtered = MOCK_BRANDS.filter(
+    const filtered = brands.filter(
       brand => 
         brand.name.toLowerCase().includes(lowercaseQuery) ||
         brand.description.toLowerCase().includes(lowercaseQuery)
     );
     
     setFilteredBrands(filtered);
-  }, [searchQuery]);
+  }, [searchQuery, brands]);
   
   // Select a brand
   const handleSelectBrand = (brandId: string) => {
@@ -101,22 +84,34 @@ const BrandsStep = () => {
           />
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          {filteredBrands.length > 0 ? (
-            filteredBrands.map((brand) => (
-              <BrandCard
-                key={brand.id}
-                brand={brand}
-                isSelected={state.selectedBrand === brand.id}
-                onSelect={() => handleSelectBrand(brand.id)}
-              />
-            ))
-          ) : (
-            <div className="col-span-2 p-8 text-center">
-              <p className="text-muted-foreground">No brands found matching your search. Try different keywords.</p>
-            </div>
-          )}
-        </div>
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            {filteredBrands.length > 0 ? (
+              filteredBrands.map((brand) => (
+                <BrandCard
+                  key={brand.id}
+                  brand={{
+                    id: brand.id,
+                    name: brand.name,
+                    description: brand.description,
+                    productCount: brand.product_count || 0,
+                    logo: getBrandLogo(brand.name),
+                  }}
+                  isSelected={state.selectedBrand === brand.id}
+                  onSelect={() => handleSelectBrand(brand.id)}
+                />
+              ))
+            ) : (
+              <div className="col-span-2 p-8 text-center">
+                <p className="text-muted-foreground">No brands found matching your search. Try different keywords.</p>
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="flex justify-between">
           <Button
@@ -137,6 +132,29 @@ const BrandsStep = () => {
       </div>
     </div>
   );
+};
+
+// Get a logo symbol based on brand name
+const getBrandLogo = (brandName: string): string => {
+  const logoMap: Record<string, string> = {
+    'jaquar': '⬢',
+    'kohler': '⬡',
+    'hindware': '◆',
+    'cera': '◇',
+    'parryware': '■',
+    'grohe': '□',
+  };
+  
+  const lowerBrandName = brandName.toLowerCase();
+  
+  for (const [key, value] of Object.entries(logoMap)) {
+    if (lowerBrandName.includes(key)) {
+      return value;
+    }
+  }
+  
+  // Default logo if no match
+  return '★';
 };
 
 interface BrandCardProps {
@@ -203,5 +221,51 @@ const BrandCard = ({ brand, isSelected, onSelect }: BrandCardProps) => {
     </Card>
   );
 };
+
+// Mock brands data (fallback if API fails)
+const MOCK_BRANDS = [
+  {
+    id: 'jaquar',
+    name: 'Jaquar',
+    description: 'Premium bathroom solutions with cutting-edge technology',
+    productCount: 235,
+    logo: '⬢',
+  },
+  {
+    id: 'kohler',
+    name: 'Kohler',
+    description: 'Luxury bathroom fixtures with innovative designs',
+    productCount: 189,
+    logo: '⬡',
+  },
+  {
+    id: 'hindware',
+    name: 'Hindware',
+    description: 'Quality bathroom products with modern aesthetics',
+    productCount: 156,
+    logo: '◆',
+  },
+  {
+    id: 'cera',
+    name: 'Cera',
+    description: 'Stylish and durable bathroom fittings',
+    productCount: 142,
+    logo: '◇',
+  },
+  {
+    id: 'parryware',
+    name: 'Parryware',
+    description: 'Contemporary bathroom solutions',
+    productCount: 128,
+    logo: '■',
+  },
+  {
+    id: 'grohe',
+    name: 'Grohe',
+    description: 'German engineering with premium quality',
+    productCount: 112,
+    logo: '□',
+  },
+];
 
 export default BrandsStep;

@@ -1,18 +1,15 @@
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import { CalculatorService, CalculatorState, EstimateResult } from '@/services/CalculatorService';
 
-// Types for our calculator data
-export interface CalculatorState {
-  // Step 1: Project Type
-  projectType: 'new-construction' | 'renovation' | '';
-  
-  // Step 2: Dimensions
+// Define state types
+interface State {
+  currentStep: number;
+  projectType: 'new-construction' | 'renovation';
   dimensions: {
     length: number;
     width: number;
   };
-  
-  // Step 3: Fixtures
   fixtures: {
     electrical: {
       ledMirror: boolean;
@@ -30,298 +27,218 @@ export interface CalculatorState {
       jacuzzi: boolean;
     };
   };
-  
-  // Step 4: Timeline
-  timeline: 'standard' | 'flexible' | '';
-  
-  // Step 5: Brand
+  timeline: 'standard' | 'flexible';
   selectedBrand: string;
-  
-  // Step 6: Customer Details
   customerDetails: {
     name: string;
     email: string;
     mobile: string;
     location: string;
   };
-  
-  // Step tracking
-  currentStep: number;
-  
-  // Final calculated estimate (hidden from user until end)
+  estimate: EstimateResult;
   estimateCalculated: boolean;
-  estimate: {
-    fixtureCost: number;
-    plumbingCost: number;
-    tilingCost: {
-      materialCost: number;
-      laborCost: number;
-      total: number;
-    };
-    total: number;
-  };
 }
 
-// Initial state for the calculator
-const initialCalculatorState: CalculatorState = {
-  projectType: '',
+// Define action types
+type Action =
+  | { type: 'SET_PROJECT_TYPE'; payload: 'new-construction' | 'renovation' }
+  | { type: 'SET_DIMENSIONS'; payload: { length: number; width: number } }
+  | { type: 'SET_FIXTURE'; payload: { category: 'electrical' | 'plumbing' | 'additional'; name: string; value: boolean } }
+  | { type: 'SET_TIMELINE'; payload: 'standard' | 'flexible' }
+  | { type: 'SET_BRAND'; payload: string }
+  | { type: 'SET_CUSTOMER_DETAILS'; payload: { name: string; email: string; mobile: string; location: string } }
+  | { type: 'SET_ESTIMATE'; payload: EstimateResult }
+  | { type: 'GO_TO_STEP'; payload: number }
+  | { type: 'NEXT_STEP' }
+  | { type: 'PREV_STEP' }
+  | { type: 'RESET' };
+
+// Initial state
+const initialState: State = {
+  currentStep: 1,
+  projectType: 'new-construction',
   dimensions: {
-    length: 0,
-    width: 0,
+    length: 8,
+    width: 6
   },
   fixtures: {
     electrical: {
       ledMirror: false,
       exhaustFan: false,
-      waterHeater: false,
+      waterHeater: false
     },
     plumbing: {
       completePlumbing: false,
-      fixtureInstallationOnly: false,
+      fixtureInstallationOnly: false
     },
     additional: {
       showerPartition: false,
       vanity: false,
       bathtub: false,
-      jacuzzi: false,
-    },
+      jacuzzi: false
+    }
   },
-  timeline: '',
+  timeline: 'standard',
   selectedBrand: '',
   customerDetails: {
     name: '',
     email: '',
     mobile: '',
-    location: '',
+    location: ''
   },
-  currentStep: 1,
-  estimateCalculated: false,
   estimate: {
     fixtureCost: 0,
     plumbingCost: 0,
     tilingCost: {
       materialCost: 0,
       laborCost: 0,
-      total: 0,
+      total: 0
     },
-    total: 0,
+    total: 0
   },
+  estimateCalculated: false
 };
 
-// Context type with state and updater functions
-interface CalculatorContextType {
-  state: CalculatorState;
+// Create context
+const CalculatorContext = createContext<{
+  state: State;
   setProjectType: (type: 'new-construction' | 'renovation') => void;
   setDimensions: (dimensions: { length: number; width: number }) => void;
-  setFixture: (
-    category: 'electrical' | 'plumbing' | 'additional',
-    name: string,
-    value: boolean
-  ) => void;
+  setFixture: (category: 'electrical' | 'plumbing' | 'additional', name: string, value: boolean) => void;
   setTimeline: (timeline: 'standard' | 'flexible') => void;
   setBrand: (brand: string) => void;
-  setCustomerDetails: (details: {
-    name: string;
-    email: string;
-    mobile: string;
-    location: string;
-  }) => void;
+  setCustomerDetails: (details: { name: string; email: string; mobile: string; location: string }) => void;
+  calculateEstimate: () => Promise<void>;
+  goToStep: (step: number) => void;
   nextStep: () => void;
   prevStep: () => void;
-  goToStep: (step: number) => void;
-  calculateEstimate: () => void;
   resetCalculator: () => void;
-}
+}>({
+  state: initialState,
+  setProjectType: () => {},
+  setDimensions: () => {},
+  setFixture: () => {},
+  setTimeline: () => {},
+  setBrand: () => {},
+  setCustomerDetails: () => {},
+  calculateEstimate: async () => {},
+  goToStep: () => {},
+  nextStep: () => {},
+  prevStep: () => {},
+  resetCalculator: () => {}
+});
 
-// Create context with default value
-const CalculatorContext = createContext<CalculatorContextType | undefined>(undefined);
+// Reducer function
+const calculatorReducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case 'SET_PROJECT_TYPE':
+      return { ...state, projectType: action.payload };
+    case 'SET_DIMENSIONS':
+      return { ...state, dimensions: action.payload };
+    case 'SET_FIXTURE':
+      return {
+        ...state,
+        fixtures: {
+          ...state.fixtures,
+          [action.payload.category]: {
+            ...state.fixtures[action.payload.category],
+            [action.payload.name]: action.payload.value
+          }
+        }
+      };
+    case 'SET_TIMELINE':
+      return { ...state, timeline: action.payload };
+    case 'SET_BRAND':
+      return { ...state, selectedBrand: action.payload };
+    case 'SET_CUSTOMER_DETAILS':
+      return { ...state, customerDetails: action.payload };
+    case 'SET_ESTIMATE':
+      return { 
+        ...state, 
+        estimate: action.payload,
+        estimateCalculated: true
+      };
+    case 'GO_TO_STEP':
+      return { ...state, currentStep: action.payload };
+    case 'NEXT_STEP':
+      return { ...state, currentStep: state.currentStep < 6 ? state.currentStep + 1 : state.currentStep };
+    case 'PREV_STEP':
+      return { ...state, currentStep: state.currentStep > 1 ? state.currentStep - 1 : state.currentStep };
+    case 'RESET':
+      return initialState;
+    default:
+      return state;
+  }
+};
 
 // Provider component
-export function CalculatorProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<CalculatorState>(() => {
-    // Check if we have saved state in session storage
-    const savedState = sessionStorage.getItem('calculatorState');
-    if (savedState) {
-      try {
-        return JSON.parse(savedState);
-      } catch (e) {
-        console.error("Failed to parse saved calculator state", e);
-      }
-    }
-    return initialCalculatorState;
-  });
+export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
+  const [state, dispatch] = useReducer(calculatorReducer, initialState);
 
-  // Save state to session storage when it changes
-  useEffect(() => {
-    sessionStorage.setItem('calculatorState', JSON.stringify(state));
-  }, [state]);
-
-  // Mock the actual calculation function (in a real app, this would use actual pricing data)
-  const calculateEstimate = () => {
-    // For demo purposes - these would normally come from the backend
-    const FIXTURE_PRICES = {
-      ledMirror: 3500,
-      exhaustFan: 1200,
-      waterHeater: 8000,
-      completePlumbing: 15000,
-      fixtureInstallationOnly: 7500,
-      showerPartition: 12000,
-      vanity: 9000,
-      bathtub: 25000,
-      jacuzzi: 45000,
-    };
-    
-    const PLUMBING_RATE_PER_SQFT = 150;
-    const TILE_COST_PER_TILE = 80;
-    const TILING_LABOR_RATE_PER_SQFT = 85;
-    
-    // Calculate fixture costs
-    let fixtureCost = 0;
-    
-    // Add electrical fixtures
-    if (state.fixtures.electrical.ledMirror) fixtureCost += FIXTURE_PRICES.ledMirror;
-    if (state.fixtures.electrical.exhaustFan) fixtureCost += FIXTURE_PRICES.exhaustFan;
-    if (state.fixtures.electrical.waterHeater) fixtureCost += FIXTURE_PRICES.waterHeater;
-    
-    // Add plumbing fixtures
-    if (state.fixtures.plumbing.completePlumbing) fixtureCost += FIXTURE_PRICES.completePlumbing;
-    if (state.fixtures.plumbing.fixtureInstallationOnly) fixtureCost += FIXTURE_PRICES.fixtureInstallationOnly;
-    
-    // Add additional fixtures
-    if (state.fixtures.additional.showerPartition) fixtureCost += FIXTURE_PRICES.showerPartition;
-    if (state.fixtures.additional.vanity) fixtureCost += FIXTURE_PRICES.vanity;
-    if (state.fixtures.additional.bathtub) fixtureCost += FIXTURE_PRICES.bathtub;
-    if (state.fixtures.additional.jacuzzi) fixtureCost += FIXTURE_PRICES.jacuzzi;
-    
-    // Log the current state
-    console.log("Current state when calculating estimate:", state);
-    
-    // Ensure dimensions exist and are not NaN
-    const length = typeof state.dimensions.length === 'number' ? state.dimensions.length : 0;
-    const width = typeof state.dimensions.width === 'number' ? state.dimensions.width : 0;
-    
-    if (length === 0 || width === 0) {
-      console.warn("Invalid dimensions detected:", {length, width});
-    }
-    
-    // Calculate plumbing cost
-    const floorArea = length * width;
-    const plumbingCost = floorArea * PLUMBING_RATE_PER_SQFT;
-    
-    // Calculate tiling cost
-    const wallHeight = 9; // Fixed at 9 feet
-    const wallArea = 2 * (length + width) * wallHeight;
-    const totalTilingArea = floorArea + wallArea;
-    
-    // Each 2x2 tile covers 4 sq. ft.
-    const initialTileCount = Math.ceil(totalTilingArea / 4);
-    // Add 10% for breakage
-    const finalTileCount = Math.ceil(initialTileCount * 1.1);
-    
-    const tileMaterialCost = finalTileCount * TILE_COST_PER_TILE;
-    const tilingLaborCost = totalTilingArea * TILING_LABOR_RATE_PER_SQFT;
-    const totalTilingCost = tileMaterialCost + tilingLaborCost;
-    
-    // Calculate total estimate
-    const totalEstimate = fixtureCost + plumbingCost + totalTilingCost;
-    
-    console.log("Calculation dimensions:", {
-      length, 
-      width, 
-      floorArea, 
-      wallArea, 
-      totalEstimate
-    });
-    
-    setState((prevState) => ({
-      ...prevState,
-      estimateCalculated: true,
-      estimate: {
-        fixtureCost,
-        plumbingCost,
-        tilingCost: {
-          materialCost: tileMaterialCost,
-          laborCost: tilingLaborCost,
-          total: totalTilingCost,
-        },
-        total: totalEstimate,
-      },
-    }));
-  };
-
-  // Utility functions to update the state
   const setProjectType = (type: 'new-construction' | 'renovation') => {
-    setState({ ...state, projectType: type });
+    dispatch({ type: 'SET_PROJECT_TYPE', payload: type });
   };
 
   const setDimensions = (dimensions: { length: number; width: number }) => {
-    console.log("Setting dimensions in context:", dimensions);
-    
-    // Validate dimensions to ensure they are proper numbers
-    const length = isNaN(dimensions.length) ? 0 : dimensions.length;
-    const width = isNaN(dimensions.width) ? 0 : dimensions.width;
-    
-    setState((prevState) => ({
-      ...prevState,
-      dimensions: { length, width }
-    }));
+    dispatch({ type: 'SET_DIMENSIONS', payload: dimensions });
   };
 
-  const setFixture = (
-    category: 'electrical' | 'plumbing' | 'additional',
-    name: string,
-    value: boolean
-  ) => {
-    setState({
-      ...state,
-      fixtures: {
-        ...state.fixtures,
-        [category]: {
-          ...state.fixtures[category],
-          [name]: value,
-        },
-      },
-    });
+  const setFixture = (category: 'electrical' | 'plumbing' | 'additional', name: string, value: boolean) => {
+    dispatch({ type: 'SET_FIXTURE', payload: { category, name, value } });
   };
 
   const setTimeline = (timeline: 'standard' | 'flexible') => {
-    setState({ ...state, timeline });
+    dispatch({ type: 'SET_TIMELINE', payload: timeline });
   };
 
   const setBrand = (brand: string) => {
-    setState({ ...state, selectedBrand: brand });
+    dispatch({ type: 'SET_BRAND', payload: brand });
   };
 
-  const setCustomerDetails = (details: {
-    name: string;
-    email: string;
-    mobile: string;
-    location: string;
-  }) => {
-    setState({ ...state, customerDetails: details });
+  const setCustomerDetails = (details: { name: string; email: string; mobile: string; location: string }) => {
+    dispatch({ type: 'SET_CUSTOMER_DETAILS', payload: details });
   };
 
-  const nextStep = () => {
-    if (state.currentStep < 6) {
-      setState({ ...state, currentStep: state.currentStep + 1 });
-    }
-  };
-
-  const prevStep = () => {
-    if (state.currentStep > 1) {
-      setState({ ...state, currentStep: state.currentStep - 1 });
+  const calculateEstimate = async () => {
+    try {
+      // Prepare calculator state for API
+      const calculatorState: CalculatorState = {
+        projectType: state.projectType,
+        dimensions: state.dimensions,
+        fixtures: state.fixtures,
+        timeline: state.timeline,
+        selectedBrand: state.selectedBrand,
+        customerDetails: state.customerDetails
+      };
+      
+      // Calculate estimate using the service
+      const estimateResult = await CalculatorService.calculateEstimate(calculatorState);
+      
+      // Save the estimate to database
+      await CalculatorService.saveEstimate(calculatorState, estimateResult);
+      
+      // Update state with the calculated estimate
+      dispatch({ type: 'SET_ESTIMATE', payload: estimateResult });
+    } catch (error) {
+      console.error('Error calculating estimate:', error);
+      throw error;
     }
   };
 
   const goToStep = (step: number) => {
-    if (step >= 1 && step <= 6) {
-      setState({ ...state, currentStep: step });
-    }
+    dispatch({ type: 'GO_TO_STEP', payload: step });
+  };
+
+  const nextStep = () => {
+    dispatch({ type: 'NEXT_STEP' });
+  };
+
+  const prevStep = () => {
+    dispatch({ type: 'PREV_STEP' });
   };
 
   const resetCalculator = () => {
-    sessionStorage.removeItem('calculatorState');
-    setState(initialCalculatorState);
+    dispatch({ type: 'RESET' });
   };
 
   return (
@@ -334,23 +251,23 @@ export function CalculatorProvider({ children }: { children: ReactNode }) {
         setTimeline,
         setBrand,
         setCustomerDetails,
+        calculateEstimate,
+        goToStep,
         nextStep,
         prevStep,
-        goToStep,
-        calculateEstimate,
-        resetCalculator,
+        resetCalculator
       }}
     >
       {children}
     </CalculatorContext.Provider>
   );
-}
+};
 
-// Custom hook to use the calculator context
-export function useCalculator() {
+// Hook to use the calculator context
+export const useCalculator = () => {
   const context = useContext(CalculatorContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useCalculator must be used within a CalculatorProvider');
   }
   return context;
-}
+};

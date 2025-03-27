@@ -1,110 +1,194 @@
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
+import { BrandService } from '@/services/BrandService';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
-interface BrandFormValues {
-  name: string;
-  description: string;
-  connect_sheet: boolean;
-  sheet_url?: string;
-}
+const formSchema = z.object({
+  name: z.string().min(1, "Brand name is required"),
+  description: z.string().min(1, "Brand description is required"),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+const googleSheetFormSchema = z.object({
+  sheet_url: z.string().url("Please enter a valid URL").min(1, "Sheet URL is required"),
+  sheet_name: z.string().min(1, "Sheet name is required"),
+  header_row: z.coerce.number().min(1, "Header row must be at least 1"),
+});
+
+type GoogleSheetFormValues = z.infer<typeof googleSheetFormSchema>;
 
 const AdminBrandAdd = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('details');
-  const [connectSheet, setConnectSheet] = useState(false);
-  
-  const form = useForm<BrandFormValues>({
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentTab, setCurrentTab] = useState("brand");
+  const [brandId, setBrandId] = useState<string | null>(null);
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      name: '',
-      description: '',
-      connect_sheet: false,
-      sheet_url: '',
-    }
+      name: "",
+      description: "",
+    },
   });
 
-  const onSubmit = (data: BrandFormValues) => {
-    // In a real app, this would be an API call
-    console.log('Brand data to submit:', data);
-    
-    toast({
-      title: "Brand created",
-      description: `${data.name} has been successfully added.`,
-    });
-    
-    navigate('/admin/brands');
+  const googleSheetForm = useForm<GoogleSheetFormValues>({
+    resolver: zodResolver(googleSheetFormSchema),
+    defaultValues: {
+      sheet_url: "",
+      sheet_name: "Sheet1",
+      header_row: 1,
+    },
+  });
+
+  const onSubmit = async (values: FormValues) => {
+    try {
+      setIsSubmitting(true);
+      const newBrand = await BrandService.createBrand({
+        name: values.name,
+        description: values.description,
+      });
+      
+      toast({
+        title: "Brand created",
+        description: "The brand has been created successfully",
+      });
+      
+      // Set the brand ID for Google Sheet connection
+      setBrandId(newBrand.id);
+      
+      // Move to Google Sheet tab if the brand was created successfully
+      setCurrentTab("google-sheet");
+    } catch (error: any) {
+      console.error('Error creating brand:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create brand",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const goToSheet = () => {
-    if (form.getValues('name').trim() === '') {
+  const onGoogleSheetSubmit = async (values: GoogleSheetFormValues) => {
+    if (!brandId) {
       toast({
-        title: "Required information missing",
-        description: "Please enter a brand name first.",
+        title: "Error",
+        description: "Brand ID not found. Please create a brand first.",
         variant: "destructive",
       });
       return;
     }
-    setActiveTab('sheet');
+
+    try {
+      setIsSubmitting(true);
+      await BrandService.updateGoogleSheetConnection(
+        brandId,
+        values.sheet_url,
+        values.sheet_name,
+        values.header_row
+      );
+      
+      toast({
+        title: "Google Sheet connected",
+        description: "The Google Sheet has been connected successfully",
+      });
+      
+      // Navigate back to the brands list
+      navigate('/admin/brands');
+    } catch (error: any) {
+      console.error('Error connecting Google Sheet:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to connect Google Sheet",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const skipGoogleSheet = () => {
+    navigate('/admin/brands');
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/admin/brands')}>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate('/admin/brands')}
+          className="h-8 w-8 p-0"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Add Brand</h1>
-          <p className="text-muted-foreground">
-            Create a new brand and optionally connect a Google Sheet
-          </p>
-        </div>
+        <h1 className="text-3xl font-bold">Add Brand</h1>
       </div>
-      
-      <Card>
+
+      <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Brand Information</CardTitle>
+          <CardTitle>Create New Brand</CardTitle>
           <CardDescription>
-            Enter the details for the new brand
+            Add a new brand to the catalog and optionally connect it to a Google Sheet for product data.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs value={currentTab} onValueChange={setCurrentTab}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="details">Brand Details</TabsTrigger>
-              <TabsTrigger value="sheet" disabled={!form.getValues('name')}>
-                Google Sheet
-              </TabsTrigger>
+              <TabsTrigger value="brand" disabled={isSubmitting}>Brand Information</TabsTrigger>
+              <TabsTrigger value="google-sheet" disabled={!brandId || isSubmitting}>Google Sheet</TabsTrigger>
             </TabsList>
-            
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)}>
-                <TabsContent value="details" className="space-y-4 pt-4">
+            <TabsContent value="brand" className="pt-4">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <FormField
                     control={form.control}
                     name="name"
-                    rules={{ required: "Brand name is required" }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Brand Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. Jaquar" {...field} />
+                          <Input {...field} placeholder="Enter brand name" />
                         </FormControl>
+                        <FormDescription>
+                          The name of the brand as it will appear to users.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
                   <FormField
                     control={form.control}
                     name="description"
@@ -113,104 +197,110 @@ const AdminBrandAdd = () => {
                         <FormLabel>Description</FormLabel>
                         <FormControl>
                           <Textarea 
-                            placeholder="Describe the brand"
-                            className="min-h-[100px]" 
                             {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="connect_sheet"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={(checked) => {
-                              field.onChange(checked);
-                              setConnectSheet(!!checked);
-                            }}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>Connect Google Sheet</FormLabel>
-                          <FormDescription>
-                            Connect a Google Sheet to import products for this brand
-                          </FormDescription>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => navigate('/admin/brands')}>
-                      Cancel
-                    </Button>
-                    {connectSheet ? (
-                      <Button type="button" onClick={goToSheet}>
-                        Next: Configure Sheet
-                      </Button>
-                    ) : (
-                      <Button type="submit">Create Brand</Button>
-                    )}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="sheet" className="space-y-4 pt-4">
-                  <FormField
-                    control={form.control}
-                    name="sheet_url"
-                    rules={{ 
-                      required: connectSheet ? "Sheet URL is required" : false,
-                      pattern: {
-                        value: /https:\/\/docs\.google\.com\/spreadsheets\/.*/,
-                        message: "Please enter a valid Google Sheets URL"
-                      }
-                    }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Google Sheet URL</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="https://docs.google.com/spreadsheets/d/..." 
-                            {...field} 
+                            placeholder="Enter brand description" 
+                            rows={4}
                           />
                         </FormControl>
                         <FormDescription>
-                          Enter the URL of your Google Sheet containing product data
+                          A brief description of the brand and its offerings.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
-                  <div className="space-y-4 border rounded-md p-4">
-                    <h3 className="font-medium">Sheet Configuration</h3>
-                    <p className="text-sm text-muted-foreground">
-                      After adding the brand, you'll be able to:
-                    </p>
-                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                      <li>Select which worksheet to use</li>
-                      <li>Choose the header row</li>
-                      <li>Map columns to product fields</li>
-                      <li>Set up automatic daily sync</li>
-                    </ul>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      "Create Brand"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </TabsContent>
+            <TabsContent value="google-sheet" className="pt-4">
+              <Form {...googleSheetForm}>
+                <form onSubmit={googleSheetForm.handleSubmit(onGoogleSheetSubmit)} className="space-y-6">
+                  <FormField
+                    control={googleSheetForm.control}
+                    name="sheet_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Google Sheet URL</FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            placeholder="https://docs.google.com/spreadsheets/d/..." 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          The URL of the Google Sheet containing product data. Make sure the sheet is publicly accessible.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={googleSheetForm.control}
+                      name="sheet_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Sheet Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Sheet1" />
+                          </FormControl>
+                          <FormDescription>
+                            The name of the sheet tab in the Google Sheet.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={googleSheetForm.control}
+                      name="header_row"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Header Row</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number" 
+                              min={1} 
+                              placeholder="1" 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            The row number containing column headers.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
-                  
-                  <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setActiveTab('details')}>
-                      Back
+                  <div className="flex gap-4">
+                    <Button type="button" variant="outline" onClick={skipGoogleSheet}>
+                      Skip
                     </Button>
-                    <Button type="submit">Create Brand and Configure Sheet</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Connecting...
+                        </>
+                      ) : (
+                        "Connect Sheet"
+                      )}
+                    </Button>
                   </div>
-                </TabsContent>
-              </form>
-            </Form>
+                </form>
+              </Form>
+            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>

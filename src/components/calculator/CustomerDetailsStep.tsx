@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useCalculator } from '@/hooks/useCalculator';
 import { Button } from '@/components/ui/button';
@@ -6,9 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 const CustomerDetailsStep = () => {
   const { state, setCustomerDetails, prevStep, calculateEstimate } = useCalculator();
+  const [isCalculating, setIsCalculating] = useState(false);
   
   const [formState, setFormState] = useState({
     name: state.customerDetails.name || '',
@@ -31,7 +32,6 @@ const CustomerDetailsStep = () => {
       [name]: value,
     });
     
-    // Clear error when user types
     if (errors[name as keyof typeof errors]) {
       setErrors({
         ...errors,
@@ -50,13 +50,11 @@ const CustomerDetailsStep = () => {
     
     let isValid = true;
     
-    // Validate name
     if (!formState.name.trim()) {
       newErrors.name = 'Name is required';
       isValid = false;
     }
     
-    // Validate email
     if (!formState.email.trim()) {
       newErrors.email = 'Email is required';
       isValid = false;
@@ -65,7 +63,6 @@ const CustomerDetailsStep = () => {
       isValid = false;
     }
     
-    // Validate mobile (basic validation for India numbers)
     if (!formState.mobile.trim()) {
       newErrors.mobile = 'Mobile number is required';
       isValid = false;
@@ -74,7 +71,6 @@ const CustomerDetailsStep = () => {
       isValid = false;
     }
     
-    // Validate location
     if (!formState.location.trim()) {
       newErrors.location = 'Location is required';
       isValid = false;
@@ -84,18 +80,29 @@ const CustomerDetailsStep = () => {
     return isValid;
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
-      setCustomerDetails(formState);
-      calculateEstimate();
-      
-      // Show toast notification
-      toast({
-        title: "Estimate calculated successfully!",
-        description: "Your washroom design estimate is ready to view.",
-      });
+      try {
+        setIsCalculating(true);
+        setCustomerDetails(formState);
+        await calculateEstimate();
+        
+        toast({
+          title: "Estimate calculated successfully!",
+          description: "Your washroom design estimate is ready to view.",
+        });
+      } catch (error: any) {
+        console.error('Error calculating estimate:', error);
+        toast({
+          title: "Error calculating estimate",
+          description: error.message || "An unexpected error occurred.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsCalculating(false);
+      }
     }
   };
   
@@ -188,11 +195,19 @@ const CustomerDetailsStep = () => {
                 type="button"
                 variant="outline"
                 onClick={prevStep}
+                disabled={isCalculating}
               >
                 Back
               </Button>
-              <Button type="submit">
-                Calculate Estimate
+              <Button type="submit" disabled={isCalculating}>
+                {isCalculating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Calculating...
+                  </>
+                ) : (
+                  "Calculate Estimate"
+                )}
               </Button>
             </div>
           </div>

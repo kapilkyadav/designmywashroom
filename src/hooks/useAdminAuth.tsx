@@ -1,85 +1,171 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-interface AdminUser {
-  id: string;
-  username: string;
-  role: 'admin' | 'manager';
-}
+import { supabase, User } from '@/lib/supabase';
+import { toast } from '@/hooks/use-toast';
 
 interface AdminAuthContextType {
-  user: AdminUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  user: User | null;
   login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
-// Initial admin auth context
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
-// Mock admin user for demonstration
-const MOCK_ADMIN: AdminUser = {
-  id: '1',
-  username: 'admin',
-  role: 'admin',
-};
-
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AdminUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<User | null>(null);
 
-  // Check for existing session on initial load
+  // Check for existing session on component mount
   useEffect(() => {
-    const checkAuth = () => {
-      const storedUser = localStorage.getItem('adminUser');
-      if (storedUser) {
-        try {
-          setUser(JSON.parse(storedUser));
-        } catch (e) {
-          console.error('Failed to parse stored admin user:', e);
-          localStorage.removeItem('adminUser');
+    const checkSession = async () => {
+      try {
+        setIsLoading(true);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          throw error;
         }
+
+        if (session) {
+          // Fetch user details and verify they are an admin
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .eq('role', 'admin')
+            .single();
+
+          if (userError || !userData) {
+            setIsAuthenticated(false);
+            setUser(null);
+          } else {
+            setIsAuthenticated(true);
+            setUser(userData as User);
+          }
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+        setIsAuthenticated(false);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
-    checkAuth();
+    checkSession();
+
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // Fetch user details after sign in
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .eq('role', 'admin')
+          .single();
+
+        if (error || !data) {
+          setIsAuthenticated(false);
+          setUser(null);
+        } else {
+          setIsAuthenticated(true);
+          setUser(data as User);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
-  // Mock login function (would be replaced with actual API call)
-  const login = async (username: string, password: string): Promise<void> => {
-    setIsLoading(true);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // In a real app, validate credentials with the backend
-    if (username === 'admin' && password === 'admin') {
-      setUser(MOCK_ADMIN);
-      localStorage.setItem('adminUser', JSON.stringify(MOCK_ADMIN));
-    } else {
-      throw new Error('Invalid credentials');
+  const login = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        // Verify user is an admin
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .eq('role', 'admin')
+          .single();
+
+        if (userError || !userData) {
+          throw new Error('Not authorized as admin');
+        }
+
+        setIsAuthenticated(true);
+        setUser(userData as User);
+        toast({
+          title: "Login successful",
+          description: "Welcome to the admin dashboard",
+        });
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid credentials",
+        variant: "destructive",
+      });
+      setIsAuthenticated(false);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('adminUser');
+  const logout = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw error;
+      }
+
+      setIsAuthenticated(false);
+      setUser(null);
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out",
+      });
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Logout failed",
+        description: error.message || "An error occurred during logout",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <AdminAuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
-        logout,
-      }}
-    >
+    <AdminAuthContext.Provider value={{ isAuthenticated, isLoading, user, login, logout }}>
       {children}
     </AdminAuthContext.Provider>
   );

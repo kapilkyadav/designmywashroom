@@ -6,9 +6,28 @@ import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { Check, Download, Share2 } from 'lucide-react';
+import { BrandService } from '@/services/BrandService';
 
 const Summary = () => {
   const { state, resetCalculator } = useCalculator();
+  const [brandName, setBrandName] = React.useState('');
+
+  // Fetch brand name on component mount
+  React.useEffect(() => {
+    const fetchBrand = async () => {
+      try {
+        if (state.selectedBrand) {
+          const brand = await BrandService.getBrandById(state.selectedBrand);
+          setBrandName(brand.name);
+        }
+      } catch (error) {
+        console.error('Error fetching brand:', error);
+        setBrandName('Selected Brand');
+      }
+    };
+    
+    fetchBrand();
+  }, [state.selectedBrand]);
 
   // Function to format currency in Indian Rupees
   const formatCurrency = (amount: number) => {
@@ -125,7 +144,7 @@ const Summary = () => {
               <div>
                 <h5 className="text-sm font-medium text-muted-foreground mb-2">Selected Brand</h5>
                 <p className="text-base">
-                  {MOCK_BRANDS.find(b => b.id === state.selectedBrand)?.name || 'Custom Selection'}
+                  {brandName || 'Custom Selection'}
                 </p>
               </div>
               
@@ -201,15 +220,5 @@ const Summary = () => {
     </div>
   );
 };
-
-// Mock brands data (would typically come from an API)
-const MOCK_BRANDS = [
-  { id: 'jaquar', name: 'Jaquar' },
-  { id: 'kohler', name: 'Kohler' },
-  { id: 'hindware', name: 'Hindware' },
-  { id: 'cera', name: 'Cera' },
-  { id: 'parryware', name: 'Parryware' },
-  { id: 'grohe', name: 'Grohe' },
-];
 
 export default Summary;

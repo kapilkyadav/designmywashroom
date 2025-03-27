@@ -2,158 +2,170 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { 
-  LayoutDashboard, 
-  Package, 
-  Users, 
-  Calculator, 
-  Settings, 
-  Database,
-  ChevronRight,
-  ChevronDown
+import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { useTheme } from '@/hooks/useTheme';
+import {
+  LayoutDashboard,
+  Package,
+  ShowerHead,
+  Settings,
+  LogOut,
+  Sun,
+  Moon,
+  Menu,
+  X,
+  BarChart,
 } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-
-interface SidebarItemProps {
-  icon: React.ReactNode;
-  title: string;
-  to?: string;
-  isActive?: boolean;
-  children?: React.ReactNode;
-}
-
-const SidebarItem = ({ icon, title, to, isActive, children }: SidebarItemProps) => {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const hasChildren = Boolean(children);
-
-  if (hasChildren) {
-    return (
-      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
-        <CollapsibleTrigger className={cn(
-          "flex items-center gap-3 w-full p-2 rounded-md hover:bg-accent hover:text-accent-foreground cursor-pointer",
-          isActive && "bg-accent text-accent-foreground"
-        )}>
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-3">
-              {icon}
-              <span>{title}</span>
-            </div>
-            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </div>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="pl-9 pt-1">
-          {children}
-        </CollapsibleContent>
-      </Collapsible>
-    );
-  }
-
-  return (
-    <Link
-      to={to || "#"}
-      className={cn(
-        "flex items-center gap-3 p-2 rounded-md hover:bg-accent hover:text-accent-foreground",
-        isActive && "bg-accent text-accent-foreground"
-      )}
-    >
-      {icon}
-      <span>{title}</span>
-    </Link>
-  );
-};
 
 const AdminSidebar = () => {
   const location = useLocation();
-  const path = location.pathname;
-  
-  return (
-    <div className="w-64 border-r bg-card h-full flex flex-col">
-      <div className="p-6">
-        <h2 className="text-xl font-bold">Admin Portal</h2>
-      </div>
-      
-      <div className="px-3 py-2 flex-1 overflow-auto">
-        <nav className="space-y-1">
-          <SidebarItem 
-            icon={<LayoutDashboard className="h-5 w-5" />} 
-            title="Dashboard" 
-            to="/admin/dashboard"
-            isActive={path === "/admin/dashboard"}
-          />
-          
-          <SidebarItem 
-            icon={<Package className="h-5 w-5" />} 
-            title="Brands"
-            isActive={path.startsWith("/admin/brands")}
-          >
-            <SidebarItem 
-              icon={<div className="w-1 h-1 rounded-full bg-current" />} 
-              title="All Brands" 
-              to="/admin/brands"
-              isActive={path === "/admin/brands"}
-            />
-            <SidebarItem 
-              icon={<div className="w-1 h-1 rounded-full bg-current" />} 
-              title="Add Brand" 
-              to="/admin/brands/add"
-              isActive={path === "/admin/brands/add"}
-            />
-          </SidebarItem>
-          
-          <SidebarItem 
-            icon={<Database className="h-5 w-5" />} 
-            title="Products"
-            isActive={path.startsWith("/admin/products")}
-          >
-            <SidebarItem 
-              icon={<div className="w-1 h-1 rounded-full bg-current" />} 
-              title="All Products" 
-              to="/admin/products"
-              isActive={path === "/admin/products"}
-            />
-            <SidebarItem 
-              icon={<div className="w-1 h-1 rounded-full bg-current" />} 
-              title="Add Product" 
-              to="/admin/products/add"
-              isActive={path === "/admin/products/add"}
-            />
-            <SidebarItem 
-              icon={<div className="w-1 h-1 rounded-full bg-current" />} 
-              title="Import Products" 
-              to="/admin/products/import"
-              isActive={path === "/admin/products/import"}
-            />
-          </SidebarItem>
-          
-          <SidebarItem 
-            icon={<Calculator className="h-5 w-5" />} 
-            title="Projects" 
-            to="/admin/projects"
-            isActive={path.startsWith("/admin/projects")}
-          />
-          
-          <SidebarItem 
-            icon={<Users className="h-5 w-5" />} 
-            title="Users" 
-            to="/admin/users"
-            isActive={path.startsWith("/admin/users")}
-          />
-          
-          <SidebarItem 
-            icon={<Settings className="h-5 w-5" />} 
-            title="Settings" 
-            to="/admin/settings"
-            isActive={path.startsWith("/admin/settings")}
-          />
-        </nav>
-      </div>
-      
-      <div className="p-4 border-t">
-        <div className="text-xs text-muted-foreground">
-          Admin Portal v1.0.0
+  const { logout } = useAdminAuth();
+  const { theme, setTheme } = useTheme();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
+  const isActive = (path: string) => {
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
+
+  const navigationItems = [
+    {
+      name: 'Dashboard',
+      href: '/admin/dashboard',
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      name: 'Brands',
+      href: '/admin/brands',
+      icon: <BarChart className="h-5 w-5" />,
+    },
+    {
+      name: 'Products',
+      href: '/admin/products',
+      icon: <Package className="h-5 w-5" />,
+    },
+    {
+      name: 'Fixtures',
+      href: '/admin/fixtures',
+      icon: <ShowerHead className="h-5 w-5" />,
+    },
+    {
+      name: 'Settings',
+      href: '/admin/settings',
+      icon: <Settings className="h-5 w-5" />,
+    },
+  ];
+
+  const sidebarContent = (
+    <>
+      <div className="px-3 py-4">
+        <Link to="/" className="flex items-center px-3 py-2 mb-6">
+          <span className="text-2xl font-semibold">Dream Space</span>
+        </Link>
+
+        <div className="space-y-1">
+          {navigationItems.map((item) => (
+            <Link
+              key={item.name}
+              to={item.href}
+              className={cn(
+                "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                isActive(item.href)
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              )}
+              onClick={closeMobileMenu}
+            >
+              {item.icon}
+              <span className="ml-3">{item.name}</span>
+            </Link>
+          ))}
         </div>
       </div>
-    </div>
+
+      <div className="px-3 py-4 mt-auto">
+        <Separator className="my-4" />
+        <div className="space-y-1">
+          <Button
+            variant="ghost"
+            onClick={toggleTheme}
+            className="w-full justify-start px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md"
+          >
+            {theme === 'light' ? (
+              <Moon className="h-5 w-5 mr-3" />
+            ) : (
+              <Sun className="h-5 w-5 mr-3" />
+            )}
+            {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={logout}
+            className="w-full justify-start px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md"
+          >
+            <LogOut className="h-5 w-5 mr-3" />
+            Logout
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile menu button */}
+      <div className="lg:hidden fixed top-4 left-4 z-50">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={toggleMobileMenu}
+          className="h-10 w-10"
+        >
+          {isMobileMenuOpen ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Menu className="h-5 w-5" />
+          )}
+        </Button>
+      </div>
+
+      {/* Mobile sidebar */}
+      <div 
+        className={cn(
+          "fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden",
+          isMobileMenuOpen ? "block" : "hidden"
+        )}
+        onClick={closeMobileMenu}
+      >
+        <div 
+          className={cn(
+            "fixed inset-y-0 left-0 w-64 bg-background border-r p-0 flex flex-col transition-transform duration-300 ease-in-out",
+            isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {sidebarContent}
+        </div>
+      </div>
+
+      {/* Desktop sidebar */}
+      <div className="hidden lg:flex lg:flex-col h-full w-64 border-r bg-background">
+        {sidebarContent}
+      </div>
+    </>
   );
 };
 
