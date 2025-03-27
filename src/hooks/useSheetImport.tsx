@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { BrandService } from '@/services/BrandService';
+import { ProductService } from '@/services/ProductService';
 import { GoogleSheetsService, SheetMapping } from '@/services/GoogleSheetsService';
 
 export type ImportStep = 'connection' | 'mapping' | 'importing' | 'complete';
@@ -31,6 +32,7 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
   // Sheet data
   const [sheetHeaders, setSheetHeaders] = useState<string[]>([]);
   const [columnMapping, setColumnMapping] = useState<SheetMapping | null>(null);
+  const [sheetData, setSheetData] = useState<any[] | null>(null);
   
   // Progress steps
   const steps = {
@@ -108,15 +110,20 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
         throw new Error('Could not validate sheet. Please check the URL, sheet name, and permissions.');
       }
       
-      // Get headers for mapping
-      const { headers } = await GoogleSheetsService.fetchSheetData(
+      // Get headers and data for mapping
+      const { headers, data } = await GoogleSheetsService.fetchSheetData(
         sheetUrl,
         sheetName,
         headerRowNum - 1 // Adjust for zero-based indexing
       );
       
+      // Store headers and data for later use
       setSheetHeaders(headers);
+      setSheetData(data);
       setIsValid(true);
+      
+      console.log('Sheet headers set:', headers);
+      console.log('Sheet data retrieved, sample:', data.slice(0, 2));
       
       // Save sheet connection info
       await BrandService.updateGoogleSheetConnection(
@@ -167,6 +174,64 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
     setCurrentStep('importing');
   };
   
+  const importProducts = async (mapping: SheetMapping) => {
+    if (!sheetData || !mapping || !brandId) {
+      console.error('Missing data required for import');
+      setError('Missing data required for import');
+      return;
+    }
+    
+    setImporting(true);
+    
+    try {
+      // Map the sheet data to products
+      const products = GoogleSheetsService.mapSheetDataToProducts(
+        sheetData,
+        sheetHeaders,
+        mapping,
+        brandId
+      );
+      
+      console.log(`Mapped ${products.length} products for import`);
+      
+      // Import the products using the product service
+      await ProductService.importProducts(products, brandId);
+      
+      // Schedule automatic sync
+      try {
+        await GoogleSheetsService.scheduleSync(brandId);
+        setScheduled(true);
+        
+        toast({
+          title: "Auto-sync scheduled",
+          description: "Products will automatically sync with your sheet",
+        });
+      } catch (syncError) {
+        console.error('Error scheduling sync:', syncError);
+        // Continue even if sync scheduling fails
+      }
+      
+      toast({
+        title: "Import successful",
+        description: `${products.length} products imported successfully`,
+      });
+      
+    } catch (error: any) {
+      console.error('Error importing products:', error);
+      setError(error.message || 'Failed to import products');
+      
+      toast({
+        title: "Import Failed",
+        description: "Could not import products from sheet",
+        variant: "destructive",
+      });
+      
+      throw error; // Rethrow to be caught by the caller
+    } finally {
+      setImporting(false);
+    }
+  };
+  
   const handleOpenSheet = () => {
     if (sheetUrl) {
       window.open(sheetUrl, '_blank', 'noopener,noreferrer');
@@ -197,6 +262,7 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
     validateSheet,
     cancelValidation,
     handleMappingComplete,
+    importProducts,
     handleOpenSheet
   };
 }

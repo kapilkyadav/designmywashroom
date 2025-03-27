@@ -58,6 +58,25 @@ const StepContent: React.FC<StepContentProps> = ({
   onImportComplete,
   onImportError
 }) => {
+  // Debug to track step transitions
+  console.log('Rendering StepContent for step:', currentStep, 'with headers:', sheetHeaders);
+
+  // Safeguard to prevent rendering mapping interface without headers
+  if (currentStep === 'mapping' && (!sheetHeaders || sheetHeaders.length === 0)) {
+    console.error('Attempted to render mapping step without headers');
+    return (
+      <div className="p-4 border rounded bg-destructive/10 text-destructive">
+        <p>Error: No sheet headers available. Please try validating the sheet again.</p>
+        <button 
+          onClick={onValidate}
+          className="mt-2 bg-primary text-primary-foreground px-4 py-2 rounded"
+        >
+          Re-validate Sheet
+        </button>
+      </div>
+    );
+  }
+
   switch (currentStep) {
     case 'connection':
       return (
