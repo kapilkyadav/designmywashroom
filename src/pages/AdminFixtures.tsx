@@ -21,7 +21,7 @@ const AdminFixtures = () => {
   const [filteredFixtures, setFilteredFixtures] = useState<Fixture[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchFixtures();
@@ -60,8 +60,8 @@ const AdminFixtures = () => {
       );
     }
     
-    // Apply category filter
-    if (categoryFilter) {
+    // Apply category filter - changed to check for 'all' instead of empty string
+    if (categoryFilter && categoryFilter !== 'all') {
       filtered = filtered.filter(fixture => fixture.category === categoryFilter);
     }
     
@@ -104,7 +104,7 @@ const AdminFixtures = () => {
               <SelectValue placeholder="Filter by category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
               <SelectItem value="electrical">Electrical</SelectItem>
               <SelectItem value="plumbing">Plumbing</SelectItem>
               <SelectItem value="additional">Additional</SelectItem>
@@ -157,7 +157,7 @@ const AdminFixtures = () => {
                 ) : (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
-                      {searchQuery.trim() !== '' || categoryFilter
+                      {searchQuery.trim() !== '' || categoryFilter !== 'all'
                         ? "No fixtures matching your filters" 
                         : "No fixtures found. Add your first fixture to get started."}
                     </td>
