@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { 
   Search, Plus, FilePenLine, Trash2, Loader2
 } from 'lucide-react';
-import { useMediaQuery } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import FixtureDialog from '@/components/admin/fixtures/FixtureDialog';
 import FixtureDrawer from '@/components/admin/fixtures/FixtureDrawer';
 import {
@@ -42,7 +41,7 @@ const AdminFixtures = () => {
   const [fixtureToDelete, setFixtureToDelete] = useState<string | null>(null);
   
   // Responsive handling
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchFixtures();
