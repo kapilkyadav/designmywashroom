@@ -11,11 +11,31 @@ import {
   Square, 
   Ruler, 
   ShowerHead, 
-  Zap
+  Zap,
+  Package
 } from 'lucide-react';
+import { BrandService } from '@/services/BrandService';
 
 const EstimateSummary = () => {
   const { state, resetCalculator } = useCalculator();
+  const [brandName, setBrandName] = React.useState('');
+  
+  // Fetch brand name on component mount
+  React.useEffect(() => {
+    const fetchBrand = async () => {
+      try {
+        if (state.selectedBrand) {
+          const brand = await BrandService.getBrandById(state.selectedBrand);
+          setBrandName(brand.name);
+        }
+      } catch (error) {
+        console.error('Error fetching brand:', error);
+        setBrandName('Selected Brand');
+      }
+    };
+    
+    fetchBrand();
+  }, [state.selectedBrand]);
   
   // Format currency in Indian Rupees
   const formatCurrency = (amount: number) => {
@@ -85,6 +105,13 @@ const EstimateSummary = () => {
                       {state.timeline === 'standard' ? 'Standard (4 weeks)' : 'Flexible'}
                     </span>
                   </div>
+                  
+                  {brandName && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Selected Brand:</span>
+                      <span className="font-medium">{brandName}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -206,6 +233,13 @@ const EstimateSummary = () => {
                   <span className="text-muted-foreground">Tiling Work</span>
                   <span>{formatCurrency(state.estimate.tilingCost.total)}</span>
                 </div>
+                {/* Add new product cost row */}
+                {state.estimate.productCost > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{brandName || 'Brand'} Products</span>
+                    <span>{formatCurrency(state.estimate.productCost)}</span>
+                  </div>
+                )}
                 <Separator className="my-2" />
                 <div className="flex justify-between font-bold">
                   <span>Total Estimate</span>

@@ -93,6 +93,7 @@ const initialState: State = {
       laborCost: 0,
       total: 0
     },
+    productCost: 0,
     total: 0
   },
   estimateCalculated: false
@@ -128,6 +129,7 @@ const CalculatorContext = createContext<{
       laborCost: 0,
       total: 0
     },
+    productCost: 0,
     total: 0
   }),
   goToStep: () => {},

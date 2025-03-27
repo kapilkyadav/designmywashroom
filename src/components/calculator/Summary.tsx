@@ -180,6 +180,14 @@ const Summary = () => {
                 <span className="font-medium">{formatCurrency(state.estimate.tilingCost.total)}</span>
               </div>
               
+              {/* Add new product cost row */}
+              {state.estimate.productCost > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">{brandName || 'Brand'} Products</span>
+                  <span className="font-medium">{formatCurrency(state.estimate.productCost)}</span>
+                </div>
+              )}
+              
               <Separator className="my-2" />
               
               <div className="flex justify-between items-center text-lg font-semibold">

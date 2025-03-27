@@ -4,6 +4,7 @@ import { FixtureService } from './FixtureService';
 import { BrandService } from './BrandService';
 import { SettingsService } from './SettingsService';
 import { ProjectService } from './ProjectService';
+import { ProductService } from './ProductService';
 
 export interface CalculatorState {
   projectType: 'new-construction' | 'renovation';
@@ -46,6 +47,7 @@ export interface EstimateResult {
     laborCost: number;
     total: number;
   };
+  productCost: number; // Added new field for product costs
   total: number;
 }
 
@@ -111,6 +113,20 @@ export const CalculatorService = {
         }
       }
       
+      // Calculate product cost from selected brand
+      let productCost = 0;
+      if (calculatorState.selectedBrand) {
+        try {
+          const products = await ProductService.getProductsByBrandId(calculatorState.selectedBrand);
+          // Sum up client_price of all products from the selected brand
+          productCost = products.reduce((sum, product) => sum + (product.client_price || 0), 0);
+          console.log(`Selected brand products cost: ${productCost}`);
+        } catch (error) {
+          console.error('Error fetching brand products:', error);
+          // Continue with calculation even if product fetch fails
+        }
+      }
+      
       // Calculate plumbing cost using settings from database
       const floorArea = calculatorState.dimensions.length * calculatorState.dimensions.width;
       const plumbingCost = floorArea * settings.plumbing_rate_per_sqft;
@@ -139,13 +155,14 @@ export const CalculatorService = {
         total: materialCost + laborCost
       };
       
-      // Calculate total estimate
-      const totalEstimate = fixtureCost + plumbingCost + tilingCost.total;
+      // Calculate total estimate including product cost
+      const totalEstimate = fixtureCost + plumbingCost + tilingCost.total + productCost;
       
       return {
         fixtureCost,
         plumbingCost,
         tilingCost,
+        productCost, // Add product cost to the result
         total: totalEstimate
       };
     } catch (error) {
