@@ -111,12 +111,16 @@ const CustomerDetailsStep = () => {
       // Log the details being saved for debugging
       console.log("Saving customer details:", customerDetails);
       
-      // Update context with customer details
+      // Important: First update the context with customer details and wait for it
       setCustomerDetails(customerDetails);
       
-      // This is a critical fix: We need to make sure customer details are available
-      // in the state before calculating the estimate, so we'll pass them directly
+      // Wait a small amount of time to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log("About to calculate estimate with updated details:", customerDetails);
+      
       try {
+        // Calculate estimate with the current customer details
         const calculationResult = await calculateEstimate();
         console.log("Estimate calculated successfully:", calculationResult);
         

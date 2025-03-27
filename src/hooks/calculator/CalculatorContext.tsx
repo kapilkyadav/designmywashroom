@@ -1,5 +1,5 @@
 
-import React, { createContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useReducer, ReactNode, useState } from 'react';
 import { CalculatorService, EstimateResult } from '@/services/calculator';
 import { CalculatorState, CalculatorContextType } from './types';
 import { initialState } from './initialState';
@@ -34,6 +34,8 @@ export const CalculatorContext = createContext<CalculatorContextType>({
 // Provider component
 export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(calculatorReducer, initialState);
+  // Track the latest customer details to avoid state sync issues
+  const [latestCustomerDetails, setLatestCustomerDetails] = useState(initialState.customerDetails);
 
   const setProjectType = (type: 'new-construction' | 'renovation') => {
     dispatch({ type: 'SET_PROJECT_TYPE', payload: type });
@@ -63,31 +65,36 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
       console.warn('Attempted to set customer details with missing required fields:', details);
     }
     
+    // Update our latest customer details reference
+    setLatestCustomerDetails(details);
+    
     // Apply the update to the state
     dispatch({ type: 'SET_CUSTOMER_DETAILS', payload: details });
   };
 
   const calculateEstimate = async (): Promise<EstimateResult> => {
     try {
-      // Get the current state after all updates
-      const currentState = state;
-      console.log('Calculating estimate with state:', currentState);
+      // Use the most up-to-date customer details
+      const customerDetails = latestCustomerDetails;
+      console.log('Calculating estimate with customerDetails:', customerDetails);
       
-      // Check if customer details are available - use current customer details
-      if (!currentState.customerDetails.name || !currentState.customerDetails.email) {
-        console.error('Missing customer details. Cannot calculate estimate.');
+      // Double-check customer details before proceeding
+      if (!customerDetails.name || !customerDetails.email) {
+        console.error('Missing customer details. Cannot calculate estimate.', customerDetails);
         throw new Error('MISSING_CUSTOMER_DETAILS');
       }
       
-      // Prepare calculator state for API
+      // Prepare calculator state for API using the latest state and customer details
       const calculatorState = {
-        projectType: currentState.projectType,
-        dimensions: currentState.dimensions,
-        fixtures: currentState.fixtures,
-        timeline: currentState.timeline,
-        selectedBrand: currentState.selectedBrand,
-        customerDetails: currentState.customerDetails
+        projectType: state.projectType,
+        dimensions: state.dimensions,
+        fixtures: state.fixtures,
+        timeline: state.timeline,
+        selectedBrand: state.selectedBrand,
+        customerDetails: customerDetails
       };
+      
+      console.log('Sending calculator state to API:', calculatorState);
       
       // Calculate estimate using the service
       const estimateResult = await CalculatorService.calculateEstimate(calculatorState);
