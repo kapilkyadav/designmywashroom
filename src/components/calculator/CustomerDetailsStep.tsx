@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useCalculator } from '@/hooks/useCalculator';
 import { Button } from '@/components/ui/button';
@@ -24,7 +23,6 @@ const CustomerDetailsStep = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // If customer details are already in state, use them
   useEffect(() => {
     if (state.customerDetails.name || state.customerDetails.email) {
       setFormData({
@@ -66,7 +64,6 @@ const CustomerDetailsStep = () => {
     
     setErrors(newErrors);
     
-    // Return true if there are no errors
     return !Object.values(newErrors).some(error => error);
   };
   
@@ -88,27 +85,8 @@ const CustomerDetailsStep = () => {
     try {
       setIsSubmitting(true);
       
-      // Log email to check for rate limiting issues
-      console.log(`Checking rate limiting for email: ${formData.email.trim()}`);
+      console.log(`Processing form submission for email: ${formData.email.trim()}`);
       
-      // Check for rate limiting before processing
-      // Only check if the email is different than the one already in state
-      // This should prevent false positives for the same user just updating other fields
-      const isExistingEmail = state.customerDetails.email === formData.email.trim();
-      const isRateLimited = !isExistingEmail && ProjectService.isRateLimited(formData.email.trim());
-      
-      if (isRateLimited) {
-        console.log(`Rate limited detected for ${formData.email.trim()}`);
-        toast({
-          title: "Too many submissions",
-          description: "Please wait a moment before submitting again.",
-          variant: "destructive"
-        });
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // Prepare customer details
       const customerDetails = {
         name: formData.name.trim(),
         email: formData.email.trim(),
@@ -116,26 +94,20 @@ const CustomerDetailsStep = () => {
         location: formData.location.trim()
       };
       
-      // Log the details being saved for debugging
       console.log("Saving customer details:", customerDetails);
       
-      // First set customer details in context and wait for it to complete
       setCustomerDetails(customerDetails);
       
-      // Add a small delay to ensure state is updated before calculating
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Verify customer details have been saved
       if (!customerDetails.name || !customerDetails.email) {
         throw new Error('MISSING_CUSTOMER_DETAILS');
       }
       
       try {
-        // Now calculate the estimate with guaranteed updated customer details
         const calculationResult = await calculateEstimate();
         console.log("Estimate calculated successfully:", calculationResult);
         
-        // Move to the next step after successful calculation
         nextStep();
         
         toast({
@@ -144,13 +116,6 @@ const CustomerDetailsStep = () => {
         });
       } catch (error: any) {
         console.error('Error calculating estimate:', error);
-        
-        // Check if this is a rate limit error
-        if (error.message === 'RATE_LIMITED') {
-          // Since we already caught this earlier, this is likely from the estimate storage layer
-          console.log("Rate limiting error during estimate calculation");
-        }
-        
         handleSubmissionError(error);
       }
     } catch (error) {
@@ -162,7 +127,6 @@ const CustomerDetailsStep = () => {
   };
   
   const handleSubmissionError = (error: any) => {
-    // Check if error is rate limiting
     if (error instanceof Error && error.message === 'RATE_LIMITED') {
       toast({
         title: "Too many submissions",

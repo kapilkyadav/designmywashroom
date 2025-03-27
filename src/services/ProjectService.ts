@@ -1,8 +1,7 @@
-
 import { supabase, Project } from '@/lib/supabase';
 import { RateLimiter } from '@/lib/rateLimiter';
 
-// Rate limiter for project creation
+// Rate limiter for project creation - temporarily disabled for testing
 // Store email -> timestamp mapping to track submission frequency
 // 5 minute cache with 1 minute rate limit (reduced from 2 minutes)
 const submissionRateLimiter = new RateLimiter(5 * 60 * 1000);
@@ -39,39 +38,16 @@ export const ProjectService = {
     return data as Project;
   },
   
-  // Check if a user is submitting too frequently
+  // Check if a user is submitting too frequently - temporarily disabled for testing
   isRateLimited(email: string): boolean {
-    if (!email || email.trim() === '') {
-      console.log('Empty email provided for rate limiting check, not limiting');
-      return false;
-    }
-    
-    // Normalize the email by trimming and converting to lowercase
-    const normalizedEmail = email.trim().toLowerCase();
-    const key = `submission_${normalizedEmail}`;
-    
-    // Reduced cooldown period to 1 minute for testing
-    const cooldownPeriod = 60 * 1000; // 1 minute
-    const isLimited = submissionRateLimiter.isRateLimited(key, cooldownPeriod);
-    
-    if (isLimited) {
-      console.log(`Rate limiting submission for ${normalizedEmail}, too many requests`);
-    } else {
-      console.log(`Submission from ${normalizedEmail} is within rate limits`);
-    }
-    
-    return isLimited;
+    // Always return false to disable rate limiting for testing
+    console.log(`Rate limiting temporarily disabled for testing. Email: ${email}`);
+    return false;
   },
   
   // Create a new project from calculator submission
   async createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
-    // Check rate limiting
-    if (project.client_email) {
-      const isLimited = this.isRateLimited(project.client_email);
-      if (isLimited) {
-        throw new Error('RATE_LIMITED');
-      }
-    }
+    // Rate limiting check disabled for testing
     
     // Debug: Log the incoming project data
     console.log('Creating project with raw data:', JSON.stringify(project));
