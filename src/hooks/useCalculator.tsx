@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { CalculatorService, CalculatorState, EstimateResult } from '@/services/CalculatorService';
 
@@ -108,7 +107,7 @@ const CalculatorContext = createContext<{
   setTimeline: (timeline: 'standard' | 'flexible') => void;
   setBrand: (brand: string) => void;
   setCustomerDetails: (details: { name: string; email: string; mobile: string; location: string }) => void;
-  calculateEstimate: () => Promise<void>;
+  calculateEstimate: () => Promise<EstimateResult>;
   goToStep: (step: number) => void;
   nextStep: () => void;
   prevStep: () => void;
@@ -121,7 +120,16 @@ const CalculatorContext = createContext<{
   setTimeline: () => {},
   setBrand: () => {},
   setCustomerDetails: () => {},
-  calculateEstimate: async () => {},
+  calculateEstimate: async () => ({
+    fixtureCost: 0,
+    plumbingCost: 0,
+    tilingCost: {
+      materialCost: 0,
+      laborCost: 0,
+      total: 0
+    },
+    total: 0
+  }),
   goToStep: () => {},
   nextStep: () => {},
   prevStep: () => {},
@@ -199,7 +207,7 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'SET_CUSTOMER_DETAILS', payload: details });
   };
 
-  const calculateEstimate = async () => {
+  const calculateEstimate = async (): Promise<EstimateResult> => {
     try {
       console.log('Calculating estimate with state:', state);
       
