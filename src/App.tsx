@@ -18,43 +18,47 @@ import AdminBrandAdd from "./pages/AdminBrandAdd";
 import AdminProducts from "./pages/AdminProducts";
 import AdminFixtures from "./pages/AdminFixtures";
 import AdminSettings from "./pages/AdminSettings";
+import { useState } from "react";
 
-const queryClient = new QueryClient();
+const App = () => {
+  // Move QueryClient creation inside the component
+  const [queryClient] = useState(() => new QueryClient());
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <AdminAuthProvider>
-        <CalculatorProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/calculator" element={<Calculator />} />
-                
-                {/* Admin Routes */}
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin" element={<Admin />}>
-                  <Route path="dashboard" element={<AdminDashboard />} />
-                  <Route path="brands" element={<AdminBrands />} />
-                  <Route path="brands/add" element={<AdminBrandAdd />} />
-                  <Route path="products" element={<AdminProducts />} />
-                  <Route path="fixtures" element={<AdminFixtures />} />
-                  <Route path="settings" element={<AdminSettings />} />
-                  <Route index element={<AdminDashboard />} />
-                </Route>
-                
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </CalculatorProvider>
-      </AdminAuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AdminAuthProvider>
+          <CalculatorProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/calculator" element={<Calculator />} />
+                  
+                  {/* Admin Routes */}
+                  <Route path="/admin/login" element={<AdminLogin />} />
+                  <Route path="/admin" element={<Admin />}>
+                    <Route path="dashboard" element={<AdminDashboard />} />
+                    <Route path="brands" element={<AdminBrands />} />
+                    <Route path="brands/add" element={<AdminBrandAdd />} />
+                    <Route path="products" element={<AdminProducts />} />
+                    <Route path="fixtures" element={<AdminFixtures />} />
+                    <Route path="settings" element={<AdminSettings />} />
+                    <Route index element={<AdminDashboard />} />
+                  </Route>
+                  
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </CalculatorProvider>
+        </AdminAuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
