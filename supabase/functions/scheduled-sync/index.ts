@@ -32,7 +32,6 @@ serve(async (req) => {
     if (jobsError) throw jobsError;
     
     const now = new Date();
-    const results = [];
     
     // Use Promise.all for parallel processing of jobs
     const processingPromises = jobs.map(async (job) => {

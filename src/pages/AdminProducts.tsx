@@ -3,6 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { 
   Select, 
   SelectContent, 
   SelectItem, 
@@ -14,9 +21,18 @@ import { BrandService } from '@/services/BrandService';
 import { Product, Brand } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { 
-  Search, Plus, FilePenLine, Trash2, Loader2, 
+  Search, Plus, Loader2, 
   Download, Upload, Filter
 } from 'lucide-react';
+import ProductTable from '@/components/admin/products/ProductTable';
+import ProductForm from '@/components/admin/products/ProductForm';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
 
 const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -26,6 +42,9 @@ const AdminProducts = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [brandFilter, setBrandFilter] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -65,7 +84,7 @@ const AdminProducts = () => {
       filtered = filtered.filter(
         product => 
           product.name.toLowerCase().includes(query) || 
-          product.description.toLowerCase().includes(query)
+          product.description?.toLowerCase().includes(query)
       );
     }
     
@@ -82,15 +101,6 @@ const AdminProducts = () => {
     setFilteredProducts(filtered);
   };
 
-  // Format currency in Indian Rupees
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
   // Get distinct categories from products
   const getUniqueCategories = () => {
     const categories = new Set<string>();
@@ -101,11 +111,111 @@ const AdminProducts = () => {
     });
     return Array.from(categories);
   };
-
-  // Get brand name by ID
-  const getBrandName = (brandId: string) => {
-    const brand = brands.find(b => b.id === brandId);
-    return brand ? brand.name : 'Unknown Brand';
+  
+  // Handle adding/editing product
+  const handleSaveProduct = async (data: any) => {
+    try {
+      setIsSubmitting(true);
+      
+      if (editingProduct) {
+        // Update existing product
+        await ProductService.updateProduct(editingProduct.id, data);
+        toast({
+          title: "Product Updated",
+          description: "Product has been updated successfully",
+        });
+      } else {
+        // Create new product
+        await ProductService.createProduct(data);
+        toast({
+          title: "Product Added",
+          description: "New product has been added successfully",
+        });
+      }
+      
+      // Refresh product list
+      await fetchData();
+      
+      // Close the form dialog
+      setIsFormOpen(false);
+      setEditingProduct(null);
+      
+    } catch (error) {
+      console.error('Error saving product:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save product",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Handle product edit click
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setIsFormOpen(true);
+  };
+  
+  // Handle product delete
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      await ProductService.deleteProduct(productId);
+      
+      // Update local state
+      setProducts(prevProducts => 
+        prevProducts.filter(product => product.id !== productId)
+      );
+      
+      toast({
+        title: "Product Deleted",
+        description: "Product has been deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete product",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Handle multiple products delete
+  const handleDeleteMultipleProducts = async (productIds: string[]) => {
+    try {
+      // Create a promise for each delete operation
+      const deletePromises = productIds.map(id => 
+        ProductService.deleteProduct(id)
+      );
+      
+      // Wait for all deletes to complete
+      await Promise.all(deletePromises);
+      
+      // Update local state
+      setProducts(prevProducts => 
+        prevProducts.filter(product => !productIds.includes(product.id))
+      );
+      
+      toast({
+        title: "Products Deleted",
+        description: `${productIds.length} products have been deleted successfully`,
+      });
+    } catch (error) {
+      console.error('Error deleting multiple products:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete some products",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Open product form dialog for new product
+  const handleAddProduct = () => {
+    setEditingProduct(null);
+    setIsFormOpen(true);
   };
 
   return (
@@ -121,116 +231,102 @@ const AdminProducts = () => {
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
-          <Button>
+          <Button onClick={handleAddProduct}>
             <Plus className="mr-2 h-4 w-4" /> Add Product
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="md:col-span-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search products..."
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+      <Card>
+        <CardHeader>
+          <CardTitle>Product Management</CardTitle>
+          <CardDescription>
+            View, filter, and manage all your products.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="md:col-span-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search products by name or description..."
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <Select value={brandFilter} onValueChange={setBrandFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by brand" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Brands</SelectItem>
+                  {brands.map(brand => (
+                    <SelectItem key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Categories</SelectItem>
+                  {getUniqueCategories().map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
-        <div>
-          <Select value={brandFilter} onValueChange={setBrandFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by brand" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Brands</SelectItem>
-              {brands.map(brand => (
-                <SelectItem key={brand.id} value={brand.id}>
-                  {brand.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
-              {getUniqueCategories().map(category => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : (
-        <div className="rounded-md border">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-secondary">
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Product Name</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Brand</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Category</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">MRP</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Landing Price</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Client Price</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Margin</th>
-                  <th className="w-[100px] px-4 py-3 text-left text-sm font-medium text-muted-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProducts.length > 0 ? (
-                  filteredProducts.map((product) => (
-                    <tr key={product.id} className="border-t hover:bg-secondary/50">
-                      <td className="px-4 py-3 text-sm">
-                        <div className="font-medium">{product.name}</div>
-                        <div className="text-xs text-muted-foreground line-clamp-1">{product.description}</div>
-                      </td>
-                      <td className="px-4 py-3 text-sm">{getBrandName(product.brand_id)}</td>
-                      <td className="px-4 py-3 text-sm">{product.category}</td>
-                      <td className="px-4 py-3 text-sm">{formatCurrency(product.mrp)}</td>
-                      <td className="px-4 py-3 text-sm">{formatCurrency(product.landing_price)}</td>
-                      <td className="px-4 py-3 text-sm">{formatCurrency(product.client_price)}</td>
-                      <td className="px-4 py-3 text-sm">{product.margin.toFixed(1)}%</td>
-                      <td className="px-4 py-3">
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <FilePenLine className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
-                      {searchQuery.trim() !== '' || brandFilter || categoryFilter
-                        ? "No products matching your filters" 
-                        : "No products found. Add your first product to get started."}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <ProductTable 
+              products={filteredProducts}
+              brands={brands}
+              onEdit={handleEditProduct}
+              onDelete={handleDeleteProduct}
+              onDeleteMultiple={handleDeleteMultipleProducts}
+            />
+          )}
+        </CardContent>
+      </Card>
+      
+      {/* Product Form Dialog */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="sm:max-w-[900px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingProduct ? "Edit Product" : "Add New Product"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingProduct 
+                ? "Update the product details below." 
+                : "Enter the details for the new product."}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ProductForm 
+            product={editingProduct || undefined}
+            brands={brands}
+            onSubmit={handleSaveProduct}
+            isSubmitting={isSubmitting}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

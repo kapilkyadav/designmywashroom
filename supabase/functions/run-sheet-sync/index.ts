@@ -15,6 +15,16 @@ function extractSheetId(url: string): string | null {
   return match ? match[0] : null;
 }
 
+interface ColumnMapping {
+  name: string;
+  description: string;
+  category: string;
+  mrp: string;
+  landing_price: string;
+  client_price: string;
+  quotation_price: string;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -96,7 +106,7 @@ async function processSheet(brandId: string, supabase: any, googleApiKey: string
   // Get brand information
   const { data: brand, error: brandError } = await supabase
     .from('brands')
-    .select('*')
+    .select('*, column_mapping')
     .eq('id', brandId)
     .single();
   
@@ -114,7 +124,7 @@ async function processSheet(brandId: string, supabase: any, googleApiKey: string
   }
   
   // Fetch sheet data
-  const headerRow = brand.header_row || 0;
+  const headerRow = brand.header_row || 1;
   const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(brand.sheet_name)}?key=${googleApiKey}`;
   
   const response = await fetch(apiUrl);
@@ -125,8 +135,9 @@ async function processSheet(brandId: string, supabase: any, googleApiKey: string
   const sheetData = await response.json();
   
   // Process the data
-  const headers = sheetData.values[headerRow] || [];
-  const rows = sheetData.values.slice(headerRow + 1).map((row: any[]) => {
+  const headerIndex = parseInt(headerRow, 10) - 1;
+  const headers = sheetData.values[headerIndex] || [];
+  const rows = sheetData.values.slice(headerIndex + 1).map((row: any[]) => {
     const obj: Record<string, any> = {};
     headers.forEach((header: string, index: number) => {
       obj[header] = row[index] || '';
@@ -134,14 +145,36 @@ async function processSheet(brandId: string, supabase: any, googleApiKey: string
     return obj;
   });
   
-  // Map sheet data to product structure
-  // We're assuming columns match directly for simplicity
-  // In a real app, you would need proper mapping
+  // Get column mapping from brand or use default mapping
+  let columnMapping: ColumnMapping;
+  
+  if (brand.column_mapping) {
+    columnMapping = brand.column_mapping as ColumnMapping;
+  } else {
+    // Default mapping based on common column names
+    columnMapping = {
+      name: headers.find(h => h.toLowerCase().includes('name')) || '',
+      description: headers.find(h => h.toLowerCase().includes('desc')) || '',
+      category: headers.find(h => h.toLowerCase().includes('categ')) || '',
+      mrp: headers.find(h => h.toLowerCase().includes('mrp')) || '',
+      landing_price: headers.find(h => (h.toLowerCase().includes('land') && h.toLowerCase().includes('price'))) || '',
+      client_price: headers.find(h => (h.toLowerCase().includes('client') && h.toLowerCase().includes('price'))) || '',
+      quotation_price: headers.find(h => (h.toLowerCase().includes('quot') && h.toLowerCase().includes('price'))) || ''
+    };
+    
+    // Update brand with the default mapping
+    await supabase
+      .from('brands')
+      .update({ column_mapping: columnMapping })
+      .eq('id', brandId);
+  }
+  
+  // Map sheet data to product structure using the column mapping
   const products = rows
-    .filter((row: any) => row.name) // Filter out rows without names
+    .filter((row: any) => columnMapping.name && row[columnMapping.name]) // Filter out rows without names
     .map((row: any) => {
-      const landingPrice = parseFloat(row.landing_price) || 0;
-      const quotationPrice = parseFloat(row.quotation_price) || 0;
+      const landingPrice = columnMapping.landing_price ? parseFloat(row[columnMapping.landing_price]) || 0 : 0;
+      const quotationPrice = columnMapping.quotation_price ? parseFloat(row[columnMapping.quotation_price]) || 0 : 0;
       
       // Calculate margin
       const margin = landingPrice > 0 
@@ -149,18 +182,28 @@ async function processSheet(brandId: string, supabase: any, googleApiKey: string
         : 0;
       
       // Create product object
-      return {
+      const product = {
         brand_id: brandId,
-        name: row.name || '',
-        description: row.description || '',
-        category: row.category || '',
-        mrp: parseFloat(row.mrp) || 0,
+        name: columnMapping.name ? (row[columnMapping.name] || '') : '',
+        description: columnMapping.description ? (row[columnMapping.description] || '') : '',
+        category: columnMapping.category ? (row[columnMapping.category] || '') : '',
+        mrp: columnMapping.mrp ? (parseFloat(row[columnMapping.mrp]) || 0) : 0,
         landing_price: landingPrice,
-        client_price: parseFloat(row.client_price) || 0,
+        client_price: columnMapping.client_price ? (parseFloat(row[columnMapping.client_price]) || 0) : 0,
         quotation_price: quotationPrice,
         margin: parseFloat(margin.toFixed(2)),
-        extra_data: {} // Any extra data could be stored here
+        extra_data: {} as Record<string, any>
       };
+      
+      // Add all unmapped columns to extra_data
+      const mappedColumns = new Set(Object.values(columnMapping).filter(Boolean));
+      headers.forEach((header: string) => {
+        if (!mappedColumns.has(header)) {
+          product.extra_data[header] = row[header];
+        }
+      });
+      
+      return product;
     });
   
   // First, get existing products for this brand

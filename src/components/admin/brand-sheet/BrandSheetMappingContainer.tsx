@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -8,27 +8,35 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FileSpreadsheet } from 'lucide-react';
+import { FileSpreadsheet, Upload, CheckCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { BrandService } from '@/services/BrandService';
-import { GoogleSheetsService } from '@/services/GoogleSheetsService';
+import { GoogleSheetsService, SheetMapping } from '@/services/GoogleSheetsService';
 import SheetUrlInput from './SheetUrlInput';
 import SheetConfigInputs from './SheetConfigInputs';
 import ValidationFeedback from './ValidationFeedback';
 import SheetActionButtons from './SheetActionButtons';
+import ColumnMappingInterface from './ColumnMappingInterface';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 
 interface BrandSheetMappingContainerProps {
   brandId: string;
   onComplete: () => void;
 }
 
+type ImportStep = 'connection' | 'mapping' | 'importing' | 'complete';
+
 const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({ 
   brandId, 
   onComplete 
 }) => {
+  // Sheet connection settings
   const [sheetUrl, setSheetUrl] = useState('');
   const [sheetName, setSheetName] = useState('');
   const [headerRow, setHeaderRow] = useState('1');
+  
+  // UI state
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [isValid, setIsValid] = useState<boolean | null>(null);
@@ -36,6 +44,25 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
   const [scheduled, setScheduled] = useState(false);
   const [error, setError] = useState('');
   const [validationTimeout, setValidationTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [currentStep, setCurrentStep] = useState<ImportStep>('connection');
+  const [progress, setProgress] = useState(0);
+  
+  // Sheet data
+  const [sheetHeaders, setSheetHeaders] = useState<string[]>([]);
+  const [columnMapping, setColumnMapping] = useState<SheetMapping | null>(null);
+  
+  // Progress steps
+  const steps = {
+    'connection': 25,
+    'mapping': 50,
+    'importing': 75,
+    'complete': 100
+  };
+  
+  // Update progress bar when step changes
+  useEffect(() => {
+    setProgress(steps[currentStep]);
+  }, [currentStep]);
   
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSheetUrl(e.target.value);
@@ -44,12 +71,12 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
   };
   
   // Abort current validation if in progress
-  const abortCurrentValidation = () => {
+  const abortCurrentValidation = useCallback(() => {
     if (validationTimeout) {
       clearTimeout(validationTimeout);
       setValidationTimeout(null);
     }
-  };
+  }, [validationTimeout]);
   
   const validateSheet = async () => {
     if (!sheetUrl.trim()) {
@@ -100,14 +127,26 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
         throw new Error('Could not validate sheet. Please check the URL, sheet name, and permissions.');
       }
       
+      // Get headers for mapping
+      const { headers } = await GoogleSheetsService.fetchSheetData(
+        sheetUrl,
+        sheetName,
+        headerRowNum - 1 // Adjust for zero-based indexing
+      );
+      
+      setSheetHeaders(headers);
       setIsValid(true);
       
+      // Save sheet connection info
       await BrandService.updateGoogleSheetConnection(
         brandId,
         sheetUrl,
         sheetName,
         headerRowNum
       );
+      
+      // Move to mapping step
+      setCurrentStep('mapping');
       
       toast({
         title: "Sheet connected",
@@ -142,53 +181,47 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
     }
   };
   
-  const importProducts = async () => {
-    if (!isValid) {
+  const handleMappingComplete = (mapping: SheetMapping) => {
+    setColumnMapping(mapping);
+    importProducts(mapping);
+  };
+  
+  const importProducts = async (mapping: SheetMapping) => {
+    if (!isValid || !mapping) {
       return;
     }
     
     try {
       setImporting(true);
+      setCurrentStep('importing');
       
-      await BrandService.updateGoogleSheetConnection(
-        brandId,
-        sheetUrl,
-        sheetName,
-        parseInt(headerRow, 10)
-      );
-      
+      // Fetch sheet data
       const { headers, data } = await GoogleSheetsService.fetchSheetData(
         sheetUrl,
         sheetName,
-        parseInt(headerRow, 10)
+        parseInt(headerRow, 10) - 1 // Adjust for zero-based indexing
       );
       
-      const defaultMapping = {
-        name: headers.find(h => h.toLowerCase().includes('name')) || '',
-        description: headers.find(h => h.toLowerCase().includes('description')) || '',
-        category: headers.find(h => h.toLowerCase().includes('category')) || '',
-        mrp: headers.find(h => h.toLowerCase().includes('mrp')) || '',
-        landing_price: headers.find(h => (h.toLowerCase().includes('landing') && h.toLowerCase().includes('price'))) || '',
-        client_price: headers.find(h => (h.toLowerCase().includes('client') && h.toLowerCase().includes('price'))) || '',
-        quotation_price: headers.find(h => (h.toLowerCase().includes('quotation') && h.toLowerCase().includes('price'))) || ''
-      };
-      
+      // Map sheet data to products
       const products = GoogleSheetsService.mapSheetDataToProducts(
         data,
         headers,
-        defaultMapping,
+        mapping,
         brandId
       );
       
+      // Schedule daily sync
       await GoogleSheetsService.scheduleSync(brandId);
       
       setScheduled(true);
+      setCurrentStep('complete');
       
       toast({
         title: "Import successful",
         description: `Successfully imported ${products.length} products and scheduled daily sync`,
       });
       
+      // Complete after a short delay to show the success state
       setTimeout(() => {
         onComplete();
       }, 1500);
@@ -212,49 +245,108 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
       window.open(sheetUrl, '_blank', 'noopener,noreferrer');
     }
   };
+  
+  const getStepContent = () => {
+    switch (currentStep) {
+      case 'connection':
+        return (
+          <div className="space-y-6">
+            <SheetUrlInput 
+              sheetUrl={sheetUrl} 
+              onChange={handleUrlChange} 
+              hasError={!!error && !isValid}
+            />
+            
+            <SheetConfigInputs 
+              sheetName={sheetName}
+              headerRow={headerRow}
+              onSheetNameChange={(e) => setSheetName(e.target.value)}
+              onHeaderRowChange={setHeaderRow}
+            />
+            
+            <ValidationFeedback isValid={isValid} error={error} />
+          </div>
+        );
+        
+      case 'mapping':
+        return (
+          <ColumnMappingInterface 
+            headers={sheetHeaders}
+            onMappingComplete={handleMappingComplete}
+            isLoading={importing}
+          />
+        );
+        
+      case 'importing':
+        return (
+          <div className="py-10 text-center space-y-4">
+            <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+            <h3 className="text-lg font-medium">Importing Products</h3>
+            <p className="text-sm text-muted-foreground">
+              Please wait while we import your products and set up the daily sync schedule...
+            </p>
+          </div>
+        );
+        
+      case 'complete':
+        return (
+          <div className="py-10 text-center space-y-4">
+            <div className="mx-auto flex items-center justify-center">
+              <CheckCircle className="h-12 w-12 text-green-500" />
+            </div>
+            <h3 className="text-lg font-medium">Import Complete</h3>
+            <p className="text-sm text-muted-foreground">
+              Your products have been imported successfully, and a daily sync at 10 AM has been scheduled.
+            </p>
+          </div>
+        );
+    }
+  };
+  
+  const getFooterContent = () => {
+    switch (currentStep) {
+      case 'connection':
+        return (
+          <SheetActionButtons 
+            sheetUrl={sheetUrl}
+            validating={validating}
+            importing={importing}
+            scheduled={scheduled}
+            isValid={isValid}
+            onValidate={validateSheet}
+            onCancel={cancelValidation}
+            onImport={() => setCurrentStep('mapping')}
+            onOpenSheet={handleOpenSheet}
+          />
+        );
+        
+      default:
+        return null; // Other steps handle their own actions
+    }
+  };
 
   return (
-    <Card className="max-w-2xl">
+    <Card className="max-w-3xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center">
           <FileSpreadsheet className="mr-2 h-5 w-5 text-primary" />
-          Connect Google Sheet
+          Import Products from Google Sheet
         </CardTitle>
         <CardDescription>
-          Connect a Google Sheet containing your product data
+          Connect and import products from your Google Sheet
         </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-4">
-          <SheetUrlInput 
-            sheetUrl={sheetUrl} 
-            onChange={handleUrlChange} 
-            hasError={!!error && !isValid}
-          />
-          
-          <SheetConfigInputs 
-            sheetName={sheetName}
-            headerRow={headerRow}
-            onSheetNameChange={(e) => setSheetName(e.target.value)}
-            onHeaderRowChange={setHeaderRow}
-          />
-          
-          <ValidationFeedback isValid={isValid} error={error} />
+        <div className="mt-4">
+          <Progress value={progress} className="h-2" />
         </div>
+      </CardHeader>
+      <CardContent>
+        {getStepContent()}
       </CardContent>
-      <CardFooter>
-        <SheetActionButtons 
-          sheetUrl={sheetUrl}
-          validating={validating}
-          importing={importing}
-          scheduled={scheduled}
-          isValid={isValid}
-          onValidate={validateSheet}
-          onCancel={cancelValidation}
-          onImport={importProducts}
-          onOpenSheet={handleOpenSheet}
-        />
-      </CardFooter>
+      {getFooterContent() && (
+        <CardFooter>
+          {getFooterContent()}
+        </CardFooter>
+      )}
     </Card>
   );
 };

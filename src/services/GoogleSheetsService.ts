@@ -100,39 +100,42 @@ export const GoogleSheetsService = {
     brandId: string
   ) {
     try {
-      // Pre-calculate field indices for faster mapping
-      const headerIndices: Record<string, number> = {};
-      headers.forEach((header, index) => {
-        headerIndices[header] = index;
-      });
+      // Skip processing if no data or empty mapping
+      if (!data || data.length === 0 || !mapping) {
+        console.warn('No data or mapping provided for product mapping');
+        return [];
+      }
       
       // Create a Set of mapped fields for faster lookup
-      const mappedFields = new Set(Object.values(mapping));
+      const mappedFields = new Set(Object.values(mapping).filter(Boolean));
       
       const products = data
-        .filter(row => row[mapping.name]) // Filter out rows with no name early
+        .filter(row => mapping.name && row[mapping.name]) // Filter out rows with no name
         .map(row => {
-          const landingPrice = parseFloat(row[mapping.landing_price]) || 0;
-          const quotationPrice = parseFloat(row[mapping.quotation_price]) || 0;
+          const landingPrice = mapping.landing_price ? 
+            (parseFloat(row[mapping.landing_price]) || 0) : 0;
+            
+          const quotationPrice = mapping.quotation_price ? 
+            (parseFloat(row[mapping.quotation_price]) || 0) : 0;
           
           // Calculate margin if both prices are available
           const margin = landingPrice > 0 
             ? ((quotationPrice - landingPrice) / landingPrice) * 100 
             : 0;
           
-          // Create a product object
+          // Create a product object with mapped fields
           const product = {
             brand_id: brandId,
-            name: row[mapping.name] || '',
-            description: row[mapping.description] || '',
-            category: row[mapping.category] || '',
-            mrp: parseFloat(row[mapping.mrp]) || 0,
+            name: mapping.name ? (row[mapping.name] || '') : '',
+            description: mapping.description ? (row[mapping.description] || '') : '',
+            category: mapping.category ? (row[mapping.category] || '') : '',
+            mrp: mapping.mrp ? (parseFloat(row[mapping.mrp]) || 0) : 0,
             landing_price: landingPrice,
-            client_price: parseFloat(row[mapping.client_price]) || 0,
+            client_price: mapping.client_price ? (parseFloat(row[mapping.client_price]) || 0) : 0,
             quotation_price: quotationPrice,
             margin: parseFloat(margin.toFixed(2)),
             
-            // Initialize extra_data to avoid undefined errors
+            // Initialize extra_data to store unmapped columns
             extra_data: {}
           };
           
