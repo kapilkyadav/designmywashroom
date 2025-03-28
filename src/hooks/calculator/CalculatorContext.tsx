@@ -157,7 +157,7 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
           // For other errors, show warning but continue
           console.warn('Estimate calculated but not saved to database:', error);
           toast({
-            variant: "warning",
+            variant: "default",
             title: "Warning",
             description: "Your estimate was calculated but couldn't be saved. You can still view it."
           });
