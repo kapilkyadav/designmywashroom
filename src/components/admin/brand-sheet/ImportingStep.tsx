@@ -24,9 +24,17 @@ const ImportingStep: React.FC<ImportingStepProps> = ({
   // Use a ref to track if import has been initiated
   const importStartedRef = useRef(false);
 
+  // One-time import effect that won't be affected by re-renders
   useEffect(() => {
-    // Check both state and ref to ensure we don't start multiple imports
-    if (isImporting || importComplete || importStartedRef.current) return;
+    // Skip if already importing, completed, or the ref indicates we've started
+    if (isImporting || importComplete || importStartedRef.current) {
+      console.log('Import already in progress or completed, skipping');
+      return;
+    }
+    
+    // Immediately mark as started to prevent concurrent calls
+    importStartedRef.current = true;
+    console.log('Starting import process, setting importStartedRef to true');
     
     const importProducts = async () => {
       // Validate inputs before proceeding
@@ -38,9 +46,6 @@ const ImportingStep: React.FC<ImportingStepProps> = ({
         return;
       }
 
-      // Set ref immediately to prevent multiple calls
-      importStartedRef.current = true;
-      
       try {
         setIsImporting(true);
         
@@ -78,14 +83,14 @@ const ImportingStep: React.FC<ImportingStepProps> = ({
       }
     };
 
-    // Only run once
+    // Execute the import
     importProducts();
     
-    // Clean up function
+    // This cleanup ensures the ref stays true if component remounts
     return () => {
-      importStartedRef.current = true; // Ensure we don't restart import if component remounts
+      console.log('Component unmounting, keeping importStartedRef true');
     };
-  }, [brandId, products, onComplete, onError]);
+  }, []); // Empty dependency array ensures this only runs once on mount
 
   if (error) {
     return (
