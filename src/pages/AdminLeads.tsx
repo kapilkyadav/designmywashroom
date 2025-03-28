@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LeadService, Lead, LeadFilter } from '@/services/LeadService';
@@ -37,6 +38,7 @@ const AdminLeads = () => {
   const [filtersPanelOpen, setFiltersPanelOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncSuccess, setSyncSuccess] = useState<string | null>(null);
   
   const { 
     data, 
@@ -86,12 +88,17 @@ const AdminLeads = () => {
   
   const handleSyncNow = async () => {
     try {
+      // Clear previous states
       setIsSyncing(true);
       setSyncError(null);
+      setSyncSuccess(null);
+      
       console.log('Triggering manual sync...');
       const result = await LeadService.syncLeads();
+      
       if (result) {
-        refetch();
+        await refetch();
+        setSyncSuccess('Leads have been synchronized successfully from Google Sheet');
         toast({
           title: "Sync completed",
           description: "Leads have been synchronized from Google Sheet",
@@ -166,6 +173,12 @@ const AdminLeads = () => {
       {syncError && (
         <div className="bg-destructive/15 border border-destructive text-destructive px-4 py-3 rounded-md">
           <p className="text-sm font-medium">Sync Error: {syncError}</p>
+        </div>
+      )}
+      
+      {syncSuccess && !syncError && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
+          <p className="text-sm font-medium">{syncSuccess}</p>
         </div>
       )}
       

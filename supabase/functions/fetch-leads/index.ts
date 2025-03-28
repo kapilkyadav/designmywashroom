@@ -162,6 +162,17 @@ serve(async (req) => {
 
     console.log('Column mapping:', columnMapping);
     
+    // Verify the database schema to ensure we know what fields are available
+    // This will help diagnose column mismatches
+    const { data: columnInfo, error: schemaError } = await supabase
+      .rpc('get_table_information', { table_name: 'leads' });
+      
+    if (schemaError) {
+      console.error('Error fetching table schema:', schemaError);
+    } else {
+      console.log('Available columns in leads table:', columnInfo);
+    }
+    
     // Map sheet data to lead structure
     const leads = rows
       .filter((row: any) => columnMapping.customer_name && row[columnMapping.customer_name]) // Filter out rows with no names
@@ -173,8 +184,6 @@ serve(async (req) => {
           phone: columnMapping.phone ? row[columnMapping.phone] : '',
           email: columnMapping.email ? row[columnMapping.email] : null,
           location: columnMapping.location ? row[columnMapping.location] : null,
-          // Map project_type only if it exists in the mapping, otherwise set to null
-          project_type: null,
           budget_preference: columnMapping.budget_preference ? row[columnMapping.budget_preference] : null,
           remarks: columnMapping.notes ? row[columnMapping.notes] : null,
           status: 'New', // Default status for new leads
