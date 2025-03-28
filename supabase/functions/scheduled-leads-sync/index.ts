@@ -41,11 +41,23 @@ serve(async (req) => {
     
     // If the time elapsed is less than the interval, skip sync
     if (minutesSinceLastSync < syncConfig.sync_interval_minutes) {
+      // Calculate the remaining time before next sync
+      const nextSyncMinutes = Math.ceil(syncConfig.sync_interval_minutes - minutesSinceLastSync);
+      let nextSyncMessage;
+      
+      if (nextSyncMinutes >= 60 && nextSyncMinutes % 60 === 0) {
+        // Display in hours if it's an exact number of hours
+        const nextSyncHours = nextSyncMinutes / 60;
+        nextSyncMessage = `Next sync scheduled in ${nextSyncHours} ${nextSyncHours === 1 ? 'hour' : 'hours'}`;
+      } else {
+        nextSyncMessage = `Next sync scheduled in ${nextSyncMinutes} ${nextSyncMinutes === 1 ? 'minute' : 'minutes'}`;
+      }
+      
       return new Response(
         JSON.stringify({
           success: true,
           synced: false,
-          message: `Next sync scheduled in ${Math.ceil(syncConfig.sync_interval_minutes - minutesSinceLastSync)} minutes`
+          message: nextSyncMessage
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -69,11 +81,18 @@ serve(async (req) => {
     
     const result = await syncResponse.json();
     
+    // Update the last sync timestamp
+    await supabase
+      .from('lead_sync_config')
+      .update({ last_sync_at: now.toISOString() })
+      .eq('id', syncConfig.id);
+    
     return new Response(
       JSON.stringify({
         success: true,
         synced: true,
-        result
+        result,
+        nextSync: new Date(now.getTime() + (syncConfig.sync_interval_minutes * 60 * 1000)).toISOString()
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LeadService } from '@/services/LeadService';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Define ColumnMapping to match what the service expects
 interface ColumnMapping {
@@ -27,7 +28,8 @@ interface ColumnMapping {
 interface LeadSyncConfigLocal {
   id?: string;
   sheet_url: string;
-  interval_hours: number;
+  sync_interval: number;
+  interval_unit: 'minutes' | 'hours';
   auto_sync_enabled: boolean;
   column_mapping: ColumnMapping;
   last_synced_at: string | null;
@@ -50,9 +52,11 @@ const LeadsSyncConfig: React.FC = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [currentTab, setCurrentTab] = useState('general');
   const [config, setConfig] = useState<LeadSyncConfigLocal>({
     sheet_url: '',
-    interval_hours: 24,
+    sync_interval: 24,
+    interval_unit: 'hours',
     auto_sync_enabled: true,
     column_mapping: {
       lead_date: '',
@@ -72,12 +76,21 @@ const LeadsSyncConfig: React.FC = () => {
       try {
         const data = await LeadService.getSyncConfig();
         if (data) {
+          let intervalUnit: 'minutes' | 'hours' = 'minutes';
+          let interval = data.sync_interval_minutes;
+          
+          // Convert to hours if applicable
+          if (data.sync_interval_minutes >= 60 && data.sync_interval_minutes % 60 === 0) {
+            intervalUnit = 'hours';
+            interval = data.sync_interval_minutes / 60;
+          }
+          
           // Map service data to our local structure
           const localConfig: LeadSyncConfigLocal = {
             id: data.id,
             sheet_url: data.sheet_url,
-            // Convert minutes to hours
-            interval_hours: Math.round(data.sync_interval_minutes / 60),
+            sync_interval: interval,
+            interval_unit: intervalUnit,
             // Assume enabled if interval > 0
             auto_sync_enabled: data.sync_interval_minutes > 0,
             column_mapping: data.column_mapping as ColumnMapping,
@@ -103,7 +116,14 @@ const LeadsSyncConfig: React.FC = () => {
   const handleSyncIntervalChange = (value: string) => {
     setConfig({
       ...config,
-      interval_hours: parseInt(value, 10)
+      sync_interval: parseInt(value, 10)
+    });
+  };
+  
+  const handleIntervalUnitChange = (value: 'minutes' | 'hours') => {
+    setConfig({
+      ...config,
+      interval_unit: value
     });
   };
   
@@ -128,6 +148,12 @@ const LeadsSyncConfig: React.FC = () => {
     try {
       setIsSaving(true);
       
+      // Convert sync interval to minutes for the service
+      let syncIntervalMinutes = config.sync_interval;
+      if (config.interval_unit === 'hours') {
+        syncIntervalMinutes = config.sync_interval * 60;
+      }
+      
       // Convert our local config to the format expected by the service
       const serviceConfig: Partial<ServiceLeadSyncConfig> = {
         id: config.id,
@@ -135,8 +161,8 @@ const LeadsSyncConfig: React.FC = () => {
         sheet_name: 'Sheet1', // Default sheet name if not in our local model
         header_row: 1, // Default header row if not in our local model
         column_mapping: config.column_mapping,
-        // Convert hours to minutes and respect auto_sync_enabled flag
-        sync_interval_minutes: config.auto_sync_enabled ? config.interval_hours * 60 : 0
+        // Respect auto_sync_enabled flag
+        sync_interval_minutes: config.auto_sync_enabled ? syncIntervalMinutes : 0
       };
       
       await LeadService.updateSyncConfig(serviceConfig);
@@ -174,147 +200,198 @@ const LeadsSyncConfig: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="sheet_url">Google Sheet URL</Label>
-            <Input
-              id="sheet_url"
-              placeholder="https://docs.google.com/spreadsheets/d/..."
-              value={config.sheet_url}
-              onChange={(e) => setConfig({ ...config, sheet_url: e.target.value })}
-            />
-          </div>
+        <Tabs value={currentTab} onValueChange={setCurrentTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="mapping">Column Mapping</TabsTrigger>
+          </TabsList>
           
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-medium">Automatic Synchronization</h4>
-              <p className="text-sm text-muted-foreground">
-                Automatically sync leads from Google Sheet
-              </p>
+          <TabsContent value="general" className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="sheet_url">Google Sheet URL</Label>
+              <Input
+                id="sheet_url"
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+                value={config.sheet_url}
+                onChange={(e) => setConfig({ ...config, sheet_url: e.target.value })}
+              />
             </div>
-            <Switch
-              checked={config.auto_sync_enabled}
-              onCheckedChange={handleAutoSyncChange}
-            />
-          </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium">Automatic Synchronization</h4>
+                <p className="text-sm text-muted-foreground">
+                  Automatically sync leads from Google Sheet
+                </p>
+              </div>
+              <Switch
+                checked={config.auto_sync_enabled}
+                onCheckedChange={handleAutoSyncChange}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="interval_unit">Sync Interval Type</Label>
+              <Select
+                value={config.interval_unit}
+                onValueChange={(value: 'minutes' | 'hours') => handleIntervalUnitChange(value)}
+                disabled={!config.auto_sync_enabled}
+              >
+                <SelectTrigger id="interval_unit">
+                  <SelectValue placeholder="Select interval type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="minutes">Minutes</SelectItem>
+                  <SelectItem value="hours">Hours</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {config.interval_unit === 'minutes' ? (
+              <div className="space-y-2">
+                <Label htmlFor="sync_interval_minutes">Sync Every (Minutes)</Label>
+                <Select
+                  value={config.sync_interval.toString()}
+                  onValueChange={handleSyncIntervalChange}
+                  disabled={!config.auto_sync_enabled}
+                >
+                  <SelectTrigger id="sync_interval_minutes">
+                    <SelectValue placeholder="Select minutes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">Every 5 minutes</SelectItem>
+                    <SelectItem value="15">Every 15 minutes</SelectItem>
+                    <SelectItem value="30">Every 30 minutes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="sync_interval_hours">Sync Every (Hours)</Label>
+                <Select
+                  value={config.sync_interval.toString()}
+                  onValueChange={handleSyncIntervalChange}
+                  disabled={!config.auto_sync_enabled}
+                >
+                  <SelectTrigger id="sync_interval_hours">
+                    <SelectValue placeholder="Select hours" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Every 1 hour</SelectItem>
+                    <SelectItem value="6">Every 6 hours</SelectItem>
+                    <SelectItem value="12">Every 12 hours</SelectItem>
+                    <SelectItem value="24">Every 24 hours</SelectItem>
+                    <SelectItem value="48">Every 2 days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            <div className="flex justify-end pt-4">
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Save className="mr-2 h-4 w-4" />
+                Save Configuration
+              </Button>
+            </div>
+          </TabsContent>
           
-          <div className="space-y-2">
-            <Label htmlFor="sync_interval">Sync Interval</Label>
-            <Select
-              value={config.interval_hours.toString()}
-              onValueChange={handleSyncIntervalChange}
-              disabled={!config.auto_sync_enabled}
-            >
-              <SelectTrigger id="sync_interval">
-                <SelectValue placeholder="Select interval" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">Every 1 hour</SelectItem>
-                <SelectItem value="6">Every 6 hours</SelectItem>
-                <SelectItem value="12">Every 12 hours</SelectItem>
-                <SelectItem value="24">Every 24 hours</SelectItem>
-                <SelectItem value="48">Every 2 days</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        
-        <div>
-          <h4 className="font-medium mb-3">Column Mappings</h4>
-          <p className="text-sm text-muted-foreground mb-4">
-            Map your Google Sheet columns to lead data fields
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="column_lead_date">Lead Date</Label>
-              <Input
-                id="column_lead_date"
-                placeholder="e.g., A"
-                value={config.column_mapping.lead_date}
-                onChange={(e) => handleColumnMappingChange('lead_date', e.target.value)}
-              />
+          <TabsContent value="mapping" className="space-y-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Map your Google Sheet columns to lead data fields
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="column_lead_date">Lead Date</Label>
+                <Input
+                  id="column_lead_date"
+                  placeholder="e.g., A"
+                  value={config.column_mapping.lead_date}
+                  onChange={(e) => handleColumnMappingChange('lead_date', e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="column_customer_name">Customer Name</Label>
+                <Input
+                  id="column_customer_name"
+                  placeholder="e.g., B"
+                  value={config.column_mapping.customer_name}
+                  onChange={(e) => handleColumnMappingChange('customer_name', e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="column_email">Email</Label>
+                <Input
+                  id="column_email"
+                  placeholder="e.g., C"
+                  value={config.column_mapping.email}
+                  onChange={(e) => handleColumnMappingChange('email', e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="column_phone">Phone</Label>
+                <Input
+                  id="column_phone"
+                  placeholder="e.g., D"
+                  value={config.column_mapping.phone}
+                  onChange={(e) => handleColumnMappingChange('phone', e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="column_location">Location</Label>
+                <Input
+                  id="column_location"
+                  placeholder="e.g., E"
+                  value={config.column_mapping.location}
+                  onChange={(e) => handleColumnMappingChange('location', e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="column_project_type">Project Type</Label>
+                <Input
+                  id="column_project_type"
+                  placeholder="e.g., F"
+                  value={config.column_mapping.project_type}
+                  onChange={(e) => handleColumnMappingChange('project_type', e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="column_budget">Budget Preference</Label>
+                <Input
+                  id="column_budget"
+                  placeholder="e.g., G"
+                  value={config.column_mapping.budget_preference}
+                  onChange={(e) => handleColumnMappingChange('budget_preference', e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="column_notes">Notes</Label>
+                <Input
+                  id="column_notes"
+                  placeholder="e.g., H"
+                  value={config.column_mapping.notes}
+                  onChange={(e) => handleColumnMappingChange('notes', e.target.value)}
+                />
+              </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="column_customer_name">Customer Name</Label>
-              <Input
-                id="column_customer_name"
-                placeholder="e.g., B"
-                value={config.column_mapping.customer_name}
-                onChange={(e) => handleColumnMappingChange('customer_name', e.target.value)}
-              />
+            <div className="flex justify-end pt-4">
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Save className="mr-2 h-4 w-4" />
+                Save Column Mapping
+              </Button>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="column_email">Email</Label>
-              <Input
-                id="column_email"
-                placeholder="e.g., C"
-                value={config.column_mapping.email}
-                onChange={(e) => handleColumnMappingChange('email', e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="column_phone">Phone</Label>
-              <Input
-                id="column_phone"
-                placeholder="e.g., D"
-                value={config.column_mapping.phone}
-                onChange={(e) => handleColumnMappingChange('phone', e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="column_location">Location</Label>
-              <Input
-                id="column_location"
-                placeholder="e.g., E"
-                value={config.column_mapping.location}
-                onChange={(e) => handleColumnMappingChange('location', e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="column_project_type">Project Type</Label>
-              <Input
-                id="column_project_type"
-                placeholder="e.g., F"
-                value={config.column_mapping.project_type}
-                onChange={(e) => handleColumnMappingChange('project_type', e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="column_budget">Budget Preference</Label>
-              <Input
-                id="column_budget"
-                placeholder="e.g., G"
-                value={config.column_mapping.budget_preference}
-                onChange={(e) => handleColumnMappingChange('budget_preference', e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="column_notes">Notes</Label>
-              <Input
-                id="column_notes"
-                placeholder="e.g., H"
-                value={config.column_mapping.notes}
-                onChange={(e) => handleColumnMappingChange('notes', e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            <Save className="mr-2 h-4 w-4" />
-            Save Configuration
-          </Button>
-        </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
