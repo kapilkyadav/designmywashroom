@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -76,7 +75,7 @@ const Index = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-6">
-                    <div className="inline-block bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium">
+                    <div className="inline-block bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-white shadow-md">
                       Premium Design • Quality Materials
                     </div>
                   </div>
