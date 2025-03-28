@@ -22,6 +22,7 @@ import AdminSettings from "./pages/AdminSettings";
 import AdminProjectDetail from "./pages/AdminProjectDetail";
 import AdminProjectEdit from "./pages/AdminProjectEdit";
 import AdminProjects from "./pages/AdminProjects";
+import AdminLeads from "./pages/AdminLeads";
 
 const App = () => {
   const [queryClient] = useState(() => new QueryClient());
@@ -48,6 +49,7 @@ const App = () => {
                     <Route path="products" element={<AdminProducts />} />
                     <Route path="fixtures" element={<AdminFixtures />} />
                     <Route path="settings" element={<AdminSettings />} />
+                    <Route path="leads" element={<AdminLeads />} />
                     <Route index element={<AdminDashboard />} />
                     <Route path="projects" element={<AdminProjects />} />
                     <Route path="projects/detail/:id" element={<AdminProjectDetail />} />
