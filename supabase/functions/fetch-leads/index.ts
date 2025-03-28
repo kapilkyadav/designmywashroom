@@ -173,7 +173,8 @@ serve(async (req) => {
           phone: columnMapping.phone ? row[columnMapping.phone] : '',
           email: columnMapping.email ? row[columnMapping.email] : null,
           location: columnMapping.location ? row[columnMapping.location] : null,
-          project_type: columnMapping.project_type ? row[columnMapping.project_type] : null,
+          // Map project_type only if it exists in the mapping, otherwise set to null
+          project_type: null,
           budget_preference: columnMapping.budget_preference ? row[columnMapping.budget_preference] : null,
           remarks: columnMapping.notes ? row[columnMapping.notes] : null,
           status: 'New', // Default status for new leads
