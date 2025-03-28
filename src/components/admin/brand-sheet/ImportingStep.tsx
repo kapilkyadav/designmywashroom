@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { ProductService } from '@/services/ProductService';
@@ -21,10 +21,12 @@ const ImportingStep: React.FC<ImportingStepProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importComplete, setImportComplete] = useState(false);
+  // Use a ref to track if import has been initiated
+  const importStartedRef = useRef(false);
 
   useEffect(() => {
-    // Only run the import once and only if it hasn't been completed already
-    if (isImporting || importComplete) return;
+    // Check both state and ref to ensure we don't start multiple imports
+    if (isImporting || importComplete || importStartedRef.current) return;
     
     const importProducts = async () => {
       // Validate inputs before proceeding
@@ -36,6 +38,9 @@ const ImportingStep: React.FC<ImportingStepProps> = ({
         return;
       }
 
+      // Set ref immediately to prevent multiple calls
+      importStartedRef.current = true;
+      
       try {
         setIsImporting(true);
         
@@ -73,8 +78,14 @@ const ImportingStep: React.FC<ImportingStepProps> = ({
       }
     };
 
+    // Only run once
     importProducts();
-  }, [brandId, products, onComplete, onError, isImporting, importComplete]);
+    
+    // Clean up function
+    return () => {
+      importStartedRef.current = true; // Ensure we don't restart import if component remounts
+    };
+  }, [brandId, products, onComplete, onError]);
 
   if (error) {
     return (
