@@ -114,7 +114,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       case 'Contacted':
         return <Badge variant="secondary">Contacted</Badge>;
       case 'Qualified':
-        return <Badge variant="success" className="bg-green-600">Qualified</Badge>;
+        return <Badge className="bg-green-600 text-white">Qualified</Badge>;
       case 'Lost':
         return <Badge variant="destructive">Lost</Badge>;
       default:
