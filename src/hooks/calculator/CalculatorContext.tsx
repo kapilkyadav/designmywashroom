@@ -119,8 +119,19 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
       console.log('Sending calculator state to API:', JSON.stringify(calculatorState));
       
       // Calculate estimate using the service
-      const estimateResult = await CalculatorService.calculateEstimate(calculatorState);
-      console.log('Estimate calculation result:', estimateResult);
+      let estimateResult;
+      try {
+        estimateResult = await CalculatorService.calculateEstimate(calculatorState);
+        console.log('Estimate calculation result:', estimateResult);
+      } catch (error) {
+        console.error('Error calculating estimate in service:', error);
+        toast({
+          variant: "destructive",
+          title: "Calculation Error",
+          description: "There was a problem calculating your estimate. Please try again."
+        });
+        throw error;
+      }
       
       // Save the estimate to database
       try {
@@ -142,13 +153,16 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
             description: "Please wait a few minutes before submitting again."
           });
           throw error; // Re-throw to prevent continuing
+        } else {
+          // For other errors, show warning but continue
+          console.warn('Estimate calculated but not saved to database:', error);
+          toast({
+            variant: "warning",
+            title: "Warning",
+            description: "Your estimate was calculated but couldn't be saved. You can still view it."
+          });
+          // We don't throw here to allow the user to continue
         }
-        // For other errors, continue but show warning
-        toast({
-          variant: "destructive",
-          title: "Warning",
-          description: "Your estimate was calculated but couldn't be saved. Please try again."
-        });
       }
       
       // Update state with the calculated estimate
@@ -156,7 +170,7 @@ export const CalculatorProvider = ({ children }: { children: ReactNode }) => {
       
       return estimateResult;
     } catch (error) {
-      console.error('Error calculating estimate:', error);
+      console.error('Error in calculateEstimate method:', error);
       throw error;
     }
   };

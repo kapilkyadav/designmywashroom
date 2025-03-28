@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 
 export interface SheetColumn {
@@ -182,19 +183,32 @@ export const GoogleSheetsService = {
   // Schedule automatic sync for brand products
   async scheduleSync(brandId: string) {
     try {
-      const { data, error } = await supabase.functions.invoke('schedule-sheet-sync', {
-        body: { brandId }
-      });
-      
-      if (error) {
-        console.error('Error scheduling sync:', error);
-        throw error;
+      try {
+        const { data, error } = await supabase.functions.invoke('schedule-sheet-sync', {
+          body: { brandId }
+        });
+        
+        if (error) {
+          console.error('Error scheduling sync:', error);
+          // We'll still return a successful result even if the scheduling fails
+          return { success: true, scheduled: false, error: error.message };
+        }
+        
+        return { success: true, scheduled: true, data };
+      } catch (error: any) {
+        console.error('Error in scheduleSync:', error);
+        // Return a partial success if the main function succeeded but scheduling failed
+        if (error.message && error.message.includes('scheduled_jobs')) {
+          console.log('Scheduled jobs table does not exist, but continuing with import');
+          return { success: true, scheduled: false, error: 'Scheduling not available' };
+        }
+        // For other errors, we don't want to completely fail the import
+        return { success: true, scheduled: false, error: error.message };
       }
-      
-      return data;
-    } catch (error) {
-      console.error('Error in scheduleSync:', error);
-      throw error;
+    } catch (error: any) {
+      console.error('Error in scheduleSync outer try/catch:', error);
+      // Completely unexpected error, but still don't fail the entire import
+      return { success: true, scheduled: false, error: error.message };
     }
   }
 };

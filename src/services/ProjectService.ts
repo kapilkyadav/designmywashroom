@@ -1,3 +1,4 @@
+
 import { supabase, Project } from '@/lib/supabase';
 import { RateLimiter } from '@/lib/rateLimiter';
 
@@ -47,49 +48,54 @@ export const ProjectService = {
   
   // Create a new project from calculator submission
   async createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
-    // Rate limiting check disabled for testing
-    
-    // Debug: Log the incoming project data
-    console.log('Creating project with raw data:', JSON.stringify(project));
-    
-    // Ensure all string fields have valid values or empty strings, not null/undefined
-    const sanitizedProject = {
-      ...project,
-      client_name: project.client_name || '',
-      client_email: project.client_email || '',
-      client_mobile: project.client_mobile || '',
-      client_location: project.client_location || '',
-      project_type: project.project_type || 'new-construction',
-      selected_brand: project.selected_brand || ''
-    };
-    
-    console.log('Creating project with sanitized data:', sanitizedProject);
-    
-    // Check for empty strings in critical fields to help debug
-    if (!sanitizedProject.client_name || !sanitizedProject.client_email) {
-      console.warn('Warning: Creating project with empty client details', {
-        name: sanitizedProject.client_name,
-        email: sanitizedProject.client_email,
-        mobile: sanitizedProject.client_mobile,
-        location: sanitizedProject.client_location
-      });
-    }
-    
-    const { data, error } = await supabase
-      .from('projects')
-      .insert(sanitizedProject)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error creating project:', error);
+    try {
+      // Rate limiting check disabled for testing
+      
+      // Debug: Log the incoming project data
+      console.log('Creating project with raw data:', JSON.stringify(project));
+      
+      // Ensure all string fields have valid values or empty strings, not null/undefined
+      const sanitizedProject = {
+        ...project,
+        client_name: project.client_name || '',
+        client_email: project.client_email || '',
+        client_mobile: project.client_mobile || '',
+        client_location: project.client_location || '',
+        project_type: project.project_type || 'new-construction',
+        selected_brand: project.selected_brand || ''
+      };
+      
+      console.log('Creating project with sanitized data:', sanitizedProject);
+      
+      // Check for empty strings in critical fields to help debug
+      if (!sanitizedProject.client_name || !sanitizedProject.client_email) {
+        console.warn('Warning: Creating project with empty client details', {
+          name: sanitizedProject.client_name,
+          email: sanitizedProject.client_email,
+          mobile: sanitizedProject.client_mobile,
+          location: sanitizedProject.client_location
+        });
+      }
+      
+      const { data, error } = await supabase
+        .from('projects')
+        .insert(sanitizedProject)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating project:', error);
+        throw error;
+      }
+      
+      // Debug: Log the created project data from database
+      console.log('Project created successfully:', data);
+      
+      return data as Project;
+    } catch (error) {
+      console.error('Error in createProject:', error);
       throw error;
     }
-    
-    // Debug: Log the created project data from database
-    console.log('Project created successfully:', data);
-    
-    return data as Project;
   },
   
   // Update a project

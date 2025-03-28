@@ -1,11 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useCalculator } from '@/hooks/useCalculator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { ProjectService } from '@/services/ProjectService';
+import { toast } from '@/components/ui/use-toast';
 
 const CustomerDetailsStep = () => {
   const { state, setCustomerDetails, calculateEstimate, prevStep, nextStep } = useCalculator();
@@ -96,18 +96,29 @@ const CustomerDetailsStep = () => {
       
       console.log("Saving customer details:", customerDetails);
       
+      // First, update the customer details
       setCustomerDetails(customerDetails);
       
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Small delay to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 500));
       
+      // Double-check the details are saved before proceeding
       if (!customerDetails.name || !customerDetails.email) {
-        throw new Error('MISSING_CUSTOMER_DETAILS');
+        toast({
+          title: "Missing information",
+          description: "Please provide your name and email to continue.",
+          variant: "destructive"
+        });
+        return;
       }
       
       try {
+        // Try to calculate the estimate
+        console.log("About to calculate estimate with customer details:", customerDetails);
         const calculationResult = await calculateEstimate();
         console.log("Estimate calculated successfully:", calculationResult);
         
+        // Move to the next step
         nextStep();
         
         toast({
@@ -116,35 +127,37 @@ const CustomerDetailsStep = () => {
         });
       } catch (error: any) {
         console.error('Error calculating estimate:', error);
-        handleSubmissionError(error);
+        
+        // Check the specific type of error for better user feedback
+        if (error.message === 'MISSING_CUSTOMER_DETAILS') {
+          toast({
+            title: "Missing information",
+            description: "Please provide your name and email to continue.",
+            variant: "destructive"
+          });
+        } else if (error.message === 'RATE_LIMITED') {
+          toast({
+            title: "Too many submissions",
+            description: "Please wait a moment before submitting again.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error calculating estimate",
+            description: "There was an unexpected error. Please try again.",
+            variant: "destructive"
+          });
+        }
       }
     } catch (error) {
-      console.error('Error submitting details:', error);
-      handleSubmissionError(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  const handleSubmissionError = (error: any) => {
-    if (error instanceof Error && error.message === 'RATE_LIMITED') {
+      console.error('Error in form submission:', error);
       toast({
-        title: "Too many submissions",
-        description: "Please wait a moment before submitting again.",
-        variant: "destructive"
-      });
-    } else if (error instanceof Error && error.message === 'MISSING_CUSTOMER_DETAILS') {
-      toast({
-        title: "Missing information",
-        description: "Please provide your name and email to continue.",
-        variant: "destructive"
-      });
-    } else {
-      toast({
-        title: "Error calculating estimate",
+        title: "Error submitting form",
         description: "Please try again later.",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
