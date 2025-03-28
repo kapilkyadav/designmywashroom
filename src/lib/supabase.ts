@@ -17,7 +17,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true
   },
   global: {
-    fetch: (...args) => fetch(args[0], args[1])
+    fetch: (url, options) => fetch(url, options)
   },
   db: {
     schema: 'public'
