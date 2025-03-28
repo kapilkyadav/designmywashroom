@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -181,8 +182,8 @@ const Index = () => {
                   className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full object-center"
                 />
                 <img 
-                  src="https://images.unsplash.com/photo-1507652313519-d4e9174996dd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80" 
-                  alt="Modern bath design" 
+                  src="https://images.unsplash.com/photo-1645427861479-d9d0431f9ff7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80" 
+                  alt="Luxury bathroom design" 
                   className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full"
                 />
                 <img 
@@ -191,8 +192,8 @@ const Index = () => {
                   className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full"
                 />
                 <img 
-                  src="https://images.unsplash.com/photo-1600566752355-35792bedcfea?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80" 
-                  alt="Luxury washroom design" 
+                  src="https://images.unsplash.com/photo-1645427861479-d9d0431f9ff7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80" 
+                  alt="Luxury bathroom design" 
                   className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full"
                 />
               </div>
