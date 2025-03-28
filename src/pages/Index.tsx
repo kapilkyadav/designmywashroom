@@ -70,8 +70,8 @@ const Index = () => {
                 <div className="absolute -bottom-2 sm:-bottom-4 -right-2 sm:-right-4 w-20 h-20 sm:w-32 sm:h-32 md:w-40 md:h-40 bg-primary/5 rounded-full"></div>
                 <div className="relative overflow-hidden rounded-xl border border-border shadow-lg">
                   <img 
-                    src="https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1287&q=80" 
-                    alt="Modern washroom design" 
+                    src="/lovable-uploads/231599d6-bf6a-4626-a1d8-347e3604b2a0.png" 
+                    alt="Luxury marble washroom design" 
                     className="w-full h-auto object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
