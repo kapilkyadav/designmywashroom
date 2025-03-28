@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LeadService, Lead, LeadFilter } from '@/services/LeadService';
@@ -37,6 +36,7 @@ const AdminLeads = () => {
   
   const [filtersPanelOpen, setFiltersPanelOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   
   const { 
     data, 
@@ -87,6 +87,7 @@ const AdminLeads = () => {
   const handleSyncNow = async () => {
     try {
       setIsSyncing(true);
+      setSyncError(null);
       console.log('Triggering manual sync...');
       const result = await LeadService.syncLeads();
       if (result) {
@@ -95,9 +96,13 @@ const AdminLeads = () => {
           title: "Sync completed",
           description: "Leads have been synchronized from Google Sheet",
         });
+      } else {
+        console.error('Sync returned false');
+        setSyncError('Sync operation failed. Check console for details.');
       }
     } catch (error) {
       console.error("Error syncing leads:", error);
+      setSyncError(error instanceof Error ? error.message : 'Unknown error occurred');
       toast({
         title: "Sync failed",
         description: "There was an error synchronizing leads",
@@ -121,7 +126,6 @@ const AdminLeads = () => {
     });
   };
   
-  // Calculate active filters count
   const activeFiltersCount = [
     filters.status,
     filters.dateFrom,
@@ -158,6 +162,12 @@ const AdminLeads = () => {
           </Button>
         </div>
       </div>
+      
+      {syncError && (
+        <div className="bg-destructive/15 border border-destructive text-destructive px-4 py-3 rounded-md">
+          <p className="text-sm font-medium">Sync Error: {syncError}</p>
+        </div>
+      )}
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="mb-4">

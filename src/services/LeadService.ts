@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 
@@ -328,9 +327,16 @@ export const LeadService = {
         }
       });
       
+      // Check for edge function errors
       if (response.error) {
         console.error('Edge function error:', response.error);
         throw new Error(response.error.message || 'Error syncing leads');
+      }
+      
+      // Check for response data errors
+      if (!response.data) {
+        console.error('Empty response from edge function');
+        throw new Error('Empty response from edge function');
       }
       
       if (!response.data.success) {

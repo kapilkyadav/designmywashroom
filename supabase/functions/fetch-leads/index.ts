@@ -61,6 +61,17 @@ serve(async (req) => {
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
   const googleApiKey = Deno.env.get('GOOGLE_API_KEY') || '';
   
+  if (!googleApiKey) {
+    console.error('Missing GOOGLE_API_KEY environment variable');
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: 'Google API key is not configured' 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
+  }
+  
   // Create Supabase client with service role key for admin access
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   
@@ -85,6 +96,7 @@ serve(async (req) => {
       .single();
     
     if (syncError || !syncConfig) {
+      console.error('Sync configuration not found:', syncError);
       throw new Error('Sync configuration not found');
     }
 
@@ -101,6 +113,7 @@ serve(async (req) => {
     // Extract sheet ID
     const sheetId = extractSheetId(syncConfig.sheet_url);
     if (!sheetId) {
+      console.error('Invalid sheet URL:', syncConfig.sheet_url);
       throw new Error('Invalid sheet URL in configuration');
     }
     
@@ -122,6 +135,7 @@ serve(async (req) => {
     
     // Validate that we have values in the response
     if (!sheetData.values || !Array.isArray(sheetData.values) || sheetData.values.length === 0) {
+      console.error('No data found in sheet');
       throw new Error('No data found in sheet');
     }
 
@@ -130,6 +144,7 @@ serve(async (req) => {
     // Process the data
     const headerIndex = headerRow - 1;
     if (headerIndex >= sheetData.values.length) {
+      console.error(`Header row index (${headerRow}) is greater than available rows (${sheetData.values.length})`);
       throw new Error(`Header row index (${headerRow}) is greater than available rows (${sheetData.values.length})`);
     }
     
@@ -160,7 +175,6 @@ serve(async (req) => {
           location: columnMapping.location ? row[columnMapping.location] : null,
           project_type: columnMapping.project_type ? row[columnMapping.project_type] : null,
           budget_preference: columnMapping.budget_preference ? row[columnMapping.budget_preference] : null,
-          // Fix for the notes column - change to remarks which exists in the database
           remarks: columnMapping.notes ? row[columnMapping.notes] : null,
           status: 'New', // Default status for new leads
           last_synced_at: new Date().toISOString()
@@ -171,9 +185,14 @@ serve(async (req) => {
       });
 
     // Get existing leads to avoid duplicates
-    const { data: existingLeads } = await supabase
+    const { data: existingLeads, error: existingLeadsError } = await supabase
       .from('leads')
       .select('phone');
+    
+    if (existingLeadsError) {
+      console.error('Error fetching existing leads:', existingLeadsError);
+      throw new Error('Error fetching existing leads');
+    }
     
     const existingPhones = new Set(existingLeads?.map((lead: any) => lead.phone));
     
@@ -185,35 +204,45 @@ serve(async (req) => {
     // Insert new leads
     let insertResult;
     if (newLeads.length > 0) {
-      const { data, error } = await supabase
-        .from('leads')
-        .insert(newLeads)
-        .select('id');
-      
-      if (error) {
-        console.error('Error inserting leads:', error);
-        throw error;
-      }
-      
-      insertResult = data;
-      
-      // Log activities for new leads
-      const activities = insertResult.map((lead: any) => ({
-        lead_id: lead.id,
-        action: 'Lead Created',
-        details: 'Lead imported from Google Sheet'
-      }));
-      
-      if (activities.length > 0) {
-        await supabase.from('lead_activity_logs').insert(activities);
+      try {
+        const { data, error } = await supabase
+          .from('leads')
+          .insert(newLeads)
+          .select('id');
+        
+        if (error) {
+          console.error('Error inserting leads:', error);
+          throw error;
+        }
+        
+        insertResult = data;
+        
+        // Log activities for new leads
+        const activities = insertResult.map((lead: any) => ({
+          lead_id: lead.id,
+          action: 'Lead Created',
+          details: 'Lead imported from Google Sheet'
+        }));
+        
+        if (activities.length > 0) {
+          await supabase.from('lead_activity_logs').insert(activities);
+        }
+      } catch (insertError) {
+        console.error('Failed to insert leads:', insertError);
+        throw new Error(`Failed to insert leads: ${insertError.message || 'Unknown error'}`);
       }
     }
     
     // Update sync configuration
-    await supabase
-      .from('lead_sync_config')
-      .update({ last_sync_at: new Date().toISOString() })
-      .eq('id', syncConfig.id);
+    try {
+      await supabase
+        .from('lead_sync_config')
+        .update({ last_sync_at: new Date().toISOString() })
+        .eq('id', syncConfig.id);
+    } catch (updateError) {
+      console.error('Failed to update sync timestamp:', updateError);
+      // Don't throw here, not critical
+    }
     
     return new Response(
       JSON.stringify({
