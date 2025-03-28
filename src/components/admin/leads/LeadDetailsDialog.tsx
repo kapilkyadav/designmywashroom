@@ -157,12 +157,12 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="remarks">Notes</Label>
             <Textarea 
-              id="notes"
-              name="notes"
+              id="remarks"
+              name="remarks"
               rows={4}
-              value={formData.notes || ''}
+              value={formData.remarks || ''}
               onChange={handleChange}
             />
           </div>

@@ -54,7 +54,7 @@ const LeadsSyncConfig: React.FC = () => {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const data = await LeadService.getLeadSyncConfig();
+        const data = await LeadService.getSyncConfig();
         if (data) {
           setConfig(data);
         }
@@ -102,9 +102,9 @@ const LeadsSyncConfig: React.FC = () => {
       setIsSaving(true);
       
       if (config.id) {
-        await LeadService.updateLeadSyncConfig(config);
+        await LeadService.updateSyncConfig(config);
       } else {
-        await LeadService.createLeadSyncConfig(config);
+        await LeadService.updateSyncConfig(config);
       }
       
       toast({
