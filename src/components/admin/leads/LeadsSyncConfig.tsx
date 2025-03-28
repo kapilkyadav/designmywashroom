@@ -28,6 +28,8 @@ interface ColumnMapping {
 interface LeadSyncConfigLocal {
   id?: string;
   sheet_url: string;
+  sheet_name: string;
+  header_row: number;
   sync_interval: number;
   interval_unit: 'minutes' | 'hours';
   auto_sync_enabled: boolean;
@@ -55,6 +57,8 @@ const LeadsSyncConfig: React.FC = () => {
   const [currentTab, setCurrentTab] = useState('general');
   const [config, setConfig] = useState<LeadSyncConfigLocal>({
     sheet_url: '',
+    sheet_name: 'Sheet1',
+    header_row: 1,
     sync_interval: 24,
     interval_unit: 'hours',
     auto_sync_enabled: true,
@@ -89,6 +93,8 @@ const LeadsSyncConfig: React.FC = () => {
           const localConfig: LeadSyncConfigLocal = {
             id: data.id,
             sheet_url: data.sheet_url,
+            sheet_name: data.sheet_name || 'Sheet1',
+            header_row: data.header_row || 1,
             sync_interval: interval,
             interval_unit: intervalUnit,
             // Assume enabled if interval > 0
@@ -158,8 +164,8 @@ const LeadsSyncConfig: React.FC = () => {
       const serviceConfig: Partial<ServiceLeadSyncConfig> = {
         id: config.id,
         sheet_url: config.sheet_url,
-        sheet_name: 'Sheet1', // Default sheet name if not in our local model
-        header_row: 1, // Default header row if not in our local model
+        sheet_name: config.sheet_name,
+        header_row: config.header_row,
         column_mapping: config.column_mapping,
         // Respect auto_sync_enabled flag
         sync_interval_minutes: config.auto_sync_enabled ? syncIntervalMinutes : 0
@@ -183,6 +189,22 @@ const LeadsSyncConfig: React.FC = () => {
     }
   };
   
+  // Handle sheet name change
+  const handleSheetNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setConfig({
+      ...config,
+      sheet_name: e.target.value
+    });
+  };
+  
+  // Handle header row change
+  const handleHeaderRowChange = (value: string) => {
+    setConfig({
+      ...config,
+      header_row: parseInt(value, 10)
+    });
+  };
+  
   if (isLoading) {
     return (
       <div className="flex justify-center my-8">
@@ -203,6 +225,7 @@ const LeadsSyncConfig: React.FC = () => {
         <Tabs value={currentTab} onValueChange={setCurrentTab}>
           <TabsList className="mb-4">
             <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="sheet">Sheet Settings</TabsTrigger>
             <TabsTrigger value="mapping">Column Mapping</TabsTrigger>
           </TabsList>
           
@@ -296,6 +319,57 @@ const LeadsSyncConfig: React.FC = () => {
             </div>
           </TabsContent>
           
+          <TabsContent value="sheet" className="space-y-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Configure which worksheet and header row to use for data synchronization
+            </p>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="sheet_name">Sheet Name</Label>
+                <Input
+                  id="sheet_name"
+                  placeholder="Sheet1"
+                  value={config.sheet_name}
+                  onChange={handleSheetNameChange}
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  The name of the worksheet tab in your Google Sheet
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="header_row">Header Row</Label>
+                <Select
+                  value={config.header_row.toString()}
+                  onValueChange={handleHeaderRowChange}
+                >
+                  <SelectTrigger id="header_row">
+                    <SelectValue placeholder="Select header row" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5].map((num) => (
+                      <SelectItem key={num} value={num.toString()}>
+                        Row {num}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  The row containing your column headers
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end pt-4">
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Save className="mr-2 h-4 w-4" />
+                Save Sheet Settings
+              </Button>
+            </div>
+          </TabsContent>
+          
           <TabsContent value="mapping" className="space-y-4">
             <p className="text-sm text-muted-foreground mb-4">
               Map your Google Sheet columns to lead data fields
@@ -306,7 +380,7 @@ const LeadsSyncConfig: React.FC = () => {
                 <Label htmlFor="column_lead_date">Lead Date</Label>
                 <Input
                   id="column_lead_date"
-                  placeholder="e.g., A"
+                  placeholder="e.g., A or Lead Date"
                   value={config.column_mapping.lead_date}
                   onChange={(e) => handleColumnMappingChange('lead_date', e.target.value)}
                 />
@@ -316,7 +390,7 @@ const LeadsSyncConfig: React.FC = () => {
                 <Label htmlFor="column_customer_name">Customer Name</Label>
                 <Input
                   id="column_customer_name"
-                  placeholder="e.g., B"
+                  placeholder="e.g., B or Customer"
                   value={config.column_mapping.customer_name}
                   onChange={(e) => handleColumnMappingChange('customer_name', e.target.value)}
                 />
@@ -326,7 +400,7 @@ const LeadsSyncConfig: React.FC = () => {
                 <Label htmlFor="column_email">Email</Label>
                 <Input
                   id="column_email"
-                  placeholder="e.g., C"
+                  placeholder="e.g., C or Email"
                   value={config.column_mapping.email}
                   onChange={(e) => handleColumnMappingChange('email', e.target.value)}
                 />
@@ -336,7 +410,7 @@ const LeadsSyncConfig: React.FC = () => {
                 <Label htmlFor="column_phone">Phone</Label>
                 <Input
                   id="column_phone"
-                  placeholder="e.g., D"
+                  placeholder="e.g., D or Phone"
                   value={config.column_mapping.phone}
                   onChange={(e) => handleColumnMappingChange('phone', e.target.value)}
                 />
@@ -346,7 +420,7 @@ const LeadsSyncConfig: React.FC = () => {
                 <Label htmlFor="column_location">Location</Label>
                 <Input
                   id="column_location"
-                  placeholder="e.g., E"
+                  placeholder="e.g., E or Location"
                   value={config.column_mapping.location}
                   onChange={(e) => handleColumnMappingChange('location', e.target.value)}
                 />
@@ -356,7 +430,7 @@ const LeadsSyncConfig: React.FC = () => {
                 <Label htmlFor="column_project_type">Project Type</Label>
                 <Input
                   id="column_project_type"
-                  placeholder="e.g., F"
+                  placeholder="e.g., F or Type"
                   value={config.column_mapping.project_type}
                   onChange={(e) => handleColumnMappingChange('project_type', e.target.value)}
                 />
@@ -366,7 +440,7 @@ const LeadsSyncConfig: React.FC = () => {
                 <Label htmlFor="column_budget">Budget Preference</Label>
                 <Input
                   id="column_budget"
-                  placeholder="e.g., G"
+                  placeholder="e.g., G or Budget"
                   value={config.column_mapping.budget_preference}
                   onChange={(e) => handleColumnMappingChange('budget_preference', e.target.value)}
                 />
@@ -376,7 +450,7 @@ const LeadsSyncConfig: React.FC = () => {
                 <Label htmlFor="column_notes">Notes</Label>
                 <Input
                   id="column_notes"
-                  placeholder="e.g., H"
+                  placeholder="e.g., H or Notes"
                   value={config.column_mapping.notes}
                   onChange={(e) => handleColumnMappingChange('notes', e.target.value)}
                 />
