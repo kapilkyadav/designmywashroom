@@ -18,6 +18,8 @@ import {
   X,
   BarChart,
   ClipboardList,
+  UserRound,
+  Phone,
 } from 'lucide-react';
 
 const AdminSidebar = () => {
@@ -47,6 +49,11 @@ const AdminSidebar = () => {
       name: 'Dashboard',
       href: '/admin/dashboard',
       icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      name: 'Leads',
+      href: '/admin/leads',
+      icon: <UserRound className="h-5 w-5" />,
     },
     {
       name: 'Project Estimates',
