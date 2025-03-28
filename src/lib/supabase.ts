@@ -7,7 +7,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIU
 
 // Check if we have the required values and log a message if they're being used from defaults
 if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  console.warn('Using default Supabase credentials. For production, set your own VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+  console.log('Using default Supabase credentials. For production, set your own VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
 }
 
 // Performance optimization: Configure with proper caching options
@@ -16,9 +16,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true
   },
-  // Fix the spread operator error by removing it
   global: {
-    fetch: function(...args) { return fetch(args[0], args[1]); }
+    fetch: (...args) => fetch(args[0], args[1])
   },
   db: {
     schema: 'public'
