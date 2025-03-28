@@ -191,7 +191,7 @@ const Index = () => {
                   className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full"
                 />
                 <img 
-                  src="https://images.unsplash.com/photo-1600566752355-35792bedcfea?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80" 
+                  src="https://unsplash.com/photos/a-bathroom-with-a-sink-and-a-mirror-gIFmQSCPzaU&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80" 
                   alt="Luxury washroom design" 
                   className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full"
                 />
