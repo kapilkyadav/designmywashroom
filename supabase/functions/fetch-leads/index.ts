@@ -160,7 +160,8 @@ serve(async (req) => {
           location: columnMapping.location ? row[columnMapping.location] : null,
           project_type: columnMapping.project_type ? row[columnMapping.project_type] : null,
           budget_preference: columnMapping.budget_preference ? row[columnMapping.budget_preference] : null,
-          notes: columnMapping.notes ? row[columnMapping.notes] : null,
+          // Fix for the notes column - change to remarks which exists in the database
+          remarks: columnMapping.notes ? row[columnMapping.notes] : null,
           status: 'New', // Default status for new leads
           last_synced_at: new Date().toISOString()
         };
