@@ -22,6 +22,8 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   
   try {
+    console.log('Starting scheduled leads sync check');
+    
     // Get the sync configuration
     const { data: syncConfig, error: syncError } = await supabase
       .from('lead_sync_config')
@@ -33,6 +35,13 @@ serve(async (req) => {
     if (syncError || !syncConfig) {
       throw new Error('Sync configuration not found');
     }
+    
+    console.log('Sync config found:', { 
+      syncInterval: syncConfig.sync_interval_minutes,
+      lastSync: syncConfig.last_sync_at,
+      sheetUrl: syncConfig.sheet_url,
+      sheetName: syncConfig.sheet_name || 'Sheet1'
+    });
     
     // Check if it's time to sync based on interval
     const lastSync = syncConfig.last_sync_at ? new Date(syncConfig.last_sync_at) : new Date(0);
@@ -52,6 +61,8 @@ serve(async (req) => {
       } else {
         nextSyncMessage = `Next sync scheduled in ${nextSyncMinutes} ${nextSyncMinutes === 1 ? 'minute' : 'minutes'}`;
       }
+      
+      console.log(nextSyncMessage);
       
       return new Response(
         JSON.stringify({
@@ -73,7 +84,12 @@ serve(async (req) => {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${supabaseServiceKey}`
-        }
+        },
+        // Include sheet name and header row information in the request
+        body: JSON.stringify({
+          sheet_name: syncConfig.sheet_name || 'Sheet1',
+          header_row: syncConfig.header_row || 1
+        })
       }
     );
     
@@ -88,6 +104,8 @@ serve(async (req) => {
     if (!result.success) {
       throw new Error(`Sync failed: ${result.error || 'Unknown error'}`);
     }
+    
+    console.log('Sync completed successfully:', result);
     
     // Update the last sync timestamp
     await supabase

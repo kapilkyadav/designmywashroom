@@ -76,6 +76,12 @@ serve(async (req) => {
     if (syncError || !syncConfig) {
       throw new Error('Sync configuration not found');
     }
+
+    console.log('Sync config retrieved:', {
+      sheetUrl: syncConfig.sheet_url,
+      sheetName: syncConfig.sheet_name || 'Sheet1',
+      headerRow: syncConfig.header_row || 1
+    });
     
     // Extract sheet ID
     const sheetId = extractSheetId(syncConfig.sheet_url);
@@ -83,14 +89,14 @@ serve(async (req) => {
       throw new Error('Invalid sheet URL in configuration');
     }
     
-    // Make sure we have a valid sheet name
+    // Make sure we have a valid sheet name (fallback to Sheet1 if not provided)
     const sheetName = syncConfig.sheet_name || 'Sheet1';
     const headerRow = syncConfig.header_row || 1;
     
-    // Properly construct and encode the API URL
-    // Use A1 notation for the range (e.g., "Sheet1!A1:Z1000") to avoid parsing errors
-    const range = `${sheetName}!A1:Z1000`;
-    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?key=${googleApiKey}`;
+    // Properly construct and encode the API URL using spreadsheets.values.get endpoint
+    // Use A1 notation for the range (e.g., "Sheet1!A1:Z1000") to explicitly specify the sheet
+    const range = `${encodeURIComponent(sheetName)}!A1:Z1000`;
+    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${googleApiKey}`;
     
     console.log(`Fetching sheet data from: ${apiUrl.replace(googleApiKey, 'API_KEY_REDACTED')}`);
     
@@ -107,6 +113,8 @@ serve(async (req) => {
     if (!sheetData.values || !Array.isArray(sheetData.values) || sheetData.values.length === 0) {
       throw new Error('No data found in sheet');
     }
+
+    console.log(`Sheet data retrieved, rows count: ${sheetData.values.length}`);
     
     // Process the data
     const headerIndex = headerRow - 1;
@@ -125,6 +133,8 @@ serve(async (req) => {
     
     // Get column mapping from configuration
     const columnMapping = syncConfig.column_mapping || {};
+
+    console.log('Column mapping:', columnMapping);
     
     // Map sheet data to lead structure
     const leads = rows
