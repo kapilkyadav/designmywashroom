@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { BrandService } from '@/services/BrandService';
@@ -188,71 +187,29 @@ export function useSheetImport({ brandId, onComplete }: UseSheetImportProps) {
       console.error('Missing data required for product mapping');
     }
     
+    // Only change step - the actual import is now handled by ImportingStep component
     setCurrentStep('importing');
   };
   
+  // This function is still provided but ImportingStep now handles the actual import
   const importProducts = async (mapping: SheetMapping) => {
-    if (!sheetData || !mapping || !brandId) {
-      console.error('Missing data required for import');
-      setError('Missing data required for import');
-      return;
-    }
+    // This is now a no-op - we keep the function to avoid breaking changes
+    // but the actual import logic is handled by the ImportingStep component
+    console.log('importProducts in useSheetImport is no longer performing actual import');
     
-    setImporting(true);
-    
+    // We still setup auto-scheduling here
     try {
-      // If we already have mapped products, use them, otherwise map the data
-      const products = mappedProducts || GoogleSheetsService.mapSheetDataToProducts(
-        sheetData,
-        sheetHeaders,
-        mapping,
-        brandId
-      );
-      
-      if (!products || products.length === 0) {
-        throw new Error('No products were mapped from the sheet');
-      }
-      
-      console.log(`Importing ${products.length} products for brand ${brandId}`);
-      
-      // Import the products using the product service
-      const count = await ProductService.importProductsFromSheet(brandId, products);
-      setImportedCount(count);
-      
-      console.log(`Successfully imported ${count} products`);
-      
-      // Schedule automatic sync
-      try {
-        await GoogleSheetsService.scheduleSync(brandId);
-        setScheduled(true);
-        
-        toast({
-          title: "Auto-sync scheduled",
-          description: "Products will automatically sync with your sheet",
-        });
-      } catch (syncError) {
-        console.error('Error scheduling sync:', syncError);
-        // Continue even if sync scheduling fails
-      }
+      // Try to schedule automatic sync
+      await GoogleSheetsService.scheduleSync(brandId);
+      setScheduled(true);
       
       toast({
-        title: "Import successful",
-        description: `${count} products imported successfully`,
+        title: "Auto-sync scheduled",
+        description: "Products will automatically sync with your sheet",
       });
-      
-      setCurrentStep('complete');
-      
-    } catch (error: any) {
-      console.error('Error importing products:', error);
-      setError(error.message || 'Failed to import products');
-      
-      toast({
-        title: "Import Failed",
-        description: "Could not import products from sheet",
-        variant: "destructive",
-      });
-    } finally {
-      setImporting(false);
+    } catch (syncError) {
+      console.error('Error scheduling sync:', syncError);
+      // Continue even if sync scheduling fails
     }
   };
   

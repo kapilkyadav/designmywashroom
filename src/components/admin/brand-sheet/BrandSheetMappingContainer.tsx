@@ -79,8 +79,8 @@ const BrandSheetMappingContainer: React.FC<BrandSheetMappingContainerProps> = ({
   const handleProductMapping = (mapping: any) => {
     console.log('Mapping complete, starting import', mapping);
     
-    // Start the import process with the mapping
-    importProducts(mapping);
+    // When moving to importing step, we don't need to call importProducts again
+    // The ImportingStep component will handle the actual import process
     
     // Let the hook handle the step change
     handleMappingComplete(mapping);

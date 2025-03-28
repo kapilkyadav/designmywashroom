@@ -11,6 +11,10 @@ interface ImportingStepProps {
   onError?: (error: Error) => void;
 }
 
+// Create a static variable outside the component to track import state globally
+// This prevents reimporting even if the component remounts completely
+const importStateMap = new Map<string, boolean>();
+
 const ImportingStep: React.FC<ImportingStepProps> = ({ 
   brandId, 
   products,
@@ -26,15 +30,29 @@ const ImportingStep: React.FC<ImportingStepProps> = ({
 
   // One-time import effect that won't be affected by re-renders
   useEffect(() => {
-    // Skip if already importing, completed, or the ref indicates we've started
-    if (isImporting || importComplete || importStartedRef.current) {
-      console.log('Import already in progress or completed, skipping');
+    // Generate a unique key for this import
+    const importKey = `${brandId}-import`;
+    
+    // Check if import already happened or started
+    if (
+      isImporting || 
+      importComplete || 
+      importStartedRef.current || 
+      importStateMap.get(importKey) === true
+    ) {
+      console.log('Import already in progress or completed, skipping. States:', {
+        isImporting,
+        importComplete,
+        importStartedRef: importStartedRef.current,
+        globalMap: importStateMap.get(importKey)
+      });
       return;
     }
     
-    // Immediately mark as started to prevent concurrent calls
+    // Immediately mark as started in both local ref and global map
     importStartedRef.current = true;
-    console.log('Starting import process, setting importStartedRef to true');
+    importStateMap.set(importKey, true);
+    console.log('Starting import process, setting import flags to true for:', importKey);
     
     const importProducts = async () => {
       // Validate inputs before proceeding
@@ -86,9 +104,9 @@ const ImportingStep: React.FC<ImportingStepProps> = ({
     // Execute the import
     importProducts();
     
-    // This cleanup ensures the ref stays true if component remounts
+    // This cleanup ensures the tracking state stays true if component unmounts
     return () => {
-      console.log('Component unmounting, keeping importStartedRef true');
+      console.log('Component unmounting, keeping import flags true for:', importKey);
     };
   }, []); // Empty dependency array ensures this only runs once on mount
 
