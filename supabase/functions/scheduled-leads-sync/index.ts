@@ -76,7 +76,7 @@ serve(async (req) => {
     
     console.log('Calling fetch-leads function to perform sync');
     
-    // Call the fetch-leads function to perform the sync
+    // Call the fetch-leads function to perform the sync with the sheet parameters
     const syncResponse = await fetch(
       `${supabaseUrl}/functions/v1/fetch-leads`,
       {

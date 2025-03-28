@@ -65,6 +65,17 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   
   try {
+    // Get request body if any (for manual syncs that pass parameters)
+    let requestParams = {};
+    if (req.method === 'POST') {
+      try {
+        requestParams = await req.json();
+        console.log('Received params:', requestParams);
+      } catch (e) {
+        console.log('No request body or invalid JSON');
+      }
+    }
+    
     // Get sync configuration
     const { data: syncConfig, error: syncError } = await supabase
       .from('lead_sync_config')
@@ -77,10 +88,14 @@ serve(async (req) => {
       throw new Error('Sync configuration not found');
     }
 
+    // Use parameters from request if provided, otherwise use the ones from the database
+    const sheetName = (requestParams as any)?.sheet_name || syncConfig.sheet_name || 'Sheet1';
+    const headerRow = (requestParams as any)?.header_row || syncConfig.header_row || 1;
+
     console.log('Sync config retrieved:', {
       sheetUrl: syncConfig.sheet_url,
-      sheetName: syncConfig.sheet_name || 'Sheet1',
-      headerRow: syncConfig.header_row || 1
+      sheetName: sheetName,
+      headerRow: headerRow
     });
     
     // Extract sheet ID
@@ -88,10 +103,6 @@ serve(async (req) => {
     if (!sheetId) {
       throw new Error('Invalid sheet URL in configuration');
     }
-    
-    // Make sure we have a valid sheet name (fallback to Sheet1 if not provided)
-    const sheetName = syncConfig.sheet_name || 'Sheet1';
-    const headerRow = syncConfig.header_row || 1;
     
     // Properly construct and encode the API URL using spreadsheets.values.get endpoint
     // Use A1 notation for the range (e.g., "Sheet1!A1:Z1000") to explicitly specify the sheet

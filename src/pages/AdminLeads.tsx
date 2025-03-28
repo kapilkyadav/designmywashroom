@@ -36,6 +36,7 @@ const AdminLeads = () => {
   });
   
   const [filtersPanelOpen, setFiltersPanelOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   
   const { 
     data, 
@@ -85,12 +86,25 @@ const AdminLeads = () => {
   
   const handleSyncNow = async () => {
     try {
+      setIsSyncing(true);
+      console.log('Triggering manual sync...');
       const result = await LeadService.syncLeads();
       if (result) {
         refetch();
+        toast({
+          title: "Sync completed",
+          description: "Leads have been synchronized from Google Sheet",
+        });
       }
     } catch (error) {
       console.error("Error syncing leads:", error);
+      toast({
+        title: "Sync failed",
+        description: "There was an error synchronizing leads",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSyncing(false);
     }
   };
   
@@ -125,9 +139,14 @@ const AdminLeads = () => {
             variant="outline"
             size="sm"
             onClick={handleSyncNow}
+            disabled={isSyncing}
           >
-            <RefreshCcw className="mr-2 h-4 w-4" />
-            Sync Now
+            {isSyncing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCcw className="mr-2 h-4 w-4" />
+            )}
+            {isSyncing ? 'Syncing...' : 'Sync Now'}
           </Button>
           <Button
             variant="default"
