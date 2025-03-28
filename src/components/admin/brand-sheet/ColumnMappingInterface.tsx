@@ -16,6 +16,10 @@ export interface ColumnMapping {
   name: string;
   description: string;
   category: string;
+  finish_color: string;
+  series: string;
+  model_code: string;
+  size: string;
   mrp: string;
   landing_price: string;
   client_price: string;
@@ -78,13 +82,22 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
           detectedMapping.description = header;
         } else if (headerLower.includes('categ') || headerLower.includes('area')) {
           detectedMapping.category = header;
+        } else if (headerLower.includes('finish') || headerLower.includes('color')) {
+          detectedMapping.finish_color = header;
+        } else if (headerLower.includes('series')) {
+          detectedMapping.series = header;
+        } else if (headerLower.includes('model') || headerLower.includes('code')) {
+          detectedMapping.model_code = header;
+        } else if (headerLower.includes('size')) {
+          detectedMapping.size = header;
         } else if (headerLower.includes('mrp')) {
           detectedMapping.mrp = header;
-        } else if ((headerLower.includes('land') && headerLower.includes('price')) || headerLower.includes('cost')) {
+        } else if ((headerLower.includes('land') && headerLower.includes('price')) || 
+                  headerLower.includes('offer') || headerLower.includes('yds offer')) {
           detectedMapping.landing_price = header;
         } else if (headerLower.includes('client') && headerLower.includes('price')) {
           detectedMapping.client_price = header;
-        } else if (headerLower.includes('quot') || headerLower.includes('offer') || headerLower.includes('yds')) {
+        } else if (headerLower.includes('quot') || headerLower.includes('yds price')) {
           detectedMapping.quotation_price = header;
         } else if (headerLower.includes('qty') || headerLower.includes('quant') || headerLower.includes('amount')) {
           detectedMapping.quantity = header;
@@ -130,6 +143,10 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
           name: mapping.name || '',
           description: mapping.description || '',
           category: mapping.category || '',
+          finish_color: mapping.finish_color || '',
+          series: mapping.series || '',
+          model_code: mapping.model_code || '',
+          size: mapping.size || '',
           mrp: mapping.mrp || '',
           landing_price: mapping.landing_price || '',
           client_price: mapping.client_price || '',
@@ -180,7 +197,7 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
           <span className="text-destructive font-medium"> * Required fields</span>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">
               Product Name <span className="text-destructive">*</span>
@@ -188,6 +205,29 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
             <Select
               value={mapping.name || ""}
               onValueChange={(value) => handleFieldChange('name', value)}
+              disabled={isLoading || loading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select column" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {validHeaders.map((header) => (
+                  <SelectItem key={header} value={header}>
+                    {header}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Category/Area
+            </label>
+            <Select
+              value={mapping.category || ""}
+              onValueChange={(value) => handleFieldChange('category', value)}
               disabled={isLoading || loading}
             >
               <SelectTrigger>
@@ -229,11 +269,80 @@ const ColumnMappingInterface: React.FC<ColumnMappingInterfaceProps> = ({
           
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              Category/Area
+              Finish/Color
             </label>
             <Select
-              value={mapping.category || ""}
-              onValueChange={(value) => handleFieldChange('category', value)}
+              value={mapping.finish_color || ""}
+              onValueChange={(value) => handleFieldChange('finish_color', value)}
+              disabled={isLoading || loading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select column" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {validHeaders.map((header) => (
+                  <SelectItem key={header} value={header}>
+                    {header}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Series
+            </label>
+            <Select
+              value={mapping.series || ""}
+              onValueChange={(value) => handleFieldChange('series', value)}
+              disabled={isLoading || loading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select column" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {validHeaders.map((header) => (
+                  <SelectItem key={header} value={header}>
+                    {header}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Model/Code
+            </label>
+            <Select
+              value={mapping.model_code || ""}
+              onValueChange={(value) => handleFieldChange('model_code', value)}
+              disabled={isLoading || loading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select column" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {validHeaders.map((header) => (
+                  <SelectItem key={header} value={header}>
+                    {header}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Size
+            </label>
+            <Select
+              value={mapping.size || ""}
+              onValueChange={(value) => handleFieldChange('size', value)}
               disabled={isLoading || loading}
             >
               <SelectTrigger>

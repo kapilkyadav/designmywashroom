@@ -43,7 +43,7 @@ interface ProductTableProps {
   onDeleteMultiple: (productIds: string[]) => void;
 }
 
-type SortField = 'name' | 'brand' | 'category' | 'mrp' | 'landing_price' | 'client_price' | 'quotation_price' | 'margin' | 'quantity';
+type SortField = 'name' | 'brand' | 'category' | 'finish_color' | 'series' | 'model_code' | 'size' | 'mrp' | 'landing_price' | 'client_price' | 'quotation_price' | 'margin' | 'quantity';
 type SortDirection = 'asc' | 'desc';
 
 const ProductTable: React.FC<ProductTableProps> = ({
@@ -99,6 +99,22 @@ const ProductTable: React.FC<ProductTableProps> = ({
       case 'category':
         valueA = (a.category || '').toLowerCase();
         valueB = (b.category || '').toLowerCase();
+        break;
+      case 'finish_color':
+        valueA = (a.finish_color || '').toLowerCase();
+        valueB = (b.finish_color || '').toLowerCase();
+        break;
+      case 'series':
+        valueA = (a.series || '').toLowerCase();
+        valueB = (b.series || '').toLowerCase();
+        break;
+      case 'model_code':
+        valueA = (a.model_code || '').toLowerCase();
+        valueB = (b.model_code || '').toLowerCase();
+        break;
+      case 'size':
+        valueA = (a.size || '').toLowerCase();
+        valueB = (b.size || '').toLowerCase();
         break;
       case 'quantity':
         valueA = a.quantity || 0;
@@ -205,6 +221,42 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 </TableHead>
                 <TableHead 
                   className="cursor-pointer"
+                  onClick={() => handleSort('finish_color')}
+                >
+                  <div className="flex items-center">
+                    Finish/Color
+                    {getSortIcon('finish_color')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer"
+                  onClick={() => handleSort('series')}
+                >
+                  <div className="flex items-center">
+                    Series
+                    {getSortIcon('series')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer"
+                  onClick={() => handleSort('model_code')}
+                >
+                  <div className="flex items-center">
+                    Model/Code
+                    {getSortIcon('model_code')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer"
+                  onClick={() => handleSort('size')}
+                >
+                  <div className="flex items-center">
+                    Size
+                    {getSortIcon('size')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer"
                   onClick={() => handleSort('mrp')}
                 >
                   <div className="flex items-center">
@@ -217,7 +269,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   onClick={() => handleSort('landing_price')}
                 >
                   <div className="flex items-center">
-                    Landing Price
+                    YDS Offer
                     {getSortIcon('landing_price')}
                   </div>
                 </TableHead>
@@ -235,7 +287,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   onClick={() => handleSort('quotation_price')}
                 >
                   <div className="flex items-center">
-                    Quotation Price
+                    YDS Price
                     {getSortIcon('quotation_price')}
                   </div>
                 </TableHead>
@@ -279,6 +331,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     </TableCell>
                     <TableCell>{getBrandName(product.brand_id)}</TableCell>
                     <TableCell>{product.category}</TableCell>
+                    <TableCell>{product.finish_color}</TableCell>
+                    <TableCell>{product.series}</TableCell>
+                    <TableCell>{product.model_code}</TableCell>
+                    <TableCell>{product.size}</TableCell>
                     <TableCell>{formatCurrency(product.mrp)}</TableCell>
                     <TableCell>{formatCurrency(product.landing_price)}</TableCell>
                     <TableCell>{formatCurrency(product.client_price)}</TableCell>
@@ -312,7 +368,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={16} className="text-center py-8 text-muted-foreground">
                     No products found
                   </TableCell>
                 </TableRow>

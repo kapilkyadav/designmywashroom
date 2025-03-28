@@ -29,11 +29,16 @@ const productSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   description: z.string().optional(),
   category: z.string().optional(),
+  finish_color: z.string().optional(),
+  series: z.string().optional(),
+  model_code: z.string().optional(),
+  size: z.string().optional(),
   brand_id: z.string().min(1, "Brand is required"),
   mrp: z.coerce.number().min(0, "MRP must be a positive number"),
   landing_price: z.coerce.number().min(0, "Landing price must be a positive number"),
   client_price: z.coerce.number().min(0, "Client price must be a positive number"),
   quotation_price: z.coerce.number().min(0, "Quotation price must be a positive number"),
+  quantity: z.coerce.number().min(0, "Quantity must be a positive number"),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -58,11 +63,16 @@ const ProductForm: React.FC<ProductFormProps> = ({
       name: product?.name || "",
       description: product?.description || "",
       category: product?.category || "",
+      finish_color: product?.finish_color || "",
+      series: product?.series || "",
+      model_code: product?.model_code || "",
+      size: product?.size || "",
       brand_id: product?.brand_id || "",
       mrp: product?.mrp || 0,
       landing_price: product?.landing_price || 0,
       client_price: product?.client_price || 0,
       quotation_price: product?.quotation_price || 0,
+      quantity: product?.quantity || 0,
     },
   });
   
@@ -131,9 +141,65 @@ const ProductForm: React.FC<ProductFormProps> = ({
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
+                  <FormLabel>Category/Area</FormLabel>
                   <FormControl>
                     <Input placeholder="Product category" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="finish_color"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Finish/Color</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Product finish or color" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="series"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Series</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Product series" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="model_code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Model/Code</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Product model or code" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="size"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Size</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Product size" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -179,7 +245,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
               name="landing_price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Landing Price (₹)</FormLabel>
+                  <FormLabel>YDS Offer Price (₹)</FormLabel>
                   <FormControl>
                     <Input type="number" {...field} />
                   </FormControl>
@@ -207,7 +273,21 @@ const ProductForm: React.FC<ProductFormProps> = ({
               name="quotation_price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Quotation Price (₹)</FormLabel>
+                  <FormLabel>YDS Price (₹)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="quantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quantity</FormLabel>
                   <FormControl>
                     <Input type="number" {...field} />
                   </FormControl>
@@ -222,7 +302,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 {margin.toFixed(2)}%
               </div>
               <p className="text-xs text-muted-foreground">
-                Based on landing price and quotation price
+                Based on YDS Offer Price and YDS Price
               </p>
             </div>
           </div>

@@ -95,13 +95,17 @@ export type Database = {
           created_at: string
           description: string | null
           extra_data: Json | null
+          finish_color: string | null
           id: string
           landing_price: number
           margin: number
+          model_code: string | null
           mrp: number
           name: string
           quantity: number
           quotation_price: number
+          series: string | null
+          size: string | null
           updated_at: string
         }
         Insert: {
@@ -111,13 +115,17 @@ export type Database = {
           created_at?: string
           description?: string | null
           extra_data?: Json | null
+          finish_color?: string | null
           id?: string
           landing_price?: number
           margin?: number
+          model_code?: string | null
           mrp?: number
           name: string
           quantity?: number
           quotation_price?: number
+          series?: string | null
+          size?: string | null
           updated_at?: string
         }
         Update: {
@@ -127,13 +135,17 @@ export type Database = {
           created_at?: string
           description?: string | null
           extra_data?: Json | null
+          finish_color?: string | null
           id?: string
           landing_price?: number
           margin?: number
+          model_code?: string | null
           mrp?: number
           name?: string
           quantity?: number
           quotation_price?: number
+          series?: string | null
+          size?: string | null
           updated_at?: string
         }
         Relationships: [

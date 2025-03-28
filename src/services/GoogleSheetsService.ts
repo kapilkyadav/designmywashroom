@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 
 export interface SheetColumn {
@@ -10,6 +9,10 @@ export interface SheetMapping {
   name: string;
   description: string;
   category: string;
+  finish_color: string;
+  series: string;
+  model_code: string;
+  size: string;
   mrp: string;
   landing_price: string;
   client_price: string;
@@ -144,6 +147,10 @@ export const GoogleSheetsService = {
             name: mapping.name ? (row[mapping.name] || '') : '',
             description: mapping.description ? (row[mapping.description] || '') : '',
             category: mapping.category ? (row[mapping.category] || '') : '',
+            finish_color: mapping.finish_color ? (row[mapping.finish_color] || '') : '',
+            series: mapping.series ? (row[mapping.series] || '') : '',
+            model_code: mapping.model_code ? (row[mapping.model_code] || '') : '',
+            size: mapping.size ? (row[mapping.size] || '') : '',
             mrp: mapping.mrp ? (parseFloat(row[mapping.mrp]) || 0) : 0,
             landing_price: landingPrice,
             client_price: mapping.client_price ? (parseFloat(row[mapping.client_price]) || 0) : 0,

@@ -57,12 +57,16 @@ export type Product = {
   name: string;
   description: string;
   category: string;
+  finish_color?: string;
+  series?: string;
+  model_code?: string;
+  size?: string;
   mrp: number;
   landing_price: number;
   client_price: number;
   quotation_price: number;
   margin: number;
-  quantity: number; // Added quantity field
+  quantity: number;
   extra_data?: any;
   created_at: string;
   updated_at: string;
