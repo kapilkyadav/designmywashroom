@@ -20,10 +20,11 @@ const ImportingStep: React.FC<ImportingStepProps> = ({
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [importComplete, setImportComplete] = useState(false);
 
   useEffect(() => {
-    // Only run the import once
-    if (isImporting) return;
+    // Only run the import once and only if it hasn't been completed already
+    if (isImporting || importComplete) return;
     
     const importProducts = async () => {
       // Validate inputs before proceeding
@@ -55,6 +56,7 @@ const ImportingStep: React.FC<ImportingStepProps> = ({
         // Set a small delay before completing to ensure the UI transitions smoothly
         setTimeout(() => {
           setProgress(100);
+          setImportComplete(true); // Mark import as complete
           onComplete?.();
         }, 1000);
       } catch (error) {
@@ -66,11 +68,13 @@ const ImportingStep: React.FC<ImportingStepProps> = ({
           variant: "destructive",
         });
         onError?.(error instanceof Error ? error : new Error('Unknown error during import'));
+      } finally {
+        setIsImporting(false);
       }
     };
 
     importProducts();
-  }, [brandId, products, onComplete, onError, isImporting]);
+  }, [brandId, products, onComplete, onError, isImporting, importComplete]);
 
   if (error) {
     return (
