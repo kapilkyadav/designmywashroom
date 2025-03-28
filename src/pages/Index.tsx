@@ -76,7 +76,7 @@ const Index = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-6">
-                    <div className="inline-block bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-white shadow-md">
+                    <div className="inline-block bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium">
                       Premium Design • Quality Materials
                     </div>
                   </div>
@@ -192,8 +192,8 @@ const Index = () => {
                   className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full"
                 />
                 <img 
-                  src="/lovable-uploads/7643b97d-3ae7-4136-bcf4-fa2a80204eb4.png" 
-                  alt="Luxury washroom with freestanding bathtub" 
+                  src="https://images.unsplash.com/photo-1560185007-5f0bb1866cab?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80" 
+                  alt="Luxury vanity" 
                   className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full"
                 />
               </div>
