@@ -10,6 +10,7 @@ import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LeadService } from '@/services/LeadService';
 
+// Define ColumnMapping to match what the service expects
 interface ColumnMapping {
   lead_date: string;
   customer_name: string;
@@ -19,9 +20,11 @@ interface ColumnMapping {
   project_type: string;
   budget_preference: string;
   notes: string;
+  [key: string]: string; // Add index signature to make it compatible with Record<string, string>
 }
 
-interface LeadSyncConfig {
+// Define a local interface that matches our component's needs
+interface LeadSyncConfigLocal {
   id?: string;
   sheet_url: string;
   interval_hours: number;
@@ -30,11 +33,24 @@ interface LeadSyncConfig {
   last_synced_at: string | null;
 }
 
+// Interface for mapping to the service data structure
+interface ServiceLeadSyncConfig {
+  id?: string;
+  sheet_url: string;
+  sheet_name: string;
+  header_row: number;
+  column_mapping: Record<string, string>;
+  sync_interval_minutes: number;
+  last_sync_at: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 const LeadsSyncConfig: React.FC = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [config, setConfig] = useState<LeadSyncConfig>({
+  const [config, setConfig] = useState<LeadSyncConfigLocal>({
     sheet_url: '',
     interval_hours: 24,
     auto_sync_enabled: true,
@@ -56,7 +72,18 @@ const LeadsSyncConfig: React.FC = () => {
       try {
         const data = await LeadService.getSyncConfig();
         if (data) {
-          setConfig(data);
+          // Map service data to our local structure
+          const localConfig: LeadSyncConfigLocal = {
+            id: data.id,
+            sheet_url: data.sheet_url,
+            // Convert minutes to hours
+            interval_hours: Math.round(data.sync_interval_minutes / 60),
+            // Assume enabled if interval > 0
+            auto_sync_enabled: data.sync_interval_minutes > 0,
+            column_mapping: data.column_mapping as ColumnMapping,
+            last_synced_at: data.last_sync_at
+          };
+          setConfig(localConfig);
         }
       } catch (error) {
         console.error('Error fetching sync config:', error);
@@ -101,11 +128,18 @@ const LeadsSyncConfig: React.FC = () => {
     try {
       setIsSaving(true);
       
-      if (config.id) {
-        await LeadService.updateSyncConfig(config);
-      } else {
-        await LeadService.updateSyncConfig(config);
-      }
+      // Convert our local config to the format expected by the service
+      const serviceConfig: Partial<ServiceLeadSyncConfig> = {
+        id: config.id,
+        sheet_url: config.sheet_url,
+        sheet_name: 'Sheet1', // Default sheet name if not in our local model
+        header_row: 1, // Default header row if not in our local model
+        column_mapping: config.column_mapping,
+        // Convert hours to minutes and respect auto_sync_enabled flag
+        sync_interval_minutes: config.auto_sync_enabled ? config.interval_hours * 60 : 0
+      };
+      
+      await LeadService.updateSyncConfig(serviceConfig);
       
       toast({
         title: 'Configuration saved',
