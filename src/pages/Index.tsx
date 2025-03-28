@@ -192,8 +192,8 @@ const Index = () => {
                   className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full"
                 />
                 <img 
-                  src="/lovable-uploads/3c2dd408-1028-4247-b80f-15adcd66b9d6.png" 
-                  alt="Modern washroom with vanity" 
+                  src="/lovable-uploads/7643b97d-3ae7-4136-bcf4-fa2a80204eb4.png" 
+                  alt="Luxury washroom with freestanding bathtub" 
                   className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full"
                 />
               </div>
