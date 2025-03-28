@@ -87,6 +87,132 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: string | null
+          id: string
+          lead_id: string
+          performed_by: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          lead_id: string
+          performed_by?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          lead_id?: string
+          performed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activity_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_activity_logs_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_sync_config: {
+        Row: {
+          column_mapping: Json
+          created_at: string
+          header_row: number
+          id: string
+          last_sync_at: string | null
+          sheet_name: string
+          sheet_url: string
+          sync_interval_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          column_mapping?: Json
+          created_at?: string
+          header_row?: number
+          id?: string
+          last_sync_at?: string | null
+          sheet_name: string
+          sheet_url: string
+          sync_interval_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          column_mapping?: Json
+          created_at?: string
+          header_row?: number
+          id?: string
+          last_sync_at?: string | null
+          sheet_name?: string
+          sheet_url?: string
+          sync_interval_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          budget_preference: string | null
+          created_at: string
+          customer_name: string
+          email: string | null
+          id: string
+          last_synced_at: string | null
+          lead_date: string
+          location: string | null
+          next_followup_date: string | null
+          phone: string
+          remarks: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          budget_preference?: string | null
+          created_at?: string
+          customer_name: string
+          email?: string | null
+          id?: string
+          last_synced_at?: string | null
+          lead_date: string
+          location?: string | null
+          next_followup_date?: string | null
+          phone: string
+          remarks?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          budget_preference?: string | null
+          created_at?: string
+          customer_name?: string
+          email?: string | null
+          id?: string
+          last_synced_at?: string | null
+          lead_date?: string
+          location?: string | null
+          next_followup_date?: string | null
+          phone?: string
+          remarks?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           brand_id: string
