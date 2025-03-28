@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Lead } from '@/services/LeadService';
 import { 
   Table, 
@@ -15,6 +15,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { 
@@ -23,10 +26,14 @@ import {
   MoreHorizontal, 
   Eye, 
   Edit, 
-  Trash2 
+  Trash2,
+  Calendar,
+  PhoneCall,
+  Mail,
+  Clock
 } from 'lucide-react';
 import { LeadService } from '@/services/LeadService';
-import { format } from 'date-fns';
+import { format, isToday, isYesterday, isPast, addDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -41,6 +48,9 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import LeadDetailsDialog from './LeadDetailsDialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 interface LeadsTableProps {
   leads: Lead[];
@@ -71,6 +81,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState<boolean>(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = React.useState<boolean>(false);
   const [leadToDelete, setLeadToDelete] = React.useState<Lead | null>(null);
+  const [isUpdating, setIsUpdating] = React.useState<string | null>(null);
   
   const handleDelete = async () => {
     if (!leadToDelete) return;
@@ -107,6 +118,57 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     setIsDetailsDialogOpen(true);
   };
   
+  const handleStatusChange = async (leadId: string, status: string) => {
+    setIsUpdating(leadId);
+    try {
+      const result = await LeadService.updateLead(leadId, { status });
+      if (result) {
+        toast({
+          title: "Status updated",
+          description: `Lead status changed to ${status}`,
+        });
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Error updating lead status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update lead status",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+  
+  const scheduleFollowUp = async (leadId: string, days: number) => {
+    setIsUpdating(leadId);
+    const followupDate = addDays(new Date(), days);
+    
+    try {
+      const result = await LeadService.updateLead(leadId, { 
+        next_followup_date: followupDate.toISOString() 
+      });
+      
+      if (result) {
+        toast({
+          title: "Follow-up scheduled",
+          description: `Follow-up set for ${format(followupDate, 'dd MMM yyyy')}`,
+        });
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Error scheduling follow-up:', error);
+      toast({
+        title: "Error",
+        description: "Failed to schedule follow-up",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+  
   const getStatusBadge = (status: string) => {
     switch(status) {
       case 'New':
@@ -120,6 +182,47 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+  
+  const getFollowUpBadge = (date: string | null) => {
+    if (!date) return null;
+    
+    const followUpDate = new Date(date);
+    
+    if (isPast(followUpDate) && !isToday(followUpDate)) {
+      return (
+        <Badge variant="destructive" className="flex gap-1 items-center">
+          <Clock className="h-3 w-3" /> Overdue
+        </Badge>
+      );
+    }
+    
+    if (isToday(followUpDate)) {
+      return (
+        <Badge variant="default" className="flex gap-1 items-center bg-amber-500">
+          <Clock className="h-3 w-3" /> Today
+        </Badge>
+      );
+    }
+    
+    if (isYesterday(followUpDate)) {
+      return (
+        <Badge variant="destructive" className="flex gap-1 items-center">
+          <Clock className="h-3 w-3" /> Yesterday
+        </Badge>
+      );
+    }
+    
+    return (
+      <Badge variant="outline" className="flex gap-1 items-center">
+        <Calendar className="h-3 w-3" /> {format(followUpDate, 'dd MMM')}
+      </Badge>
+    );
+  };
+
+  const getBudgetDisplay = (budget: string | null) => {
+    if (!budget) return '—';
+    return budget;
   };
   
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -166,14 +269,29 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
               <TableHead>Contact</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Budget</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead 
+                onClick={() => onSortChange('status')} 
+                className="cursor-pointer"
+              >
+                <div className="flex items-center">
+                  Status {getSortIcon('status')}
+                </div>
+              </TableHead>
+              <TableHead
+                onClick={() => onSortChange('next_followup_date')}
+                className="cursor-pointer"
+              >
+                <div className="flex items-center">
+                  Follow-up {getSortIcon('next_followup_date')}
+                </div>
+              </TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {leads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center">
+                <TableCell colSpan={8} className="h-32 text-center">
                   No leads found
                 </TableCell>
               </TableRow>
@@ -186,13 +304,101 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   <TableCell>{lead.customer_name}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span>{lead.phone}</span>
-                      {lead.email && <span className="text-xs text-muted-foreground">{lead.email}</span>}
+                      <div className="flex items-center gap-1">
+                        <PhoneCall className="h-3 w-3 text-muted-foreground" />
+                        <span>{lead.phone}</span>
+                      </div>
+                      {lead.email && (
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">{lead.email}</span>
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>{lead.location || '—'}</TableCell>
-                  <TableCell>{lead.budget_preference || '—'}</TableCell>
-                  <TableCell>{getStatusBadge(lead.status)}</TableCell>
+                  <TableCell>{getBudgetDisplay(lead.budget_preference)}</TableCell>
+                  <TableCell>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 px-2 py-0">
+                                  {getStatusBadge(lead.status)}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" className="w-48">
+                                <DropdownMenuLabel>Update Status</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuRadioGroup 
+                                  value={lead.status} 
+                                  onValueChange={(value) => handleStatusChange(lead.id, value)}
+                                >
+                                  <DropdownMenuRadioItem value="New">
+                                    New
+                                  </DropdownMenuRadioItem>
+                                  <DropdownMenuRadioItem value="Contacted">
+                                    Contacted
+                                  </DropdownMenuRadioItem>
+                                  <DropdownMenuRadioItem value="Qualified">
+                                    Qualified
+                                  </DropdownMenuRadioItem>
+                                  <DropdownMenuRadioItem value="Lost">
+                                    Lost
+                                  </DropdownMenuRadioItem>
+                                </DropdownMenuRadioGroup>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Click to change status</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableCell>
+                  <TableCell>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 px-2 py-0">
+                                  {getFollowUpBadge(lead.next_followup_date) || (
+                                    <Badge variant="outline" className="flex gap-1 items-center">
+                                      <Calendar className="h-3 w-3" /> Schedule
+                                    </Badge>
+                                  )}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuLabel>Set Follow-up</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => scheduleFollowUp(lead.id, 1)}>
+                                  Tomorrow
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => scheduleFollowUp(lead.id, 3)}>
+                                  In 3 days
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => scheduleFollowUp(lead.id, 7)}>
+                                  In a week
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => scheduleFollowUp(lead.id, 14)}>
+                                  In 2 weeks
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Click to schedule follow-up</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
