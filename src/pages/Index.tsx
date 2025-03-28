@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -191,8 +192,8 @@ const Index = () => {
                   className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full"
                 />
                 <img 
-                  src="https://images.unsplash.com/photo-1560185007-5f0bb1866cab?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80" 
-                  alt="Luxury vanity" 
+                  src="/lovable-uploads/3c2dd408-1028-4247-b80f-15adcd66b9d6.png" 
+                  alt="Modern washroom with vanity" 
                   className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full"
                 />
               </div>
