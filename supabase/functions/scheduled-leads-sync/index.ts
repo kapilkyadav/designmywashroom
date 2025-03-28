@@ -63,6 +63,8 @@ serve(async (req) => {
       );
     }
     
+    console.log('Calling fetch-leads function to perform sync');
+    
     // Call the fetch-leads function to perform the sync
     const syncResponse = await fetch(
       `${supabaseUrl}/functions/v1/fetch-leads`,
@@ -76,10 +78,16 @@ serve(async (req) => {
     );
     
     if (!syncResponse.ok) {
-      throw new Error(`Error syncing leads: ${await syncResponse.text()}`);
+      const errorText = await syncResponse.text();
+      console.error(`Error syncing leads (${syncResponse.status}): ${errorText}`);
+      throw new Error(`Error syncing leads: ${errorText}`);
     }
     
     const result = await syncResponse.json();
+    
+    if (!result.success) {
+      throw new Error(`Sync failed: ${result.error || 'Unknown error'}`);
+    }
     
     // Update the last sync timestamp
     await supabase
@@ -100,7 +108,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in scheduled sync:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

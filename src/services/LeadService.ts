@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 
@@ -312,6 +311,10 @@ export const LeadService = {
         throw new Error(response.error.message || 'Error syncing leads');
       }
       
+      if (!response.data.success) {
+        throw new Error(response.data.error || 'Error syncing leads');
+      }
+      
       const result = response.data;
       
       toast({
@@ -337,6 +340,10 @@ export const LeadService = {
       
       if (response.error) {
         throw new Error(response.error.message || 'Error scheduling lead sync');
+      }
+      
+      if (!response.data.success) {
+        throw new Error(response.data.error || 'Error scheduling lead sync');
       }
       
       return true;

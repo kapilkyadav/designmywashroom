@@ -83,24 +83,42 @@ serve(async (req) => {
       throw new Error('Invalid sheet URL in configuration');
     }
     
-    // Fetch sheet data
+    // Make sure we have a valid sheet name
+    const sheetName = syncConfig.sheet_name || 'Sheet1';
     const headerRow = syncConfig.header_row || 1;
-    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(syncConfig.sheet_name)}?key=${googleApiKey}`;
+    
+    // Properly construct and encode the API URL
+    // Use A1 notation for the range (e.g., "Sheet1!A1:Z1000") to avoid parsing errors
+    const range = `${sheetName}!A1:Z1000`;
+    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?key=${googleApiKey}`;
+    
+    console.log(`Fetching sheet data from: ${apiUrl.replace(googleApiKey, 'API_KEY_REDACTED')}`);
     
     const response = await fetch(apiUrl);
     if (!response.ok) {
-      throw new Error(`Google Sheets API error: ${await response.text()}`);
+      const errorText = await response.text();
+      console.error(`Google Sheets API error (${response.status}): ${errorText}`);
+      throw new Error(`Google Sheets API error: ${errorText}`);
     }
     
     const sheetData = await response.json();
     
+    // Validate that we have values in the response
+    if (!sheetData.values || !Array.isArray(sheetData.values) || sheetData.values.length === 0) {
+      throw new Error('No data found in sheet');
+    }
+    
     // Process the data
     const headerIndex = headerRow - 1;
+    if (headerIndex >= sheetData.values.length) {
+      throw new Error(`Header row index (${headerRow}) is greater than available rows (${sheetData.values.length})`);
+    }
+    
     const headers = sheetData.values[headerIndex] || [];
     const rows = sheetData.values.slice(headerIndex + 1).map((row: any[]) => {
       const obj: Record<string, any> = {};
       headers.forEach((header: string, index: number) => {
-        obj[header] = row[index] || '';
+        obj[header] = index < row.length ? row[index] : '';
       });
       return obj;
     });
@@ -113,16 +131,21 @@ serve(async (req) => {
       .filter((row: any) => columnMapping.customer_name && row[columnMapping.customer_name]) // Filter out rows with no names
       .map((row: any) => {
         // Create lead object with mapped fields
-        return {
+        const lead = {
           lead_date: columnMapping.lead_date ? processDate(row[columnMapping.lead_date]) : new Date().toISOString(),
           customer_name: columnMapping.customer_name ? row[columnMapping.customer_name] : 'Unknown',
           phone: columnMapping.phone ? row[columnMapping.phone] : '',
           email: columnMapping.email ? row[columnMapping.email] : null,
           location: columnMapping.location ? row[columnMapping.location] : null,
+          project_type: columnMapping.project_type ? row[columnMapping.project_type] : null,
           budget_preference: columnMapping.budget_preference ? row[columnMapping.budget_preference] : null,
+          notes: columnMapping.notes ? row[columnMapping.notes] : null,
           status: 'New', // Default status for new leads
           last_synced_at: new Date().toISOString()
         };
+        
+        console.log(`Mapped lead: ${lead.customer_name}, Phone: ${lead.phone}`);
+        return lead;
       });
 
     // Get existing leads to avoid duplicates
@@ -133,7 +156,9 @@ serve(async (req) => {
     const existingPhones = new Set(existingLeads?.map((lead: any) => lead.phone));
     
     // Filter out leads that already exist
-    const newLeads = leads.filter((lead: any) => !existingPhones.has(lead.phone));
+    const newLeads = leads.filter((lead: any) => lead.phone && !existingPhones.has(lead.phone));
+    
+    console.log(`Total leads found: ${leads.length}, New leads to add: ${newLeads.length}`);
     
     // Insert new leads
     let insertResult;
@@ -143,7 +168,11 @@ serve(async (req) => {
         .insert(newLeads)
         .select('id');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting leads:', error);
+        throw error;
+      }
+      
       insertResult = data;
       
       // Log activities for new leads
@@ -177,7 +206,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error fetching leads:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
