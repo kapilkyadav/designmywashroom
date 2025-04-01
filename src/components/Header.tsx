@@ -41,7 +41,7 @@ const Header = () => {
           className="text-xl sm:text-2xl font-semibold tracking-tight flex items-center"
         >
           <span className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            {isMobile ? 'Dream Space' : 'Design Your Dream Space'}
+            {isMobile ? 'Dream Space' : 'Your Dream Space'}
           </span>
         </Link>
 
