@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -59,37 +59,25 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     }
   }, [open, lead.id]);
 
-  // Handle body scrolling
+  // Handle body scrolling - IMPROVED IMPLEMENTATION
   useEffect(() => {
-    // Store original body style
-    const originalStyle = window.getComputedStyle(document.body).overflow;
-    
     if (open) {
-      // Disable scrolling when dialog is open
+      // Store original body overflow and apply 'hidden'
+      const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
-    } else {
-      // Enable scrolling when dialog is closed
-      document.body.style.overflow = originalStyle;
+      
+      // Cleanup function to reset body overflow
+      return () => {
+        // Small delay to ensure dialog animation completes
+        setTimeout(() => {
+          document.body.style.overflow = originalOverflow;
+        }, 100);
+      };
     }
-    
-    // Cleanup function to ensure scrolling is re-enabled
-    return () => {
-      document.body.style.overflow = originalStyle;
-    };
   }, [open]);
 
-  // Handle dialog state changes
-  const handleDialogOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
-      // Make sure to reset state and enable scrolling
-      document.body.style.overflow = '';
-      setActiveTab("details");
-    }
-    handleOpenChange(newOpen);
-  };
-
   // Handle remark added - refresh data and update parent
-  const handleRemarkAdded = async (newRemark: string) => {
+  const handleRemarkAdded = useCallback(async (newRemark: string) => {
     // First update the current lead's remark in the local state 
     // to immediately reflect changes in the UI
     setCurrentLead(prev => ({
@@ -102,7 +90,16 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     await refreshLogs();
     await refreshLead(); // This will fetch the latest lead data
     onUpdate(); // Update the main leads list to reflect the new remark
-  };
+  }, [refreshRemarks, refreshLogs, refreshLead, onUpdate]);
+
+  // Handle dialog state changes - with improved cleanup
+  const handleDialogOpenChange = useCallback((newOpen: boolean) => {
+    if (!newOpen) {
+      // Make sure to reset state before closing
+      setActiveTab("details");
+    }
+    handleOpenChange(newOpen);
+  }, [handleOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
@@ -113,7 +110,7 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
           e.preventDefault();
         }}
         onEscapeKeyDown={() => {
-          // Ensure we properly handle the escape key
+          // Handle escape key properly
           handleDialogOpenChange(false);
         }}
       >

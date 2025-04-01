@@ -14,13 +14,18 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
   // Set up cleanup on unmount
   useEffect(() => {
     isMounted.current = true;
+    
     return () => {
       isMounted.current = false;
+      // Clear states when unmounting to avoid memory leaks
+      setActivityLogs([]);
+      setRemarks([]);
+      setLead(null);
     };
   }, []);
 
   const fetchActivityLogs = async () => {
-    if (!isOpen || !leadId) return; // Don't fetch if dialog is closed or no leadId
+    if (!isOpen || !leadId || !isMounted.current) return; // Don't fetch if dialog is closed or no leadId
     
     setIsLoadingLogs(true);
     try {
@@ -38,7 +43,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
   };
   
   const fetchRemarks = async () => {
-    if (!isOpen || !leadId) return; // Don't fetch if dialog is closed or no leadId
+    if (!isOpen || !leadId || !isMounted.current) return; // Don't fetch if dialog is closed or no leadId
     
     setIsLoadingRemarks(true);
     try {
@@ -56,7 +61,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
   };
 
   const fetchLeadDetails = async () => {
-    if (!isOpen || !leadId) return; // Don't fetch if dialog is closed or no leadId
+    if (!isOpen || !leadId || !isMounted.current) return; // Don't fetch if dialog is closed or no leadId
     
     setIsLoadingLead(true);
     try {
@@ -87,7 +92,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
 
   // Fetch data when dialog is opened or lead ID changes
   useEffect(() => {
-    if (isOpen && leadId) {
+    if (isOpen && leadId && isMounted.current) {
       fetchActivityLogs();
       fetchRemarks();
       fetchLeadDetails();
