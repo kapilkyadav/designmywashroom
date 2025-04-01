@@ -16,8 +16,9 @@ export class EstimationService {
       // Calculate fixture costs
       const fixtureCost = await this.calculateFixtureCost(calculatorState);
       
-      // Calculate product cost from selected brand
+      // Calculate product cost from selected brand - ensure this is properly calculated
       const productCost = await this.calculateProductCost(calculatorState.selectedBrand);
+      console.log('Product cost calculated:', productCost);
       
       // Calculate plumbing cost using settings from database
       const floorArea = calculatorState.dimensions.length * calculatorState.dimensions.width;
@@ -32,6 +33,15 @@ export class EstimationService {
       
       // Calculate total estimate including product cost
       const totalEstimate = fixtureCost + plumbingCost + tilingCost.total + productCost;
+      
+      // Log all costs for debugging
+      console.log('Cost breakdown:', {
+        fixtureCost,
+        plumbingCost,
+        tilingCost: tilingCost.total,
+        productCost,
+        total: totalEstimate
+      });
       
       return {
         fixtureCost,
@@ -115,14 +125,29 @@ export class EstimationService {
     let productCost = 0;
     if (brandId) {
       try {
+        console.log('Fetching products for brand ID:', brandId);
         const products = await ProductService.getProductsByBrandId(brandId);
+        console.log(`Found ${products.length} products for brand ${brandId}`);
+        
         // Sum up client_price of all products from the selected brand
-        productCost = products.reduce((sum, product) => sum + (product.client_price || 0), 0);
-        console.log(`Selected brand products cost: ${productCost}`);
+        if (products && products.length > 0) {
+          // Use the sum of client_price for the calculation
+          productCost = products.reduce((sum, product) => {
+            const price = product.client_price || 0;
+            console.log(`Adding product ${product.name}: ${price}`);
+            return sum + price;
+          }, 0);
+        } else {
+          console.log('No products found for the selected brand');
+        }
+        
+        console.log(`Selected brand products total cost: ${productCost}`);
       } catch (error) {
         console.error('Error fetching brand products:', error);
         // Continue with calculation even if product fetch fails
       }
+    } else {
+      console.log('No brand selected, product cost will be 0');
     }
     return productCost;
   }

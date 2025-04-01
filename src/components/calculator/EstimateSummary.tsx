@@ -27,6 +27,7 @@ const EstimateSummary = () => {
         if (state.selectedBrand) {
           const brand = await BrandService.getBrandById(state.selectedBrand);
           setBrandName(brand.name);
+          console.log('Fetched brand:', brand.name);
         }
       } catch (error) {
         console.error('Error fetching brand:', error);
@@ -45,6 +46,8 @@ const EstimateSummary = () => {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  console.log("Estimate details in summary:", state.estimate);
   
   return (
     <div className="animate-fade-in space-y-8 max-w-3xl mx-auto">
@@ -233,13 +236,13 @@ const EstimateSummary = () => {
                   <span className="text-muted-foreground">Tiling Work</span>
                   <span>{formatCurrency(state.estimate.tilingCost.total)}</span>
                 </div>
-                {/* Add new product cost row */}
-                {state.estimate.productCost > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{brandName || 'Brand'} Products</span>
-                    <span>{formatCurrency(state.estimate.productCost)}</span>
-                  </div>
-                )}
+                
+                {/* Always show product cost row, even if it's zero */}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{brandName || 'Brand'} Products</span>
+                  <span>{formatCurrency(state.estimate.productCost)}</span>
+                </div>
+                
                 <Separator className="my-2" />
                 <div className="flex justify-between font-bold">
                   <span>Total Estimate</span>

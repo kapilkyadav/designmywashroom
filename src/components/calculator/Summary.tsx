@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useCalculator } from '@/hooks/useCalculator';
 import { Button } from '@/components/ui/button';
@@ -97,6 +96,7 @@ const Summary = () => {
   const wallArea = 2 * (length + width) * wallHeight;
 
   console.log("Summary calculated areas:", { length, width, floorArea, wallArea });
+  console.log("Estimate details:", state.estimate);
 
   return (
     <div className="animate-fade-in">
@@ -180,13 +180,11 @@ const Summary = () => {
                 <span className="font-medium">{formatCurrency(state.estimate.tilingCost.total)}</span>
               </div>
               
-              {/* Add new product cost row */}
-              {state.estimate.productCost > 0 && (
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">{brandName || 'Brand'} Products</span>
-                  <span className="font-medium">{formatCurrency(state.estimate.productCost)}</span>
-                </div>
-              )}
+              {/* Always show product cost row, even if it's zero */}
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">{brandName || 'Brand'} Products</span>
+                <span className="font-medium">{formatCurrency(state.estimate.productCost)}</span>
+              </div>
               
               <Separator className="my-2" />
               

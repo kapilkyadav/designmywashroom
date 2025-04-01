@@ -1,12 +1,39 @@
 
-import React from 'react';
-import { CalculatorProvider } from '@/hooks/calculator';
+import React, { useEffect } from 'react';
+import { CalculatorProvider, useCalculator } from '@/hooks/calculator';
 import CalculatorForm from '@/components/calculator/CalculatorForm';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Separator } from '@/components/ui/separator';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+
+// Debug wrapper component to log important state changes
+const CalculatorDebugWrapper = ({ children }: { children: React.ReactNode }) => {
+  const { state } = useCalculator();
+  
+  // Log whenever the estimate changes
+  useEffect(() => {
+    if (state.estimate && state.estimate.total > 0) {
+      console.log('Estimate updated:', {
+        fixtureCost: state.estimate.fixtureCost,
+        plumbingCost: state.estimate.plumbingCost,
+        tilingCost: state.estimate.tilingCost,
+        productCost: state.estimate.productCost,
+        total: state.estimate.total
+      });
+    }
+  }, [state.estimate]);
+  
+  // Log brand selection
+  useEffect(() => {
+    if (state.selectedBrand) {
+      console.log('Brand selected:', state.selectedBrand);
+    }
+  }, [state.selectedBrand]);
+  
+  return <>{children}</>;
+};
 
 const Calculator = () => {
   const isMobile = useIsMobile();
@@ -29,7 +56,9 @@ const Calculator = () => {
           <Separator className="max-w-4xl mx-auto mb-8 md:mb-12" />
           
           <CalculatorProvider>
-            <CalculatorForm />
+            <CalculatorDebugWrapper>
+              <CalculatorForm />
+            </CalculatorDebugWrapper>
           </CalculatorProvider>
         </div>
       </main>
