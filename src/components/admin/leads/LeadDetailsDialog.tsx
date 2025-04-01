@@ -141,6 +141,7 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
               leadId={lead.id}
               isLoading={isLoadingRemarks}
               remarks={remarks}
+              currentRemark={lead.remarks}
               onRemarkAdded={() => {
                 fetchRemarks();
                 onUpdate(); // Update the main leads list to reflect the new remark

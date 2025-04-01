@@ -12,9 +12,16 @@ interface RemarksTabProps {
   isLoading: boolean;
   remarks: LeadRemark[];
   onRemarkAdded: () => void;
+  currentRemark?: string;
 }
 
-const RemarksTab: React.FC<RemarksTabProps> = ({ leadId, isLoading, remarks, onRemarkAdded }) => {
+const RemarksTab: React.FC<RemarksTabProps> = ({ 
+  leadId, 
+  isLoading, 
+  remarks, 
+  onRemarkAdded,
+  currentRemark 
+}) => {
   const { toast } = useToast();
   const [newRemark, setNewRemark] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,18 +90,11 @@ const RemarksTab: React.FC<RemarksTabProps> = ({ leadId, isLoading, remarks, onR
             <div className="flex justify-center py-8">
               <div className="animate-spin h-6 w-6 border-2 border-primary rounded-full border-t-transparent"></div>
             </div>
-          ) : remarks.length > 0 ? (
-            <div className="space-y-3">
-              {remarks.map((remark) => (
-                <div key={remark.id} className="bg-muted/50 rounded-md p-3">
-                  <div className="flex justify-between items-start">
-                    <p className="whitespace-pre-wrap text-sm">{remark.remark}</p>
-                    <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
-                      {format(new Date(remark.created_at), 'dd MMM yyyy, HH:mm')}
-                    </span>
-                  </div>
-                </div>
-              ))}
+          ) : currentRemark ? (
+            <div className="bg-muted/50 rounded-md p-3">
+              <div className="flex justify-between items-start">
+                <p className="whitespace-pre-wrap text-sm">{currentRemark}</p>
+              </div>
             </div>
           ) : (
             <div className="text-center py-6 text-muted-foreground flex flex-col items-center">

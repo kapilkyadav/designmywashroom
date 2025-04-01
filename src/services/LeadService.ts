@@ -278,14 +278,21 @@ export const LeadService = {
   async getRemarks(leadId: string): Promise<LeadRemark[]> {
     try {
       const { data, error } = await supabase
-        .from('lead_remarks_history')
+        .from('lead_activity_logs')
         .select('*')
         .eq('lead_id', leadId)
+        .eq('action', 'Remark Added')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       
-      return data as LeadRemark[];
+      return (data || []).map(log => ({
+        id: log.id,
+        lead_id: log.lead_id,
+        remark: log.details || '',
+        created_at: log.created_at,
+        created_by: log.performed_by
+      })) as LeadRemark[];
     } catch (error: any) {
       console.error('Error fetching remarks:', error);
       return [];
