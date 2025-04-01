@@ -59,7 +59,8 @@ export const ProjectService = {
   // Create a new project from calculator submission
   async createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
     try {
-      // Rate limiting check disabled for testing
+      // Log connection information for debugging
+      console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL || 'Using default');
       
       // Debug: Log the incoming project data
       console.log('Creating project with raw data:', JSON.stringify(project));
@@ -87,26 +88,35 @@ export const ProjectService = {
         });
       }
       
-      const { data, error } = await supabase
-        .from('projects')
-        .insert(sanitizedProject)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error creating project in Supabase:', error);
-        throw error;
+      // Explicit error handling for Supabase operations
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .insert(sanitizedProject)
+          .select()
+          .single();
+        
+        if (error) {
+          console.error('Error creating project in Supabase:', error);
+          // Save to localStorage as fallback
+          localStorage.setItem('failed_project_data', JSON.stringify(sanitizedProject));
+          localStorage.setItem('failed_project_error', JSON.stringify(error));
+          throw error;
+        }
+        
+        if (!data) {
+          console.error('No data returned from Supabase after project creation.');
+          throw new Error('No data returned from database');
+        }
+        
+        // Debug: Log the created project data from database
+        console.log('Project created successfully:', data);
+        
+        return data as Project;
+      } catch (supabaseError) {
+        console.error('Supabase operation error:', supabaseError);
+        throw supabaseError;
       }
-      
-      if (!data) {
-        console.error('No data returned from Supabase after project creation.');
-        throw new Error('No data returned from database');
-      }
-      
-      // Debug: Log the created project data from database
-      console.log('Project created successfully:', data);
-      
-      return data as Project;
     } catch (error) {
       console.error('Error in createProject:', error);
       throw error;

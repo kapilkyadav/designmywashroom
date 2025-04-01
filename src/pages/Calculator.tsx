@@ -13,7 +13,7 @@ const Calculator = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Toaster richColors position="top-center" />
+      <Toaster richColors position="top-center" closeButton={true} />
       <Header />
       <main className="flex-grow pt-20 md:pt-24 pb-10 md:pb-16">
         <div className="container mx-auto px-4">
