@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Lead, LeadService, LeadActivityLog, LeadRemark } from '@/services/LeadService';
 
 export const useLeadDetails = (leadId: string, isOpen: boolean) => {
@@ -9,50 +9,81 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [isLoadingRemarks, setIsLoadingRemarks] = useState(false);
   const [isLoadingLead, setIsLoadingLead] = useState(false);
+  const isMounted = useRef(true);
+
+  // Set up cleanup on unmount
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const fetchActivityLogs = async () => {
-    if (!isOpen) return; // Don't fetch if dialog is closed
+    if (!isOpen || !leadId) return; // Don't fetch if dialog is closed or no leadId
     
     setIsLoadingLogs(true);
     try {
       const logs = await LeadService.getActivityLogs(leadId);
-      setActivityLogs(logs);
+      if (isMounted.current) {
+        setActivityLogs(logs);
+      }
     } catch (error) {
       console.error('Error fetching activity logs:', error);
     } finally {
-      setIsLoadingLogs(false);
+      if (isMounted.current) {
+        setIsLoadingLogs(false);
+      }
     }
   };
   
   const fetchRemarks = async () => {
-    if (!isOpen) return; // Don't fetch if dialog is closed
+    if (!isOpen || !leadId) return; // Don't fetch if dialog is closed or no leadId
     
     setIsLoadingRemarks(true);
     try {
       const remarkData = await LeadService.getRemarks(leadId);
-      setRemarks(remarkData);
+      if (isMounted.current) {
+        setRemarks(remarkData);
+      }
     } catch (error) {
       console.error('Error fetching remarks:', error);
     } finally {
-      setIsLoadingRemarks(false);
+      if (isMounted.current) {
+        setIsLoadingRemarks(false);
+      }
     }
   };
 
   const fetchLeadDetails = async () => {
-    if (!isOpen) return; // Don't fetch if dialog is closed
+    if (!isOpen || !leadId) return; // Don't fetch if dialog is closed or no leadId
     
     setIsLoadingLead(true);
     try {
       const leadData = await LeadService.getLead(leadId);
-      if (leadData) {
+      if (isMounted.current && leadData) {
         setLead(leadData);
       }
     } catch (error) {
       console.error('Error fetching lead details:', error);
     } finally {
-      setIsLoadingLead(false);
+      if (isMounted.current) {
+        setIsLoadingLead(false);
+      }
     }
   };
+
+  // Reset states when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setActivityLogs([]);
+      setRemarks([]);
+      setLead(null);
+      setIsLoadingLogs(false);
+      setIsLoadingRemarks(false);
+      setIsLoadingLead(false);
+    }
+  }, [isOpen]);
 
   // Fetch data when dialog is opened or lead ID changes
   useEffect(() => {

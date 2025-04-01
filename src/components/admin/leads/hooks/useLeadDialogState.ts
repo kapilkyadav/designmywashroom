@@ -19,8 +19,12 @@ export const useLeadDialogState = (
     if (!newOpen) {
       // First reset local state
       setActiveTab("details");
+      
       // Then notify parent
-      onOpenChange(false);
+      // Use setTimeout to ensure DOM operations happen before state changes
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 0);
     } else {
       onOpenChange(true);
     }

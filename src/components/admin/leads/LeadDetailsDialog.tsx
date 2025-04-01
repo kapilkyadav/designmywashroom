@@ -38,12 +38,19 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     onUpdate();
     handleOpenChange(false);
   });
-  const { activityLogs, remarks, isLoadingLogs, isLoadingRemarks, refreshRemarks, refreshLogs, refreshLead } = useLeadDetails(lead.id, open);
+  const { activityLogs, remarks, lead: fetchedLead, isLoadingLogs, isLoadingRemarks, refreshRemarks, refreshLogs, refreshLead } = useLeadDetails(lead.id, open);
 
   // Update currentLead when lead changes or refreshLead is called
   useEffect(() => {
     setCurrentLead(lead);
   }, [lead]);
+
+  // Update currentLead when fetchedLead is updated
+  useEffect(() => {
+    if (fetchedLead) {
+      setCurrentLead(fetchedLead);
+    }
+  }, [fetchedLead]);
 
   // Reset form when lead changes
   useEffect(() => {
@@ -52,13 +59,24 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     }
   }, [open, lead.id]);
 
-  // Ensure body scrolling is restored when dialog is closed
+  // Handle body scrolling
   useEffect(() => {
+    // Store original body style
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    
+    if (open) {
+      // Disable scrolling when dialog is open
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Enable scrolling when dialog is closed
+      document.body.style.overflow = originalStyle;
+    }
+    
+    // Cleanup function to ensure scrolling is re-enabled
     return () => {
-      // Cleanup function to ensure scrolling is enabled when component unmounts
-      document.body.style.overflow = '';
+      document.body.style.overflow = originalStyle;
     };
-  }, []);
+  }, [open]);
 
   // Handle dialog state changes
   const handleDialogOpenChange = (newOpen: boolean) => {
