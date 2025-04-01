@@ -78,14 +78,14 @@ const LeadDetailsForm: React.FC<LeadDetailsFormProps> = ({
         <div className="space-y-2">
           <Label htmlFor="budget_preference">Budget Preference</Label>
           <Select
-            value={formData.budget_preference || ''}
+            value={formData.budget_preference || 'not_specified'}
             onValueChange={(value) => handleSelectChange('budget_preference', value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select budget" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Not Specified</SelectItem>
+              <SelectItem value="not_specified">Not Specified</SelectItem>
               <SelectItem value="Low">Low</SelectItem>
               <SelectItem value="Medium">Medium</SelectItem>
               <SelectItem value="High">High</SelectItem>
@@ -96,7 +96,7 @@ const LeadDetailsForm: React.FC<LeadDetailsFormProps> = ({
         <div className="space-y-2">
           <Label htmlFor="status">Status</Label>
           <Select
-            value={formData.status || ''}
+            value={formData.status || 'New'}
             onValueChange={(value) => handleSelectChange('status', value)}
           >
             <SelectTrigger>

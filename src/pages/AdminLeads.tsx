@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LeadService, Lead, LeadFilter } from '@/services/LeadService';
@@ -88,7 +87,6 @@ const AdminLeads = () => {
   
   const handleSyncNow = async () => {
     try {
-      // Clear previous states
       setIsSyncing(true);
       setSyncError(null);
       setSyncSuccess(null);
