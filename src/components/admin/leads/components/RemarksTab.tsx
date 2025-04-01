@@ -37,6 +37,8 @@ const RemarksTab: React.FC<RemarksTabProps> = ({ leadId, isLoading, remarks, onR
         setNewRemark('');
         onRemarkAdded();
       }
+    } catch (error) {
+      console.error('Error adding remark:', error);
     } finally {
       setIsSubmitting(false);
     }

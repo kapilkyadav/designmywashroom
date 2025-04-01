@@ -238,15 +238,25 @@ export const LeadService = {
       const { data: userData } = await supabase.auth.getSession();
       const userId = userData.session?.user.id;
       
-      const { error } = await supabase
-        .from('lead_remarks_history')
-        .insert({
-          lead_id: leadId,
-          remark,
-          created_by: userId || null
-        });
+      const { error: updateError } = await supabase
+        .from('leads')
+        .update({
+          remarks: remark,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', leadId);
       
-      if (error) throw error;
+      if (updateError) {
+        console.error('Error updating lead remarks:', updateError);
+        toast({
+          title: "Failed to add remark",
+          description: updateError.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      await this.addActivityLog(leadId, 'Remark Added', remark);
       
       toast({
         title: "Remark added",
