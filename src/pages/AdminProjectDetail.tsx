@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ProjectService } from '@/services/ProjectService';
+import { BrandService } from '@/services/BrandService';
 import { Project } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -29,6 +30,7 @@ const AdminProjectDetail = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [brandName, setBrandName] = useState<string>("");
 
   useEffect(() => {
     if (!id) return;
@@ -38,6 +40,17 @@ const AdminProjectDetail = () => {
         setLoading(true);
         const data = await ProjectService.getProjectById(id);
         setProject(data);
+        
+        // Fetch brand name if there's a selected brand
+        if (data.selected_brand) {
+          try {
+            const brandData = await BrandService.getBrandById(data.selected_brand);
+            setBrandName(brandData.name);
+          } catch (error) {
+            console.error('Error fetching brand details:', error);
+            setBrandName("Unknown Brand");
+          }
+        }
       } catch (error) {
         console.error('Error fetching project:', error);
         toast({
@@ -200,7 +213,7 @@ const AdminProjectDetail = () => {
               
               <div>
                 <h3 className="font-medium text-muted-foreground">Selected Brand</h3>
-                <p>{project.selected_brand || "None"}</p>
+                <p>{brandName || "None"}</p>
               </div>
               
               <div>
