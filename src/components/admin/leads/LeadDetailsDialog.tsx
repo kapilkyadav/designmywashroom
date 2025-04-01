@@ -44,9 +44,37 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     }
   }, [open, lead.id]);
 
+  // Ensure body scrolling is restored when dialog is closed
+  useEffect(() => {
+    return () => {
+      // Cleanup function to ensure scrolling is enabled when component unmounts
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  // Handle dialog state changes
+  const handleDialogOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      // Make sure to reset state and enable scrolling
+      document.body.style.overflow = '';
+      setActiveTab("details");
+    }
+    handleOpenChange(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[700px] overflow-y-auto max-h-[90vh]">
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+      <DialogContent 
+        className="sm:max-w-[700px] overflow-y-auto max-h-[90vh]"
+        onInteractOutside={(e) => {
+          // Prevent clicks from propagating through the dialog
+          e.preventDefault();
+        }}
+        onEscapeKeyDown={() => {
+          // Ensure we properly handle the escape key
+          handleDialogOpenChange(false);
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Lead Details</DialogTitle>
           <DialogDescription>
@@ -69,7 +97,7 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
               handleDateChange={handleDateChange}
               handleSubmit={handleSubmit}
               isUpdating={isUpdating}
-              onCancel={() => handleOpenChange(false)}
+              onCancel={() => handleDialogOpenChange(false)}
             />
           </TabsContent>
           
