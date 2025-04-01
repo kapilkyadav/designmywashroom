@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { LeadService } from '@/services/LeadService';
 import { useToast } from '@/hooks/use-toast';
@@ -37,13 +36,11 @@ export const useSyncConfig = () => {
           let intervalUnit: 'minutes' | 'hours' = 'minutes';
           let interval = data.sync_interval_minutes;
           
-          // Convert to hours if applicable
           if (data.sync_interval_minutes >= 60 && data.sync_interval_minutes % 60 === 0) {
             intervalUnit = 'hours';
             interval = data.sync_interval_minutes / 60;
           }
           
-          // Map service data to our local structure
           const localConfig: LeadSyncConfigLocal = {
             id: data.id,
             sheet_url: data.sheet_url,
@@ -51,7 +48,6 @@ export const useSyncConfig = () => {
             header_row: data.header_row || 1,
             sync_interval: interval,
             interval_unit: intervalUnit,
-            // Assume enabled if interval > 0
             auto_sync_enabled: data.sync_interval_minutes > 0,
             column_mapping: data.column_mapping as ColumnMapping,
             last_synced_at: data.last_sync_at
@@ -108,20 +104,17 @@ export const useSyncConfig = () => {
     try {
       setIsSaving(true);
       
-      // Convert sync interval to minutes for the service
       let syncIntervalMinutes = config.sync_interval;
       if (config.interval_unit === 'hours') {
         syncIntervalMinutes = config.sync_interval * 60;
       }
       
-      // Convert our local config to the format expected by the service
       const serviceConfig: Partial<ServiceLeadSyncConfig> = {
         id: config.id,
         sheet_url: config.sheet_url,
         sheet_name: config.sheet_name,
         header_row: config.header_row,
         column_mapping: config.column_mapping,
-        // Respect auto_sync_enabled flag
         sync_interval_minutes: config.auto_sync_enabled ? syncIntervalMinutes : 0
       };
       
@@ -143,7 +136,6 @@ export const useSyncConfig = () => {
     }
   };
   
-  // Handle sheet name change
   const handleSheetNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setConfig({
       ...config,
@@ -151,7 +143,6 @@ export const useSyncConfig = () => {
     });
   };
   
-  // Handle header row change
   const handleHeaderRowChange = (value: string) => {
     setConfig({
       ...config,
