@@ -160,7 +160,7 @@ export class EstimationService {
     width: number,
     settings: any
   ): { materialCost: number; laborCost: number; total: number } {
-    const wallHeight = 9; // Fixed height in feet
+    const wallHeight = 8; // Changed from 9 to 8 feet
     const floorArea = length * width;
     const wallArea = 2 * (length + width) * wallHeight;
     const totalTilingArea = floorArea + wallArea;

@@ -40,7 +40,7 @@ const AdminProjectEdit = () => {
     project_type: 'new-construction',
     length: 0,
     width: 0,
-    height: 9,
+    height: 8, // Changed from 9 to 8
     timeline: 'standard',
     selected_brand: '',
     fixtures: {

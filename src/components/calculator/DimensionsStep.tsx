@@ -79,7 +79,7 @@ const DimensionsStep = () => {
     <div className="animate-fade-in">
       <h2 className="text-2xl font-semibold mb-2 text-center">What are the dimensions of your washroom?</h2>
       <p className="text-muted-foreground mb-8 text-center">
-        Enter the length and width in feet. The height is fixed at 9 feet.
+        Enter the length and width in feet. The height is fixed at 8 feet.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -131,12 +131,12 @@ const DimensionsStep = () => {
                 <Input
                   id="height"
                   type="number"
-                  value="9"
+                  value="8"
                   disabled
                   className="mt-1 text-lg h-12 bg-muted/50"
                 />
                 <p className="text-muted-foreground text-sm mt-1">
-                  Fixed at 9 feet as per standard
+                  Fixed at 8 feet as per standard
                 </p>
               </div>
             </div>
@@ -202,10 +202,10 @@ const DimensionsStep = () => {
                   <span className="font-semibold">Floor Area:</span> {(parseFloat(length) * parseFloat(width)).toFixed(2)} sq ft
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  <span className="font-semibold">Wall Area:</span> {(2 * (parseFloat(length) + parseFloat(width)) * 9).toFixed(2)} sq ft
+                  <span className="font-semibold">Wall Area:</span> {(2 * (parseFloat(length) + parseFloat(width)) * 8).toFixed(2)} sq ft
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  <span className="font-semibold">Total Area:</span> {(parseFloat(length) * parseFloat(width) + 2 * (parseFloat(length) + parseFloat(width)) * 9).toFixed(2)} sq ft
+                  <span className="font-semibold">Total Area:</span> {(parseFloat(length) * parseFloat(width) + 2 * (parseFloat(length) + parseFloat(width)) * 8).toFixed(2)} sq ft
                 </p>
               </div>
             </div>

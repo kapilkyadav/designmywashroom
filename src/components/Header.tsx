@@ -49,8 +49,6 @@ const Header = () => {
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-8">
           <NavItem to="/" label="Home" delay="0.2s" />
           <NavItem to="/calculator" label="Calculator" delay="0.3s" />
-          <NavItem to="/about" label="About" delay="0.4s" />
-          <NavItem to="/contact" label="Contact" delay="0.5s" />
           <div className="animate-fade-in" style={{ animationDelay: '0.6s' }}>
             <Button asChild className="btn-transition">
               <Link to="/calculator">Get Started</Link>
@@ -78,8 +76,6 @@ const Header = () => {
           <nav className="flex flex-col py-4 px-6">
             <MobileNavItem to="/" label="Home" onClick={() => setMobileMenuOpen(false)} />
             <MobileNavItem to="/calculator" label="Calculator" onClick={() => setMobileMenuOpen(false)} />
-            <MobileNavItem to="/about" label="About" onClick={() => setMobileMenuOpen(false)} />
-            <MobileNavItem to="/contact" label="Contact" onClick={() => setMobileMenuOpen(false)} />
             <div className="pt-4">
               <Button asChild className="w-full">
                 <Link to="/calculator">Get Started</Link>
