@@ -1,6 +1,6 @@
 
 import { useReducer, useRef, useEffect } from 'react';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { CalculatorService, EstimateResult } from '@/services/calculator';
 import { CalculatorState, CalculatorContextType } from './types';
 import { initialState } from './initialState';
@@ -45,20 +45,25 @@ export const useCalculatorActions = (): CalculatorContextType => {
     // Validate that required fields are not empty
     if (!details.name || !details.email) {
       console.warn('Attempted to set customer details with missing required fields:', details);
-      toast({
-        variant: "destructive",
-        title: "Missing information",
+      toast.error("Missing information", {
         description: "Please provide your name and email to continue."
       });
       return; // Don't proceed with empty values
     }
     
-    // Update our ref immediately with the latest details
-    customerDetailsRef.current = details;
-    console.log('Customer details ref updated:', customerDetailsRef.current);
-    
-    // Apply the update to the state
-    dispatch({ type: 'SET_CUSTOMER_DETAILS', payload: details });
+    try {
+      // Update our ref immediately with the latest details
+      customerDetailsRef.current = details;
+      console.log('Customer details ref updated:', customerDetailsRef.current);
+      
+      // Apply the update to the state
+      dispatch({ type: 'SET_CUSTOMER_DETAILS', payload: details });
+    } catch (error) {
+      console.error('Error updating customer details:', error);
+      toast.error("Error saving details", {
+        description: "There was an error saving your contact details."
+      });
+    }
   };
 
   const calculateEstimate = async (): Promise<EstimateResult> => {
@@ -70,12 +75,19 @@ export const useCalculatorActions = (): CalculatorContextType => {
       // Double-check customer details before proceeding
       if (!customerDetails || !customerDetails.name || !customerDetails.email) {
         console.error('Missing customer details. Cannot calculate estimate.', customerDetails);
-        toast({
-          variant: "destructive",
-          title: "Missing information",
+        toast.error("Missing information", {
           description: "Please provide your name and email to continue."
         });
         throw new Error('MISSING_CUSTOMER_DETAILS');
+      }
+      
+      // Check that selected brand is not empty
+      if (!state.selectedBrand) {
+        console.error('No brand selected. Cannot calculate estimate.');
+        toast.error("Missing brand selection", {
+          description: "Please select a brand to continue."
+        });
+        throw new Error('MISSING_BRAND_SELECTION');
       }
       
       // Prepare calculator state for API using the latest state and customer details from ref
@@ -97,9 +109,7 @@ export const useCalculatorActions = (): CalculatorContextType => {
         console.log('Estimate calculation result:', estimateResult);
       } catch (error) {
         console.error('Error calculating estimate in service:', error);
-        toast({
-          variant: "destructive",
-          title: "Calculation Error",
+        toast.error("Calculation Error", {
           description: "There was a problem calculating your estimate. Please try again."
         });
         throw error;
@@ -112,25 +122,19 @@ export const useCalculatorActions = (): CalculatorContextType => {
       } catch (error: any) {
         console.error('Error saving estimate to database:', error);
         if (error.message === 'MISSING_CUSTOMER_DETAILS') {
-          toast({
-            variant: "destructive",
-            title: "Missing information",
+          toast.error("Missing information", {
             description: "Please provide your name and email to continue."
           });
           throw error; // Re-throw to prevent continuing
         } else if (error.message === 'RATE_LIMITED') {
-          toast({
-            variant: "destructive",
-            title: "Too many requests",
+          toast.error("Too many requests", {
             description: "Please wait a few minutes before submitting again."
           });
           throw error; // Re-throw to prevent continuing
         } else {
           // For other errors, show warning but continue
           console.warn('Estimate calculated but not saved to database:', error);
-          toast({
-            variant: "default",
-            title: "Warning",
+          toast("Warning", {
             description: "Your estimate was calculated but couldn't be saved. You can still view it."
           });
         }

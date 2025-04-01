@@ -4,8 +4,9 @@ import { useCalculator } from '@/hooks/useCalculator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const CustomerDetailsStep = () => {
   const { state, setCustomerDetails, calculateEstimate, prevStep, nextStep } = useCalculator();
@@ -22,6 +23,7 @@ const CustomerDetailsStep = () => {
     location: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generalError, setGeneralError] = useState('');
   
   useEffect(() => {
     if (state.customerDetails.name || state.customerDetails.email) {
@@ -73,10 +75,24 @@ const CustomerDetailsStep = () => {
       ...prev,
       [name]: value
     }));
+    
+    // Clear the field error when user starts typing
+    if (errors[name as keyof typeof errors]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+    
+    // Clear general error when user makes any change
+    if (generalError) {
+      setGeneralError('');
+    }
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGeneralError('');
     
     if (!validateForm()) {
       return;
@@ -102,16 +118,6 @@ const CustomerDetailsStep = () => {
       // Small delay to ensure state is updated
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Double-check the details are saved before proceeding
-      if (!customerDetails.name || !customerDetails.email) {
-        toast({
-          title: "Missing information",
-          description: "Please provide your name and email to continue.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
       try {
         // Try to calculate the estimate
         console.log("About to calculate estimate with customer details:", customerDetails);
@@ -121,8 +127,7 @@ const CustomerDetailsStep = () => {
         // Move to the next step
         nextStep();
         
-        toast({
-          title: "Estimate calculated successfully",
+        toast.success("Estimate calculated successfully", {
           description: "Your washroom renovation estimate is ready.",
         });
       } catch (error: any) {
@@ -130,31 +135,27 @@ const CustomerDetailsStep = () => {
         
         // Check the specific type of error for better user feedback
         if (error.message === 'MISSING_CUSTOMER_DETAILS') {
-          toast({
-            title: "Missing information",
+          setGeneralError("Please provide your name and email to continue.");
+          toast.error("Missing information", {
             description: "Please provide your name and email to continue.",
-            variant: "destructive"
           });
         } else if (error.message === 'RATE_LIMITED') {
-          toast({
-            title: "Too many submissions",
+          setGeneralError("Too many submissions. Please wait a moment before submitting again.");
+          toast.error("Too many submissions", {
             description: "Please wait a moment before submitting again.",
-            variant: "destructive"
           });
         } else {
-          toast({
-            title: "Error calculating estimate",
+          setGeneralError("There was an unexpected error. Please try again.");
+          toast.error("Error calculating estimate", {
             description: "There was an unexpected error. Please try again.",
-            variant: "destructive"
           });
         }
       }
     } catch (error) {
       console.error('Error in form submission:', error);
-      toast({
-        title: "Error submitting form",
+      setGeneralError("Unable to process your request. Please try again later.");
+      toast.error("Error submitting form", {
         description: "Please try again later.",
-        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
@@ -164,9 +165,16 @@ const CustomerDetailsStep = () => {
   return (
     <div className="animate-fade-in">
       <h2 className="text-2xl font-semibold mb-2 text-center">Enter Your Contact Details</h2>
-      <p className="text-muted-foreground mb-8 text-center">
+      <p className="text-muted-foreground mb-6 text-center">
         Provide your contact information to receive your washroom estimate.
       </p>
+      
+      {generalError && (
+        <Alert variant="destructive" className="mb-6 max-w-md mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{generalError}</AlertDescription>
+        </Alert>
+      )}
       
       <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-6">
         <div className="space-y-4">
