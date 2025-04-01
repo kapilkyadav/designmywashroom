@@ -7,10 +7,11 @@ import {
   DialogTitle 
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Lead, LeadService, LeadActivityLog } from '@/services/LeadService';
+import { Lead, LeadService, LeadActivityLog, LeadRemark } from '@/services/LeadService';
 import { useToast } from '@/hooks/use-toast';
 import LeadDetailsForm from './components/LeadDetailsForm';
 import ActivityLogTab from './components/ActivityLogTab';
+import RemarksTab from './components/RemarksTab';
 
 interface LeadDetailsDialogProps {
   lead: Lead;
@@ -30,12 +31,15 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
   const [activityLogs, setActivityLogs] = useState<LeadActivityLog[]>([]);
+  const [remarks, setRemarks] = useState<LeadRemark[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [isLoadingRemarks, setIsLoadingRemarks] = useState(false);
   
-  // Fetch activity logs when the dialog opens
+  // Fetch activity logs and remarks when the dialog opens
   useEffect(() => {
     if (open) {
       fetchActivityLogs();
+      fetchRemarks();
     }
   }, [open, lead.id]);
   
@@ -48,6 +52,18 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
       console.error('Error fetching activity logs:', error);
     } finally {
       setIsLoadingLogs(false);
+    }
+  };
+  
+  const fetchRemarks = async () => {
+    setIsLoadingRemarks(true);
+    try {
+      const remarkData = await LeadService.getRemarks(lead.id);
+      setRemarks(remarkData);
+    } catch (error) {
+      console.error('Error fetching remarks:', error);
+    } finally {
+      setIsLoadingRemarks(false);
     }
   };
   
@@ -104,6 +120,7 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
         <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="remarks">Remarks</TabsTrigger>
             <TabsTrigger value="activity">Activity Log</TabsTrigger>
           </TabsList>
           
@@ -116,6 +133,18 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
               handleSubmit={handleSubmit}
               isUpdating={isUpdating}
               onCancel={() => onOpenChange(false)}
+            />
+          </TabsContent>
+          
+          <TabsContent value="remarks" className="pt-4">
+            <RemarksTab 
+              leadId={lead.id}
+              isLoading={isLoadingRemarks}
+              remarks={remarks}
+              onRemarkAdded={() => {
+                fetchRemarks();
+                onUpdate(); // Update the main leads list to reflect the new remark
+              }}
             />
           </TabsContent>
           

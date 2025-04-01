@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Lead } from '@/services/LeadService';
 import { 
@@ -288,13 +287,14 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   Follow-up {getSortIcon('next_followup_date')}
                 </div>
               </TableHead>
+              <TableHead>Latest Remark</TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {leads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-32 text-center">
+                <TableCell colSpan={9} className="h-32 text-center">
                   No leads found
                 </TableCell>
               </TableRow>
@@ -401,6 +401,15 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
+                  </TableCell>
+                  <TableCell>
+                    <div className="max-w-[200px] truncate text-sm">
+                      {lead.remarks ? (
+                        <span className="text-sm">{lead.remarks}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">No remarks</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

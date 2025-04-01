@@ -129,6 +129,38 @@ export type Database = {
           },
         ]
       }
+      lead_remarks_history: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string
+          remark: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id: string
+          remark: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string
+          remark?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_remarks_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_sync_config: {
         Row: {
           column_mapping: Json

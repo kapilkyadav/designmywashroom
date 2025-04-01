@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 
@@ -51,6 +50,14 @@ export interface LeadActivityLog {
   created_at: string;
 }
 
+export interface LeadRemark {
+  id: string;
+  lead_id: string;
+  remark: string;
+  created_at: string;
+  created_by: string | null;
+}
+
 export const LeadService = {
   async getLeads(filters: LeadFilter = {}): Promise<{ data: Lead[], count: number }> {
     try {
@@ -58,7 +65,6 @@ export const LeadService = {
         .from('leads')
         .select('*', { count: 'exact' });
       
-      // Apply filters
       if (filters.status) {
         query = query.eq('status', filters.status);
       }
@@ -79,16 +85,13 @@ export const LeadService = {
         query = query.or(`customer_name.ilike.%${filters.search}%,phone.ilike.%${filters.search}%,email.ilike.%${filters.search}%,location.ilike.%${filters.search}%`);
       }
       
-      // Apply sorting
       if (filters.sortBy) {
         const direction = filters.sortDirection || 'desc';
         query = query.order(filters.sortBy, { ascending: direction === 'asc' });
       } else {
-        // Default sort by created_at desc
         query = query.order('created_at', { ascending: false });
       }
       
-      // Apply pagination
       const page = filters.page || 1;
       const pageSize = filters.pageSize || 10;
       const start = (page - 1) * pageSize;
@@ -145,7 +148,6 @@ export const LeadService = {
       
       if (error) throw error;
       
-      // Log activity
       await this.addActivityLog(id, 'Lead Updated', `Updated: ${Object.keys(lead).join(', ')}`);
       
       toast({
@@ -231,6 +233,55 @@ export const LeadService = {
     }
   },
   
+  async addRemark(leadId: string, remark: string): Promise<boolean> {
+    try {
+      const { data: userData } = await supabase.auth.getSession();
+      const userId = userData.session?.user.id;
+      
+      const { error } = await supabase
+        .from('lead_remarks_history')
+        .insert({
+          lead_id: leadId,
+          remark,
+          created_by: userId || null
+        });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Remark added",
+        description: "The remark has been added to the lead.",
+      });
+      
+      return true;
+    } catch (error: any) {
+      console.error('Error adding remark:', error);
+      toast({
+        title: "Failed to add remark",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  },
+  
+  async getRemarks(leadId: string): Promise<LeadRemark[]> {
+    try {
+      const { data, error } = await supabase
+        .from('lead_remarks_history')
+        .select('*')
+        .eq('lead_id', leadId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return data as LeadRemark[];
+    } catch (error: any) {
+      console.error('Error fetching remarks:', error);
+      return [];
+    }
+  },
+  
   async getSyncConfig(): Promise<LeadSyncConfig | null> {
     try {
       const { data, error } = await supabase
@@ -251,7 +302,6 @@ export const LeadService = {
   
   async updateSyncConfig(config: Partial<LeadSyncConfig>): Promise<boolean> {
     try {
-      // Get current config
       const { data: currentConfig, error: fetchError } = await supabase
         .from('lead_sync_config')
         .select('id')
@@ -265,7 +315,6 @@ export const LeadService = {
       let result;
       
       if (currentConfig) {
-        // Update existing config
         const { error } = await supabase
           .from('lead_sync_config')
           .update(config)
@@ -275,7 +324,6 @@ export const LeadService = {
         
         result = { success: true, id: currentConfig.id };
       } else {
-        // Insert new config
         const { data, error } = await supabase
           .from('lead_sync_config')
           .insert(config)
@@ -306,10 +354,8 @@ export const LeadService = {
   
   async syncLeads(): Promise<boolean> {
     try {
-      // Add log to help debug
       console.log('Starting manual lead sync process');
       
-      // First, get the current sync config to send along with the request
       const configData = await this.getSyncConfig();
       if (!configData) {
         throw new Error('Sync configuration not found');
@@ -320,7 +366,6 @@ export const LeadService = {
         headerRow: configData.header_row
       });
       
-      // Invoke the edge function with the config data included
       const response = await supabase.functions.invoke('fetch-leads', {
         body: {
           sheet_name: configData.sheet_name,
@@ -328,13 +373,11 @@ export const LeadService = {
         }
       });
       
-      // Check for edge function errors
       if (response.error) {
         console.error('Edge function error:', response.error);
         throw new Error(response.error.message || 'Error syncing leads');
       }
       
-      // Check for response data errors
       if (!response.data) {
         console.error('Empty response from edge function');
         throw new Error('Empty response from edge function');
