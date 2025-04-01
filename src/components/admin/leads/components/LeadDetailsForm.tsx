@@ -81,10 +81,10 @@ const LeadDetailsForm: React.FC<LeadDetailsFormProps> = ({
             value={formData.budget_preference || 'not_specified'}
             onValueChange={(value) => handleSelectChange('budget_preference', value)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="z-10">
               <SelectValue placeholder="Select budget" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-50 bg-background">
               <SelectItem value="not_specified">Not Specified</SelectItem>
               <SelectItem value="Low">Low</SelectItem>
               <SelectItem value="Medium">Medium</SelectItem>
@@ -99,10 +99,10 @@ const LeadDetailsForm: React.FC<LeadDetailsFormProps> = ({
             value={formData.status || 'New'}
             onValueChange={(value) => handleSelectChange('status', value)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="z-10">
               <SelectValue placeholder="Select status" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-50 bg-background">
               <SelectItem value="New">New</SelectItem>
               <SelectItem value="Contacted">Contacted</SelectItem>
               <SelectItem value="Qualified">Qualified</SelectItem>
@@ -118,7 +118,7 @@ const LeadDetailsForm: React.FC<LeadDetailsFormProps> = ({
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal",
+                  "w-full justify-start text-left font-normal z-10",
                   !formData.next_followup_date && "text-muted-foreground"
                 )}
               >
@@ -130,7 +130,7 @@ const LeadDetailsForm: React.FC<LeadDetailsFormProps> = ({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0 z-50 bg-background">
               <Calendar
                 mode="single"
                 selected={formData.next_followup_date ? new Date(formData.next_followup_date) : undefined}

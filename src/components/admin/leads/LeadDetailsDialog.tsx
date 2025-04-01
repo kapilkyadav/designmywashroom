@@ -4,7 +4,8 @@ import {
   Dialog, 
   DialogContent, 
   DialogHeader, 
-  DialogTitle 
+  DialogTitle,
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Lead } from '@/services/LeadService';
@@ -45,16 +46,19 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[700px]">
+      <DialogContent className="sm:max-w-[700px] overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Lead Details</DialogTitle>
+          <DialogDescription>
+            View and modify details for {lead.customer_name}
+          </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="remarks">Remarks</TabsTrigger>
-            <TabsTrigger value="activity">Activity Log</TabsTrigger>
+        <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full">
+            <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
+            <TabsTrigger value="remarks" className="flex-1">Remarks</TabsTrigger>
+            <TabsTrigger value="activity" className="flex-1">Activity Log</TabsTrigger>
           </TabsList>
           
           <TabsContent value="details" className="pt-4">
