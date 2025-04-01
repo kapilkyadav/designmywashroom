@@ -35,7 +35,7 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     onUpdate();
     handleOpenChange(false);
   });
-  const { activityLogs, remarks, isLoadingLogs, isLoadingRemarks, refreshRemarks } = useLeadDetails(lead.id, open);
+  const { activityLogs, remarks, isLoadingLogs, isLoadingRemarks, refreshRemarks, refreshLogs } = useLeadDetails(lead.id, open);
 
   // Reset form when lead changes
   useEffect(() => {
@@ -60,6 +60,13 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
       setActiveTab("details");
     }
     handleOpenChange(newOpen);
+  };
+
+  // Handle remark added - refresh data and update parent
+  const handleRemarkAdded = () => {
+    refreshRemarks();
+    refreshLogs();
+    onUpdate(); // Update the main leads list to reflect the new remark
   };
 
   return (
@@ -107,10 +114,7 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
               isLoading={isLoadingRemarks}
               remarks={remarks}
               currentRemark={lead.remarks}
-              onRemarkAdded={() => {
-                refreshRemarks();
-                onUpdate(); // Update the main leads list to reflect the new remark
-              }}
+              onRemarkAdded={handleRemarkAdded}
             />
           </TabsContent>
           
