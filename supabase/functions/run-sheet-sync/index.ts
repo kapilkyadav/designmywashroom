@@ -1,34 +1,14 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { extractSheetId } from "./utils.ts";
+import { processSheetProducts, performUpserts } from "./productProcessor.ts";
 
 // Define CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// Function to extract sheet ID from Google Sheet URL
-function extractSheetId(url: string): string | null {
-  // Extract the sheet ID from a Google Sheets URL
-  const match = url.match(/[-\w]{25,}/);
-  return match ? match[0] : null;
-}
-
-interface ColumnMapping {
-  name: string;
-  description: string;
-  category: string;
-  finish_color: string;
-  series: string;
-  model_code: string;
-  size: string;
-  mrp: string;
-  landing_price: string;
-  client_price: string;
-  quotation_price: string;
-  quantity: string;
-}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -150,135 +130,11 @@ async function processSheet(brandId: string, supabase: any, googleApiKey: string
     return obj;
   });
   
-  // Get column mapping from brand or use default mapping
-  let columnMapping: ColumnMapping;
+  // Process products from sheet data
+  const products = await processSheetProducts(rows, brandId, brand, supabase, headers);
   
-  if (brand.column_mapping) {
-    columnMapping = brand.column_mapping as ColumnMapping;
-  } else {
-    // Default mapping based on common column names
-    columnMapping = {
-      name: headers.find(h => h.toLowerCase().includes('name') || h.toLowerCase().includes('product')) || '',
-      description: headers.find(h => h.toLowerCase().includes('desc')) || '',
-      category: headers.find(h => h.toLowerCase().includes('categ') || h.toLowerCase().includes('area')) || '',
-      finish_color: headers.find(h => h.toLowerCase().includes('finish') || h.toLowerCase().includes('color')) || '',
-      series: headers.find(h => h.toLowerCase().includes('series')) || '',
-      model_code: headers.find(h => h.toLowerCase().includes('model') || h.toLowerCase().includes('code')) || '',
-      size: headers.find(h => h.toLowerCase().includes('size')) || '',
-      mrp: headers.find(h => h.toLowerCase().includes('mrp')) || '',
-      landing_price: headers.find(h => (h.toLowerCase().includes('offer') || h.toLowerCase().includes('yds offer'))) || '',
-      client_price: headers.find(h => (h.toLowerCase().includes('client') && h.toLowerCase().includes('price'))) || '',
-      quotation_price: headers.find(h => (h.toLowerCase().includes('yds price'))) || '',
-      quantity: headers.find(h => (h.toLowerCase().includes('qty') || h.toLowerCase().includes('quant'))) || ''
-    };
-    
-    // Update brand with the default mapping
-    await supabase
-      .from('brands')
-      .update({ column_mapping: columnMapping })
-      .eq('id', brandId);
-  }
-  
-  // Map sheet data to product structure using the column mapping
-  const products = rows
-    .filter((row: any) => columnMapping.name && row[columnMapping.name]) // Filter out rows with no names
-    .map((row: any) => {
-      const landingPrice = columnMapping.landing_price ? parseFloat(row[columnMapping.landing_price]) || 0 : 0;
-      const quotationPrice = columnMapping.quotation_price ? parseFloat(row[columnMapping.quotation_price]) || 0 : 0;
-      const quantity = columnMapping.quantity ? parseInt(row[columnMapping.quantity], 10) || 0 : 0;
-      
-      // Calculate margin
-      const margin = landingPrice > 0 
-        ? ((quotationPrice - landingPrice) / landingPrice) * 100 
-        : 0;
-      
-      // Create product object
-      const product = {
-        brand_id: brandId,
-        name: columnMapping.name ? (row[columnMapping.name] || '') : '',
-        description: columnMapping.description ? (row[columnMapping.description] || '') : '',
-        category: columnMapping.category ? (row[columnMapping.category] || '') : '',
-        finish_color: columnMapping.finish_color ? (row[columnMapping.finish_color] || '') : '',
-        series: columnMapping.series ? (row[columnMapping.series] || '') : '',
-        model_code: columnMapping.model_code ? (row[columnMapping.model_code] || '') : '',
-        size: columnMapping.size ? (row[columnMapping.size] || '') : '',
-        mrp: columnMapping.mrp ? (parseFloat(row[columnMapping.mrp]) || 0) : 0,
-        landing_price: landingPrice,
-        client_price: columnMapping.client_price ? (parseFloat(row[columnMapping.client_price]) || 0) : 0,
-        quotation_price: quotationPrice,
-        quantity: quantity,
-        margin: parseFloat(margin.toFixed(2)),
-        extra_data: {} as Record<string, any>
-      };
-      
-      // Add all unmapped columns to extra_data
-      const mappedColumns = new Set(Object.values(columnMapping).filter(Boolean));
-      headers.forEach((header: string) => {
-        if (!mappedColumns.has(header)) {
-          product.extra_data[header] = row[header];
-        }
-      });
-      
-      return product;
-    });
-  
-  // First, get existing products for this brand
-  const { data: existingProducts, error: productsError } = await supabase
-    .from('products')
-    .select('id, name')
-    .eq('brand_id', brandId);
-  
-  if (productsError) throw productsError;
-  
-  // Create a map of product names to IDs
-  const productMap = new Map();
-  existingProducts.forEach((product: any) => {
-    productMap.set(product.name.toLowerCase(), product.id);
-  });
-  
-  // Split products into updates and inserts
-  const updates = [];
-  const inserts = [];
-  
-  products.forEach(product => {
-    const existingId = productMap.get(product.name.toLowerCase());
-    if (existingId) {
-      updates.push({
-        id: existingId,
-        ...product
-      });
-    } else {
-      inserts.push(product);
-    }
-  });
-  
-  // Perform upserts in batches if needed
-  let inserted = 0;
-  let updated = 0;
-  
-  // Insert new products
-  if (inserts.length > 0) {
-    const { data, error } = await supabase
-      .from('products')
-      .insert(inserts)
-      .select('id');
-    
-    if (error) throw error;
-    inserted = data.length;
-  }
-  
-  // Update existing products
-  if (updates.length > 0) {
-    for (const product of updates) {
-      const { error } = await supabase
-        .from('products')
-        .update(product)
-        .eq('id', product.id);
-      
-      if (error) throw error;
-      updated++;
-    }
-  }
+  // Perform database updates/inserts
+  const { inserted, updated } = await performUpserts(products, brandId, supabase);
   
   // Update brand's product count
   const { count, error: countError } = await supabase
