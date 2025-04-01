@@ -222,7 +222,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   };
 
   const getBudgetDisplay = (budget: string | null) => {
-    if (!budget) return '—';
+    if (!budget || budget === 'not_specified') return '—';
     return budget;
   };
   
