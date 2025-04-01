@@ -25,8 +25,9 @@ const CustomerDetailsStep = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generalError, setGeneralError] = useState('');
   
+  // Update form data when customer details change
   useEffect(() => {
-    if (state.customerDetails.name || state.customerDetails.email) {
+    if (state.customerDetails) {
       setFormData({
         name: state.customerDetails.name || '',
         email: state.customerDetails.email || '',
@@ -61,9 +62,13 @@ const CustomerDetailsStep = () => {
     if (!formData.mobile.trim()) {
       newErrors.mobile = 'Mobile number is required';
       isValid = false;
-    } else if (!/^[0-9]{10}$/.test(formData.mobile.replace(/[^0-9]/g, ''))) {
-      newErrors.mobile = 'Mobile number should have 10 digits';
-      isValid = false;
+    } else {
+      // Less strict validation to handle international numbers
+      const digitsOnly = formData.mobile.replace(/\D/g, '');
+      if (digitsOnly.length < 8 || digitsOnly.length > 15) {
+        newErrors.mobile = 'Please enter a valid phone number';
+        isValid = false;
+      }
     }
     
     if (!formData.location.trim()) {
@@ -100,12 +105,12 @@ const CustomerDetailsStep = () => {
     e.preventDefault();
     setGeneralError('');
     
-    if (!validateForm()) {
-      console.log("Form validation failed:", errors);
-      return;
-    }
-    
     try {
+      if (!validateForm()) {
+        console.log("Form validation failed:", errors);
+        return;
+      }
+      
       setIsSubmitting(true);
       
       console.log(`Processing form submission for email: ${formData.email.trim()}`);
@@ -117,13 +122,20 @@ const CustomerDetailsStep = () => {
         location: formData.location.trim()
       };
       
+      // Save to storage for resilience
+      try {
+        localStorage.setItem('calculator_customer_details', JSON.stringify(customerDetails));
+      } catch (e) {
+        console.warn('Could not save customer details to localStorage', e);
+      }
+      
       console.log("Saving customer details:", customerDetails);
       
       // First, update the customer details
       setCustomerDetails(customerDetails);
       
       // Small delay to ensure state is updated
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       try {
         // Try to calculate the estimate
@@ -136,40 +148,34 @@ const CustomerDetailsStep = () => {
       } catch (error: any) {
         console.error('Error calculating estimate:', error);
         
+        // Enhanced error handling
+        let errorMessage = "There was an unexpected error. Please try again.";
+        
         // Check the specific type of error for better user feedback
         if (error.message === 'MISSING_CUSTOMER_DETAILS') {
-          setGeneralError("Please provide your name and email to continue.");
-          toast.error("Missing information", {
-            description: "Please provide your name and email to continue."
-          });
+          errorMessage = "Please provide your name and email to continue.";
         } else if (error.message === 'MISSING_BRAND_SELECTION') {
-          setGeneralError("Please select a brand to continue.");
-          toast.error("Missing brand selection", {
-            description: "Please select a brand to continue."
-          });
+          errorMessage = "Please select a brand to continue.";
           // Go back to the brand selection step
           prevStep();
         } else if (error.message === 'MISSING_LOCATION') {
-          setGeneralError("Please provide your location to continue.");
-          toast.error("Missing location", {
-            description: "Please provide your location to continue."
-          });
+          errorMessage = "Please provide your location to continue.";
         } else if (error.message === 'MISSING_MOBILE_NUMBER') {
-          setGeneralError("Please provide your mobile number to continue.");
-          toast.error("Missing mobile number", {
-            description: "Please provide your mobile number to continue."
-          });
+          errorMessage = "Please provide your mobile number to continue.";
         } else if (error.message === 'RATE_LIMITED') {
-          setGeneralError("Too many submissions. Please wait a moment before submitting again.");
-          toast.error("Too many submissions", {
-            description: "Please wait a moment before submitting again."
-          });
-        } else {
-          setGeneralError("There was an unexpected error. Please try again.");
-          toast.error("Error calculating estimate", {
-            description: "There was an unexpected error. Please try again."
-          });
+          errorMessage = "Too many submissions. Please wait a moment before submitting again.";
+        } else if (error.message === 'DATABASE_ERROR') {
+          errorMessage = "There was a problem connecting to our database. Please try again later.";
+        } else if (typeof error === 'object' && error !== null) {
+          if ('message' in error) {
+            errorMessage = `Error: ${error.message}`;
+          }
         }
+        
+        setGeneralError(errorMessage);
+        toast.error("Error calculating estimate", {
+          description: errorMessage
+        });
       }
     } catch (error) {
       console.error('Error in form submission:', error);

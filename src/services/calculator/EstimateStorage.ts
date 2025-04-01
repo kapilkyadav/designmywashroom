@@ -19,6 +19,9 @@ export class EstimateStorage {
       // Perform strict validation of customer details
       if (!calculatorState.customerDetails) {
         console.error('Customer details object is undefined or null');
+        toast.error("Missing customer information", {
+          description: "Customer details are missing. Please try again."
+        });
         throw new Error('MISSING_CUSTOMER_DETAILS');
       }
       
@@ -50,6 +53,9 @@ export class EstimateStorage {
       if (missingFields.length > 0) {
         const errorMessage = `Missing customer details: ${missingFields.join(', ')}`;
         console.error(errorMessage);
+        toast.error("Incomplete information", {
+          description: `Please provide your ${missingFields.join(', ')}.`
+        });
         throw new Error('MISSING_CUSTOMER_DETAILS');
       }
       
@@ -80,12 +86,40 @@ export class EstimateStorage {
           name: projectData.client_name,
           email: projectData.client_email
         });
+        toast.error("Missing information", {
+          description: "Please provide your name and email to continue."
+        });
         throw new Error('MISSING_CUSTOMER_DETAILS');
       }
       
-      return await ProjectService.createProject(projectData);
+      try {
+        const result = await ProjectService.createProject(projectData);
+        console.log('Project created successfully:', result);
+        toast.success("Estimate calculated successfully", {
+          description: "Your washroom estimate has been saved."
+        });
+        return result;
+      } catch (dbError: any) {
+        console.error('Database error when creating project:', dbError);
+        toast.error("Database Error", {
+          description: "There was a problem saving your estimate. Please try again."
+        });
+        throw new Error('DATABASE_ERROR');
+      }
     } catch (error) {
       console.error('Error saving estimate:', error);
+      if (error instanceof Error) {
+        if (error.message !== 'MISSING_CUSTOMER_DETAILS' && 
+            error.message !== 'DATABASE_ERROR') {
+          toast.error("Unexpected Error", {
+            description: "There was a problem processing your request. Please try again."
+          });
+        }
+      } else {
+        toast.error("Unknown Error", {
+          description: "An unknown error occurred. Please try again."
+        });
+      }
       throw error;
     }
   }

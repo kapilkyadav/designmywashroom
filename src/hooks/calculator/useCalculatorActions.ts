@@ -36,15 +36,29 @@ export const useCalculatorActions = (): CalculatorContextType => {
   };
 
   const setBrand = (brand: string) => {
+    if (!brand || brand.trim() === '') {
+      toast.error("Brand selection required", {
+        description: "Please select a brand to continue."
+      });
+      return;
+    }
     dispatch({ type: 'SET_BRAND', payload: brand });
   };
 
   const setCustomerDetails = (details: { name: string; email: string; mobile: string; location: string }) => {
     console.log('Setting customer details in context:', details);
     
+    // Sanitize inputs to prevent empty strings
+    const sanitizedDetails = {
+      name: details.name ? details.name.trim() : '',
+      email: details.email ? details.email.trim() : '',
+      mobile: details.mobile ? details.mobile.trim() : '',
+      location: details.location ? details.location.trim() : ''
+    };
+    
     // Validate that required fields are not empty
-    if (!details.name || !details.email) {
-      console.warn('Attempted to set customer details with missing required fields:', details);
+    if (!sanitizedDetails.name || !sanitizedDetails.email) {
+      console.warn('Attempted to set customer details with missing required fields:', sanitizedDetails);
       toast.error("Missing information", {
         description: "Please provide your name and email to continue."
       });
@@ -53,11 +67,11 @@ export const useCalculatorActions = (): CalculatorContextType => {
     
     try {
       // Update our ref immediately with the latest details
-      customerDetailsRef.current = details;
+      customerDetailsRef.current = sanitizedDetails;
       console.log('Customer details ref updated:', customerDetailsRef.current);
       
       // Apply the update to the state
-      dispatch({ type: 'SET_CUSTOMER_DETAILS', payload: details });
+      dispatch({ type: 'SET_CUSTOMER_DETAILS', payload: sanitizedDetails });
     } catch (error) {
       console.error('Error updating customer details:', error);
       toast.error("Error saving details", {
@@ -136,9 +150,6 @@ export const useCalculatorActions = (): CalculatorContextType => {
       try {
         await CalculatorService.saveEstimate(calculatorState, estimateResult);
         console.log('Estimate saved successfully to database');
-        toast.success("Estimate calculated", {
-          description: "Your washroom estimate has been calculated successfully."
-        });
       } catch (error: any) {
         console.error('Error saving estimate to database:', error);
         if (error.message === 'MISSING_CUSTOMER_DETAILS') {
@@ -151,6 +162,11 @@ export const useCalculatorActions = (): CalculatorContextType => {
             description: "Please wait a few minutes before submitting again."
           });
           throw error; // Re-throw to prevent continuing
+        } else if (error.message === 'DATABASE_ERROR') {
+          toast.error("Database Error", {
+            description: "There was a problem saving your estimate, but you can still view the results."
+          });
+          // Continue to show estimate even if saving failed
         } else {
           // For other errors, show warning but continue
           console.warn('Estimate calculated but not saved to database:', error);
