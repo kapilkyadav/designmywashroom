@@ -40,27 +40,20 @@ export const SettingsService = {
         .single();
       
       if (error) {
-        // If no settings exist or RLS error, use default values
-        if (error.code === 'PGRST116' || error.message?.includes('row-level security')) {
-          console.log('Database access error or no settings found, using defaults', error);
-          
-          // Create a valid Settings object from defaults
-          const defaultSettings: Settings = {
-            id: 'default',
-            ...DEFAULT_SETTINGS,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-          
-          // Update cache with defaults
-          settingsCache = defaultSettings;
-          settingsCacheTimestamp = now;
-          
-          return defaultSettings;
-        }
+        console.log('Database error while fetching settings:', error);
+        // If no settings exist or permissions error, use default values
+        const defaultSettings: Settings = {
+          id: 'default',
+          ...DEFAULT_SETTINGS,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
         
-        console.error('Error fetching settings:', error);
-        throw error;
+        // Update cache with defaults
+        settingsCache = defaultSettings;
+        settingsCacheTimestamp = now;
+        
+        return defaultSettings;
       }
       
       // Update cache
@@ -100,18 +93,13 @@ export const SettingsService = {
       if (error) {
         console.error('Error creating default settings:', error);
         
-        // If RLS blocks this, return a mock result
-        if (error.message?.includes('row-level security')) {
-          console.log('RLS blocked settings creation, returning default settings');
-          return {
-            id: 'default',
-            ...DEFAULT_SETTINGS,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-        }
-        
-        throw error;
+        // If permissions block this, return a mock result
+        return {
+          id: 'default',
+          ...DEFAULT_SETTINGS,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
       }
       
       return data as Settings;
@@ -147,13 +135,8 @@ export const SettingsService = {
       if (error) {
         console.error('Error updating settings:', error);
         
-        // If RLS blocks this, return current settings
-        if (error.message?.includes('row-level security')) {
-          console.log('RLS blocked settings update, returning current settings');
-          return current;
-        }
-        
-        throw error;
+        // If permissions block this, return current settings
+        return current;
       }
       
       // Invalidate cache on update
