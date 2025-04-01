@@ -11,8 +11,8 @@ interface RemarksTabProps {
   leadId: string;
   isLoading: boolean;
   remarks: LeadRemark[];
-  onRemarkAdded: () => void;
-  currentRemark?: string;
+  onRemarkAdded: (newRemark: string) => void;
+  currentRemark?: string | null;
 }
 
 const RemarksTab: React.FC<RemarksTabProps> = ({ 
@@ -41,8 +41,9 @@ const RemarksTab: React.FC<RemarksTabProps> = ({
       const result = await LeadService.addRemark(leadId, newRemark);
       
       if (result) {
+        // Pass the new remark back to the parent component
+        onRemarkAdded(newRemark);
         setNewRemark('');
-        onRemarkAdded();
       }
     } catch (error) {
       console.error('Error adding remark:', error);

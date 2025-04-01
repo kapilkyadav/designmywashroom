@@ -5,8 +5,10 @@ import { Lead, LeadService, LeadActivityLog, LeadRemark } from '@/services/LeadS
 export const useLeadDetails = (leadId: string, isOpen: boolean) => {
   const [activityLogs, setActivityLogs] = useState<LeadActivityLog[]>([]);
   const [remarks, setRemarks] = useState<LeadRemark[]>([]);
+  const [lead, setLead] = useState<Lead | null>(null);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [isLoadingRemarks, setIsLoadingRemarks] = useState(false);
+  const [isLoadingLead, setIsLoadingLead] = useState(false);
 
   const fetchActivityLogs = async () => {
     if (!isOpen) return; // Don't fetch if dialog is closed
@@ -36,20 +38,40 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
     }
   };
 
+  const fetchLeadDetails = async () => {
+    if (!isOpen) return; // Don't fetch if dialog is closed
+    
+    setIsLoadingLead(true);
+    try {
+      const leadData = await LeadService.getLead(leadId);
+      if (leadData) {
+        setLead(leadData);
+      }
+    } catch (error) {
+      console.error('Error fetching lead details:', error);
+    } finally {
+      setIsLoadingLead(false);
+    }
+  };
+
   // Fetch data when dialog is opened or lead ID changes
   useEffect(() => {
     if (isOpen && leadId) {
       fetchActivityLogs();
       fetchRemarks();
+      fetchLeadDetails();
     }
   }, [isOpen, leadId]);
 
   return {
     activityLogs,
     remarks,
+    lead,
     isLoadingLogs,
     isLoadingRemarks,
+    isLoadingLead,
     refreshRemarks: fetchRemarks,
-    refreshLogs: fetchActivityLogs
+    refreshLogs: fetchActivityLogs,
+    refreshLead: fetchLeadDetails
   };
 };

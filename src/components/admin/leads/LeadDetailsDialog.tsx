@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -29,13 +29,21 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
   onOpenChange,
   onUpdate
 }) => {
+  // Track current lead data to ensure we have the latest remarks
+  const [currentLead, setCurrentLead] = useState<Lead>(lead);
+  
   // Custom hooks for different concerns
   const { activeTab, setActiveTab, handleOpenChange } = useLeadDialogState(open, onOpenChange);
   const { formData, isUpdating, handleChange, handleSelectChange, handleDateChange, handleSubmit, resetForm } = useLeadForm(lead, () => {
     onUpdate();
     handleOpenChange(false);
   });
-  const { activityLogs, remarks, isLoadingLogs, isLoadingRemarks, refreshRemarks, refreshLogs } = useLeadDetails(lead.id, open);
+  const { activityLogs, remarks, isLoadingLogs, isLoadingRemarks, refreshRemarks, refreshLogs, refreshLead } = useLeadDetails(lead.id, open);
+
+  // Update currentLead when lead changes or refreshLead is called
+  useEffect(() => {
+    setCurrentLead(lead);
+  }, [lead]);
 
   // Reset form when lead changes
   useEffect(() => {
@@ -63,9 +71,18 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
   };
 
   // Handle remark added - refresh data and update parent
-  const handleRemarkAdded = () => {
-    refreshRemarks();
-    refreshLogs();
+  const handleRemarkAdded = async (newRemark: string) => {
+    // First update the current lead's remark in the local state 
+    // to immediately reflect changes in the UI
+    setCurrentLead(prev => ({
+      ...prev,
+      remarks: newRemark
+    }));
+    
+    // Then refresh all data
+    await refreshRemarks();
+    await refreshLogs();
+    await refreshLead(); // This will fetch the latest lead data
     onUpdate(); // Update the main leads list to reflect the new remark
   };
 
@@ -85,7 +102,7 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Lead Details</DialogTitle>
           <DialogDescription>
-            View and modify details for {lead.customer_name}
+            View and modify details for {currentLead.customer_name}
           </DialogDescription>
         </DialogHeader>
         
@@ -110,10 +127,10 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
           
           <TabsContent value="remarks" className="pt-4">
             <RemarksTab 
-              leadId={lead.id}
+              leadId={currentLead.id}
               isLoading={isLoadingRemarks}
               remarks={remarks}
-              currentRemark={lead.remarks}
+              currentRemark={currentLead.remarks}
               onRemarkAdded={handleRemarkAdded}
             />
           </TabsContent>
