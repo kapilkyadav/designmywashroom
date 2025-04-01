@@ -2,7 +2,7 @@
 import { ProjectService } from '@/services/ProjectService';
 import { Project } from '@/lib/supabase';
 import { CalculatorState, EstimateResult } from './types';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 export class EstimateStorage {
   /**
@@ -19,11 +19,6 @@ export class EstimateStorage {
       // Perform strict validation of customer details
       if (!calculatorState.customerDetails) {
         console.error('Customer details object is undefined or null');
-        toast({
-          variant: "destructive",
-          title: "Missing information",
-          description: "Please provide your contact details to continue."
-        });
         throw new Error('MISSING_CUSTOMER_DETAILS');
       }
       
@@ -55,11 +50,6 @@ export class EstimateStorage {
       if (missingFields.length > 0) {
         const errorMessage = `Missing customer details: ${missingFields.join(', ')}`;
         console.error(errorMessage);
-        toast({
-          variant: "destructive",
-          title: "Missing information",
-          description: "Please provide your name and email to continue."
-        });
         throw new Error('MISSING_CUSTOMER_DETAILS');
       }
       
@@ -89,11 +79,6 @@ export class EstimateStorage {
         console.error('Final validation failed. Missing required fields:', {
           name: projectData.client_name,
           email: projectData.client_email
-        });
-        toast({
-          variant: "destructive",
-          title: "Missing information",
-          description: "Please provide your name and email to continue."
         });
         throw new Error('MISSING_CUSTOMER_DETAILS');
       }

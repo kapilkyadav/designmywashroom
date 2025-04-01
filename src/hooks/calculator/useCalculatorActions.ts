@@ -89,6 +89,23 @@ export const useCalculatorActions = (): CalculatorContextType => {
         });
         throw new Error('MISSING_BRAND_SELECTION');
       }
+
+      // Add validation for location and mobile
+      if (!customerDetails.location) {
+        console.error('Missing location. Cannot calculate estimate.');
+        toast.error("Missing location", {
+          description: "Please provide your location to continue."
+        });
+        throw new Error('MISSING_LOCATION');
+      }
+
+      if (!customerDetails.mobile) {
+        console.error('Missing mobile number. Cannot calculate estimate.');
+        toast.error("Missing mobile number", {
+          description: "Please provide your mobile number to continue."
+        });
+        throw new Error('MISSING_MOBILE_NUMBER');
+      }
       
       // Prepare calculator state for API using the latest state and customer details from ref
       const calculatorState = {

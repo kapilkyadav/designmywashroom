@@ -43,30 +43,36 @@ const CustomerDetailsStep = () => {
       mobile: '',
       location: ''
     };
+    let isValid = true;
     
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
+      isValid = false;
     }
     
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
+      isValid = false;
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
+      isValid = false;
     }
     
     if (!formData.mobile.trim()) {
       newErrors.mobile = 'Mobile number is required';
+      isValid = false;
     } else if (!/^[0-9]{10}$/.test(formData.mobile.replace(/[^0-9]/g, ''))) {
       newErrors.mobile = 'Mobile number should have 10 digits';
+      isValid = false;
     }
     
     if (!formData.location.trim()) {
       newErrors.location = 'Location is required';
+      isValid = false;
     }
     
     setErrors(newErrors);
-    
-    return !Object.values(newErrors).some(error => error);
+    return isValid;
   };
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,6 +101,7 @@ const CustomerDetailsStep = () => {
     setGeneralError('');
     
     if (!validateForm()) {
+      console.log("Form validation failed:", errors);
       return;
     }
     
@@ -116,7 +123,7 @@ const CustomerDetailsStep = () => {
       setCustomerDetails(customerDetails);
       
       // Small delay to ensure state is updated
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       try {
         // Try to calculate the estimate
@@ -142,6 +149,16 @@ const CustomerDetailsStep = () => {
           });
           // Go back to the brand selection step
           prevStep();
+        } else if (error.message === 'MISSING_LOCATION') {
+          setGeneralError("Please provide your location to continue.");
+          toast.error("Missing location", {
+            description: "Please provide your location to continue."
+          });
+        } else if (error.message === 'MISSING_MOBILE_NUMBER') {
+          setGeneralError("Please provide your mobile number to continue.");
+          toast.error("Missing mobile number", {
+            description: "Please provide your mobile number to continue."
+          });
         } else if (error.message === 'RATE_LIMITED') {
           setGeneralError("Too many submissions. Please wait a moment before submitting again.");
           toast.error("Too many submissions", {
