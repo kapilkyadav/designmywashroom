@@ -30,7 +30,9 @@ import {
   Calendar,
   PhoneCall,
   Mail,
-  Clock
+  Clock,
+  ArrowDown,
+  ArrowUp
 } from 'lucide-react';
 import { LeadService } from '@/services/LeadService';
 import { format, isToday, isYesterday, isPast, addDays } from 'date-fns';
@@ -231,10 +233,11 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   
   const getSortIcon = (field: string) => {
     if (sortBy !== field) return null;
+    
     return sortDirection === 'asc' ? (
-      <ChevronUp className="h-4 w-4" />
+      <ArrowUp className="h-4 w-4 ml-1" />
     ) : (
-      <ChevronDown className="h-4 w-4" />
+      <ArrowDown className="h-4 w-4 ml-1" />
     );
   };
   

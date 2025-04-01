@@ -42,7 +42,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { 
   Search, FileText, Loader2, Calendar, Download, Trash2, 
   MoreHorizontal, Eye, Edit, CheckSquare, ChevronUp, ChevronDown,
-  AlertCircle
+  AlertCircle, ArrowDown, ArrowUp
 } from 'lucide-react';
 
 const AdminProjects = () => {
@@ -343,12 +343,36 @@ const AdminProjects = () => {
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="oldest">Oldest First</SelectItem>
-              <SelectItem value="highest">Highest Value</SelectItem>
-              <SelectItem value="lowest">Lowest Value</SelectItem>
-              <SelectItem value="name-asc">Name (A-Z)</SelectItem>
-              <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+              <SelectItem value="newest">
+                <div className="flex items-center">
+                  Date <ArrowDown className="ml-1 h-3 w-3" />
+                </div>
+              </SelectItem>
+              <SelectItem value="oldest">
+                <div className="flex items-center">
+                  Date <ArrowUp className="ml-1 h-3 w-3" />
+                </div>
+              </SelectItem>
+              <SelectItem value="highest">
+                <div className="flex items-center">
+                  Value <ArrowDown className="ml-1 h-3 w-3" />
+                </div>
+              </SelectItem>
+              <SelectItem value="lowest">
+                <div className="flex items-center">
+                  Value <ArrowUp className="ml-1 h-3 w-3" />
+                </div>
+              </SelectItem>
+              <SelectItem value="name-asc">
+                <div className="flex items-center">
+                  Name (A-Z) <ArrowUp className="ml-1 h-3 w-3" />
+                </div>
+              </SelectItem>
+              <SelectItem value="name-desc">
+                <div className="flex items-center">
+                  Name (Z-A) <ArrowDown className="ml-1 h-3 w-3" />
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -395,7 +419,14 @@ const AdminProjects = () => {
                   <TableHead>Type</TableHead>
                   <TableHead>Dimensions</TableHead>
                   <TableHead className="text-right">Estimate</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead className={`cursor-pointer ${sortOption === 'newest' || sortOption === 'oldest' ? 'bg-muted/50' : ''}`}
+                    onClick={() => setSortOption(sortOption === 'newest' ? 'oldest' : 'newest')}>
+                    <div className="flex items-center">
+                      Created
+                      {sortOption === 'newest' && <ArrowDown className="ml-1 h-3 w-3" />}
+                      {sortOption === 'oldest' && <ArrowUp className="ml-1 h-3 w-3" />}
+                    </div>
+                  </TableHead>
                   <TableHead className="w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>

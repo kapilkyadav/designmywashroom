@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Dialog, 
@@ -175,6 +174,7 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
                       <SelectValue placeholder="Select budget" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="">Not Specified</SelectItem>
                       <SelectItem value="Low">Low</SelectItem>
                       <SelectItem value="Medium">Medium</SelectItem>
                       <SelectItem value="High">High</SelectItem>
