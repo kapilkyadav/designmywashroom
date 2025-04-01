@@ -1,12 +1,12 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogDescription
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription
+} from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Lead } from '@/services/LeadService';
 import LeadDetailsForm from './components/LeadDetailsForm';
@@ -59,19 +59,6 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     }
   }, [open, lead.id, resetForm]);
 
-  // Handle body scrolling with a more direct approach
-  useEffect(() => {
-    // Store body overflow only when dialog opens
-    if (open) {
-      document.body.style.overflow = 'hidden';
-      
-      // Clean up function to restore scrolling
-      return () => {
-        document.body.style.overflow = '';
-      };
-    }
-  }, [open]);
-
   // Handle remark added - refresh data and update parent
   const handleRemarkAdded = useCallback(async (newRemark: string) => {
     // First update the current lead's remark in the local state 
@@ -89,63 +76,58 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
   }, [refreshRemarks, refreshLogs, refreshLead, onUpdate]);
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent 
-        className="sm:max-w-[700px] overflow-y-auto max-h-[90vh]"
-        onInteractOutside={(e) => {
-          // Prevent clicks from propagating through the dialog
-          e.preventDefault();
-        }}
-        onEscapeKeyDown={() => {
-          // Handle escape key properly
-          handleOpenChange(false);
-        }}
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetContent 
+        side="right"
+        className="w-full sm:w-[600px] overflow-y-auto"
       >
-        <DialogHeader>
-          <DialogTitle>Lead Details</DialogTitle>
-          <DialogDescription>
+        <SheetHeader>
+          <SheetTitle>Lead Details</SheetTitle>
+          <SheetDescription>
             View and modify details for {currentLead.customer_name}
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
         
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full">
-            <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
-            <TabsTrigger value="remarks" className="flex-1">Remarks</TabsTrigger>
-            <TabsTrigger value="activity" className="flex-1">Activity Log</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="details" className="pt-4">
-            <LeadDetailsForm
-              formData={formData}
-              handleChange={handleChange}
-              handleSelectChange={handleSelectChange}
-              handleDateChange={handleDateChange}
-              handleSubmit={handleSubmit}
-              isUpdating={isUpdating}
-              onCancel={() => handleOpenChange(false)}
-            />
-          </TabsContent>
-          
-          <TabsContent value="remarks" className="pt-4">
-            <RemarksTab 
-              leadId={currentLead.id}
-              isLoading={isLoadingRemarks}
-              remarks={remarks}
-              currentRemark={currentLead.remarks}
-              onRemarkAdded={handleRemarkAdded}
-            />
-          </TabsContent>
-          
-          <TabsContent value="activity" className="pt-4">
-            <ActivityLogTab 
-              isLoading={isLoadingLogs} 
-              activityLogs={activityLogs} 
-            />
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+        <div className="py-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="w-full">
+              <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
+              <TabsTrigger value="remarks" className="flex-1">Remarks</TabsTrigger>
+              <TabsTrigger value="activity" className="flex-1">Activity Log</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="details" className="pt-4">
+              <LeadDetailsForm
+                formData={formData}
+                handleChange={handleChange}
+                handleSelectChange={handleSelectChange}
+                handleDateChange={handleDateChange}
+                handleSubmit={handleSubmit}
+                isUpdating={isUpdating}
+                onCancel={() => handleOpenChange(false)}
+              />
+            </TabsContent>
+            
+            <TabsContent value="remarks" className="pt-4">
+              <RemarksTab 
+                leadId={currentLead.id}
+                isLoading={isLoadingRemarks}
+                remarks={remarks}
+                currentRemark={currentLead.remarks}
+                onRemarkAdded={handleRemarkAdded}
+              />
+            </TabsContent>
+            
+            <TabsContent value="activity" className="pt-4">
+              <ActivityLogTab 
+                isLoading={isLoadingLogs} 
+                activityLogs={activityLogs} 
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 

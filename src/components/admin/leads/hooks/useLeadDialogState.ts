@@ -7,24 +7,17 @@ export const useLeadDialogState = (
 ) => {
   const [activeTab, setActiveTab] = useState("details");
   
-  // Reset state when dialog opens/closes
+  // Reset tab state when dialog closes
   useEffect(() => {
     if (!initialOpen) {
       setActiveTab("details");
     }
   }, [initialOpen]);
 
-  // Handle dialog state changes internally before notifying parent
+  // Handle dialog state changes
   const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
-      // First reset local state
-      setActiveTab("details");
-      
-      // Then notify parent immediately - no timeouts
-      onOpenChange(false);
-    } else {
-      onOpenChange(true);
-    }
+    // Always notify parent component of changes immediately
+    onOpenChange(newOpen);
   };
 
   return {
