@@ -57,21 +57,17 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     if (open) {
       resetForm();
     }
-  }, [open, lead.id]);
+  }, [open, lead.id, resetForm]);
 
-  // Handle body scrolling - IMPROVED IMPLEMENTATION
+  // Handle body scrolling with a more direct approach
   useEffect(() => {
+    // Store body overflow only when dialog opens
     if (open) {
-      // Store original body overflow and apply 'hidden'
-      const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       
-      // Cleanup function to reset body overflow
+      // Clean up function to restore scrolling
       return () => {
-        // Small delay to ensure dialog animation completes
-        setTimeout(() => {
-          document.body.style.overflow = originalOverflow;
-        }, 100);
+        document.body.style.overflow = '';
       };
     }
   }, [open]);
@@ -92,17 +88,8 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     onUpdate(); // Update the main leads list to reflect the new remark
   }, [refreshRemarks, refreshLogs, refreshLead, onUpdate]);
 
-  // Handle dialog state changes - with improved cleanup
-  const handleDialogOpenChange = useCallback((newOpen: boolean) => {
-    if (!newOpen) {
-      // Make sure to reset state before closing
-      setActiveTab("details");
-    }
-    handleOpenChange(newOpen);
-  }, [handleOpenChange]);
-
   return (
-    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent 
         className="sm:max-w-[700px] overflow-y-auto max-h-[90vh]"
         onInteractOutside={(e) => {
@@ -111,7 +98,7 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
         }}
         onEscapeKeyDown={() => {
           // Handle escape key properly
-          handleDialogOpenChange(false);
+          handleOpenChange(false);
         }}
       >
         <DialogHeader>
@@ -121,7 +108,7 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full">
             <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
             <TabsTrigger value="remarks" className="flex-1">Remarks</TabsTrigger>
@@ -136,7 +123,7 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
               handleDateChange={handleDateChange}
               handleSubmit={handleSubmit}
               isUpdating={isUpdating}
-              onCancel={() => handleDialogOpenChange(false)}
+              onCancel={() => handleOpenChange(false)}
             />
           </TabsContent>
           

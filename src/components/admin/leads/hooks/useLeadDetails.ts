@@ -21,8 +21,24 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
       setActivityLogs([]);
       setRemarks([]);
       setLead(null);
+      setIsLoadingLogs(false);
+      setIsLoadingRemarks(false);
+      setIsLoadingLead(false);
     };
   }, []);
+
+  // Clear states when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Clear states when dialog closes
+      setActivityLogs([]);
+      setRemarks([]);
+      setLead(null);
+      setIsLoadingLogs(false);
+      setIsLoadingRemarks(false);
+      setIsLoadingLead(false);
+    }
+  }, [isOpen]);
 
   const fetchActivityLogs = async () => {
     if (!isOpen || !leadId || !isMounted.current) return; // Don't fetch if dialog is closed or no leadId
@@ -77,18 +93,6 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
       }
     }
   };
-
-  // Reset states when dialog closes
-  useEffect(() => {
-    if (!isOpen) {
-      setActivityLogs([]);
-      setRemarks([]);
-      setLead(null);
-      setIsLoadingLogs(false);
-      setIsLoadingRemarks(false);
-      setIsLoadingLead(false);
-    }
-  }, [isOpen]);
 
   // Fetch data when dialog is opened or lead ID changes
   useEffect(() => {
