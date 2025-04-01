@@ -119,29 +119,6 @@ export class EstimateStorage {
           } catch (dbError: any) {
             console.error(`Database error (attempt ${4 - retries}/3):`, dbError);
             lastError = dbError;
-            
-            // Check if error is related to RLS or permissions
-            if (dbError.message?.includes('row-level security') || 
-                dbError.code === 'PGRST301' || 
-                dbError.code === 'PGRST116') {
-              console.warn('Row-level security policy violation, proceeding with local storage only');
-              
-              // Display success even though we're only saving locally
-              toast.success("Estimate calculated successfully", {
-                description: "Your estimate is available below."
-              });
-              
-              // Create a mock project with a client-side generated ID
-              const mockProject: Project = {
-                id: `local-${Date.now()}`,
-                ...projectData,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              };
-              
-              return mockProject;
-            }
-            
             retries--;
             if (retries > 0) {
               // Wait before retrying (exponential backoff)
@@ -153,33 +130,15 @@ export class EstimateStorage {
         // If we get here, all retries failed
         console.error('All database retry attempts failed');
         toast.error("Database Connection Error", {
-          description: "There was a problem connecting to our database. Your estimate is available below."
+          description: "There was a problem connecting to our database. Please try again later."
         });
-        
-        // Return a mock project with a client-side generated ID
-        const mockProject: Project = {
-          id: `local-${Date.now()}`,
-          ...projectData,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        
-        return mockProject;
+        throw lastError || new Error('DATABASE_ERROR');
       } catch (dbError: any) {
         console.error('Database error when creating project:', dbError);
-        toast.warning("Connection Issue", {
-          description: "Your estimate was calculated but couldn't be saved online."
+        toast.error("Database Error", {
+          description: "There was a problem saving your estimate. Please try again."
         });
-        
-        // Return a mock project with a client-side generated ID
-        const mockProject: Project = {
-          id: `local-${Date.now()}`,
-          ...projectData,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        
-        return mockProject;
+        throw new Error('DATABASE_ERROR');
       }
     } catch (error) {
       console.error('Error saving estimate:', error);
