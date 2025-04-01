@@ -7,7 +7,7 @@ const Footer = () => {
   return (
     <footer className="bg-primary text-primary-foreground pt-16 pb-8">
       <div className="container mx-auto px-6 md:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* Company Info */}
           <div className="space-y-4">
             <h3 className="text-xl font-semibold tracking-tight">Design Your Dream Space</h3>
@@ -36,32 +36,6 @@ const Footer = () => {
                 </svg>
               </SocialIcon>
             </div>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h3 className="text-lg font-semibold mb-6">Quick Links</h3>
-            <ul className="space-y-3">
-              <FooterLink to="/" label="Home" />
-              <FooterLink to="/calculator" label="Washroom Calculator" />
-              <FooterLink to="/about" label="About Us" />
-              <FooterLink to="/contact" label="Contact" />
-              <FooterLink to="/privacy" label="Privacy Policy" />
-              <FooterLink to="/terms" label="Terms of Service" />
-            </ul>
-          </div>
-
-          {/* Services */}
-          <div>
-            <h3 className="text-lg font-semibold mb-6">Our Services</h3>
-            <ul className="space-y-3">
-              <FooterLink to="/services/new-construction" label="New Construction" />
-              <FooterLink to="/services/renovation" label="Renovation" />
-              <FooterLink to="/services/consultation" label="Design Consultation" />
-              <FooterLink to="/services/fixture-installation" label="Fixture Installation" />
-              <FooterLink to="/services/plumbing" label="Plumbing Services" />
-              <FooterLink to="/portfolio" label="Our Portfolio" />
-            </ul>
           </div>
 
           {/* Contact */}
