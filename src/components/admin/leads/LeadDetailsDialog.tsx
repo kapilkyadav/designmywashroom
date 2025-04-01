@@ -35,15 +35,21 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [isLoadingRemarks, setIsLoadingRemarks] = useState(false);
   
-  // Fetch activity logs and remarks when the dialog opens
+  // Reset form data when lead changes or dialog opens/closes
   useEffect(() => {
     if (open) {
+      setFormData({ ...lead });
       fetchActivityLogs();
       fetchRemarks();
+    } else {
+      // Reset state when dialog closes
+      setActiveTab("details");
     }
   }, [open, lead.id]);
   
   const fetchActivityLogs = async () => {
+    if (!open) return; // Don't fetch if dialog is closed
+    
     setIsLoadingLogs(true);
     try {
       const logs = await LeadService.getActivityLogs(lead.id);
@@ -56,6 +62,8 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
   };
   
   const fetchRemarks = async () => {
+    if (!open) return; // Don't fetch if dialog is closed
+    
     setIsLoadingRemarks(true);
     try {
       const remarkData = await LeadService.getRemarks(lead.id);
@@ -110,8 +118,20 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     }
   };
 
+  // Handle dialog state changes internally before notifying parent
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      // First reset local state
+      setActiveTab("details");
+      // Then notify parent
+      onOpenChange(false);
+    } else {
+      onOpenChange(true);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>Lead Details</DialogTitle>
@@ -132,7 +152,7 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
               handleDateChange={handleDateChange}
               handleSubmit={handleSubmit}
               isUpdating={isUpdating}
-              onCancel={() => onOpenChange(false)}
+              onCancel={() => handleOpenChange(false)}
             />
           </TabsContent>
           
