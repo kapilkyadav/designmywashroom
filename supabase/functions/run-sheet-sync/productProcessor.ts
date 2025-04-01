@@ -1,5 +1,5 @@
 
-import { createDefaultMapping, mapRowToProduct, addUnmappedColumnsToExtraData } from './utils';
+import { createDefaultMapping, mapRowToProduct, addUnmappedColumnsToExtraData } from './utils.ts';
 
 export async function processSheetProducts(
   sheetData: any,
