@@ -119,6 +119,9 @@ export const useCalculatorActions = (): CalculatorContextType => {
       try {
         await CalculatorService.saveEstimate(calculatorState, estimateResult);
         console.log('Estimate saved successfully to database');
+        toast.success("Estimate calculated", {
+          description: "Your washroom estimate has been calculated successfully."
+        });
       } catch (error: any) {
         console.error('Error saving estimate to database:', error);
         if (error.message === 'MISSING_CUSTOMER_DETAILS') {
@@ -134,7 +137,7 @@ export const useCalculatorActions = (): CalculatorContextType => {
         } else {
           // For other errors, show warning but continue
           console.warn('Estimate calculated but not saved to database:', error);
-          toast("Warning", {
+          toast.warning("Warning", {
             description: "Your estimate was calculated but couldn't be saved. You can still view it."
           });
         }

@@ -5,7 +5,7 @@ import CalculatorForm from '@/components/calculator/CalculatorForm';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Separator } from '@/components/ui/separator';
-import { Toaster } from '@/components/ui/sonner';
+import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const Calculator = () => {

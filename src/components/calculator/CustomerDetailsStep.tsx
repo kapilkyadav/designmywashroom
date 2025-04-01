@@ -116,7 +116,7 @@ const CustomerDetailsStep = () => {
       setCustomerDetails(customerDetails);
       
       // Small delay to ensure state is updated
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       try {
         // Try to calculate the estimate
@@ -126,10 +126,6 @@ const CustomerDetailsStep = () => {
         
         // Move to the next step
         nextStep();
-        
-        toast.success("Estimate calculated successfully", {
-          description: "Your washroom renovation estimate is ready.",
-        });
       } catch (error: any) {
         console.error('Error calculating estimate:', error);
         
@@ -137,17 +133,24 @@ const CustomerDetailsStep = () => {
         if (error.message === 'MISSING_CUSTOMER_DETAILS') {
           setGeneralError("Please provide your name and email to continue.");
           toast.error("Missing information", {
-            description: "Please provide your name and email to continue.",
+            description: "Please provide your name and email to continue."
           });
+        } else if (error.message === 'MISSING_BRAND_SELECTION') {
+          setGeneralError("Please select a brand to continue.");
+          toast.error("Missing brand selection", {
+            description: "Please select a brand to continue."
+          });
+          // Go back to the brand selection step
+          prevStep();
         } else if (error.message === 'RATE_LIMITED') {
           setGeneralError("Too many submissions. Please wait a moment before submitting again.");
           toast.error("Too many submissions", {
-            description: "Please wait a moment before submitting again.",
+            description: "Please wait a moment before submitting again."
           });
         } else {
           setGeneralError("There was an unexpected error. Please try again.");
           toast.error("Error calculating estimate", {
-            description: "There was an unexpected error. Please try again.",
+            description: "There was an unexpected error. Please try again."
           });
         }
       }
@@ -155,7 +158,7 @@ const CustomerDetailsStep = () => {
       console.error('Error in form submission:', error);
       setGeneralError("Unable to process your request. Please try again later.");
       toast.error("Error submitting form", {
-        description: "Please try again later.",
+        description: "Please try again later."
       });
     } finally {
       setIsSubmitting(false);
