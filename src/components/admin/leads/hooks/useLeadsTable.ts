@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Lead, LeadService } from '@/services/LeadService';
 import { useToast } from '@/hooks/use-toast';
@@ -103,14 +102,6 @@ export const useLeadsTable = (onRefresh: () => void) => {
     if (!budget || budget === 'not_specified') return '—';
     return budget;
   };
-  
-  const handleDetailsDialogClose = () => {
-    setIsDetailsDialogOpen(false);
-    // Reset selected lead after animation completes
-    setTimeout(() => {
-      setSelectedLead(null);
-    }, 300);
-  };
 
   return {
     selectedLead,
@@ -125,6 +116,6 @@ export const useLeadsTable = (onRefresh: () => void) => {
     scheduleFollowUp,
     getBudgetDisplay,
     setIsDeleteDialogOpen,
-    setIsDetailsDialogOpen: handleDetailsDialogClose
+    setIsDetailsDialogOpen
   };
 };
