@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -5,7 +6,8 @@ import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/hooks/useTheme';
-import { LayoutDashboard, Package, ShowerHead, Settings, LogOut, Sun, Moon, Menu, X, BarChart, ClipboardList, UserRound, Phone } from 'lucide-react';
+import { LayoutDashboard, Package, ShowerHead, Settings, LogOut, Sun, Moon, Menu, X, BarChart, ClipboardList, UserRound, Phone, FileCheck } from 'lucide-react';
+
 const AdminSidebar = () => {
   const location = useLocation();
   const {
@@ -16,47 +18,66 @@ const AdminSidebar = () => {
     setTheme
   } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
+  
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
+  
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
   };
+  
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
-  const navigationItems = [{
-    name: 'Dashboard',
-    href: '/admin/dashboard',
-    icon: <LayoutDashboard className="h-5 w-5" />
-  }, {
-    name: 'Leads',
-    href: '/admin/leads',
-    icon: <UserRound className="h-5 w-5" />
-  }, {
-    name: 'Project Estimates',
-    href: '/admin/projects',
-    icon: <ClipboardList className="h-5 w-5" />
-  }, {
-    name: 'Brands',
-    href: '/admin/brands',
-    icon: <BarChart className="h-5 w-5" />
-  }, {
-    name: 'Products',
-    href: '/admin/products',
-    icon: <Package className="h-5 w-5" />
-  }, {
-    name: 'Fixtures',
-    href: '/admin/fixtures',
-    icon: <ShowerHead className="h-5 w-5" />
-  }, {
-    name: 'Settings',
-    href: '/admin/settings',
-    icon: <Settings className="h-5 w-5" />
-  }];
+  
+  const navigationItems = [
+    {
+      name: 'Dashboard',
+      href: '/admin/dashboard',
+      icon: <LayoutDashboard className="h-5 w-5" />
+    }, 
+    {
+      name: 'Leads',
+      href: '/admin/leads',
+      icon: <UserRound className="h-5 w-5" />
+    }, 
+    {
+      name: 'Project Estimates',
+      href: '/admin/projects',
+      icon: <ClipboardList className="h-5 w-5" />
+    }, 
+    {
+      name: 'Real Projects',
+      href: '/admin/real-projects',
+      icon: <FileCheck className="h-5 w-5" />
+    }, 
+    {
+      name: 'Brands',
+      href: '/admin/brands',
+      icon: <BarChart className="h-5 w-5" />
+    }, 
+    {
+      name: 'Products',
+      href: '/admin/products',
+      icon: <Package className="h-5 w-5" />
+    }, 
+    {
+      name: 'Fixtures',
+      href: '/admin/fixtures',
+      icon: <ShowerHead className="h-5 w-5" />
+    }, 
+    {
+      name: 'Settings',
+      href: '/admin/settings',
+      icon: <Settings className="h-5 w-5" />
+    }
+  ];
+
   const sidebarContent = <>
       <div className="px-3 py-4">
         <Link to="/" className="flex items-center px-3 py-2 mb-6">
@@ -85,6 +106,7 @@ const AdminSidebar = () => {
         </div>
       </div>
     </>;
+    
   return <>
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
@@ -106,4 +128,5 @@ const AdminSidebar = () => {
       </div>
     </>;
 };
+
 export default AdminSidebar;

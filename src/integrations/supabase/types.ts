@@ -316,6 +316,44 @@ export type Database = {
           },
         ]
       }
+      project_quotations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          project_id: string
+          quotation_data: Json
+          quotation_html: string | null
+          quotation_number: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          project_id: string
+          quotation_data: Json
+          quotation_html?: string | null
+          quotation_number: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          project_id?: string
+          quotation_data?: Json
+          quotation_html?: string | null
+          quotation_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_quotations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "real_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           client_email: string
@@ -379,6 +417,108 @@ export type Database = {
         }
         Relationships: []
       }
+      real_projects: {
+        Row: {
+          additional_costs: Json | null
+          client_email: string | null
+          client_location: string | null
+          client_mobile: string
+          client_name: string
+          converted_at: string
+          created_at: string
+          execution_costs: Json | null
+          final_quotation_amount: number | null
+          height: number | null
+          id: string
+          internal_notes: string | null
+          last_updated_at: string
+          lead_id: string | null
+          length: number | null
+          original_estimate: number | null
+          project_details: Json
+          project_estimate_id: string | null
+          project_id: string
+          project_type: string
+          quotation_generated_at: string | null
+          selected_brand: string | null
+          selected_fixtures: Json | null
+          status: string
+          vendor_rates: Json | null
+          width: number | null
+        }
+        Insert: {
+          additional_costs?: Json | null
+          client_email?: string | null
+          client_location?: string | null
+          client_mobile: string
+          client_name: string
+          converted_at?: string
+          created_at?: string
+          execution_costs?: Json | null
+          final_quotation_amount?: number | null
+          height?: number | null
+          id?: string
+          internal_notes?: string | null
+          last_updated_at?: string
+          lead_id?: string | null
+          length?: number | null
+          original_estimate?: number | null
+          project_details?: Json
+          project_estimate_id?: string | null
+          project_id: string
+          project_type: string
+          quotation_generated_at?: string | null
+          selected_brand?: string | null
+          selected_fixtures?: Json | null
+          status?: string
+          vendor_rates?: Json | null
+          width?: number | null
+        }
+        Update: {
+          additional_costs?: Json | null
+          client_email?: string | null
+          client_location?: string | null
+          client_mobile?: string
+          client_name?: string
+          converted_at?: string
+          created_at?: string
+          execution_costs?: Json | null
+          final_quotation_amount?: number | null
+          height?: number | null
+          id?: string
+          internal_notes?: string | null
+          last_updated_at?: string
+          lead_id?: string | null
+          length?: number | null
+          original_estimate?: number | null
+          project_details?: Json
+          project_estimate_id?: string | null
+          project_id?: string
+          project_type?: string
+          quotation_generated_at?: string | null
+          selected_brand?: string | null
+          selected_fixtures?: Json | null
+          status?: string
+          vendor_rates?: Json | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "real_projects_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "real_projects_project_estimate_id_fkey"
+            columns: ["project_estimate_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       settings: {
         Row: {
           breakage_percentage: number
@@ -438,7 +578,17 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      convertible_records: {
+        Row: {
+          client_name: string | null
+          created_date: string | null
+          real_project_id: string | null
+          record_id: string | null
+          record_type: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

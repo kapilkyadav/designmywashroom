@@ -1,71 +1,81 @@
 
-import React, { useState } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ThemeProvider } from "@/hooks/useTheme";
-import { AdminAuthProvider } from "@/hooks/useAdminAuth";
-import { CalculatorProvider } from "@/hooks/calculator";
-import Index from "./pages/Index";
-import Calculator from "./pages/Calculator";
-import NotFound from "./pages/NotFound";
-import Admin from "./pages/Admin";
-import AdminLogin from "./pages/AdminLogin";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminBrands from "./pages/AdminBrands";
-import AdminBrandAdd from "./pages/AdminBrandAdd";
-import AdminProducts from "./pages/AdminProducts";
-import AdminFixtures from "./pages/AdminFixtures";
-import AdminSettings from "./pages/AdminSettings";
-import AdminProjectDetail from "./pages/AdminProjectDetail";
-import AdminProjectEdit from "./pages/AdminProjectEdit";
-import AdminProjects from "./pages/AdminProjects";
-import AdminLeads from "./pages/AdminLeads";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from '@/hooks/useTheme';
+import { Toaster } from '@/components/ui/toaster';
 
-const App = () => {
-  const [queryClient] = useState(() => new QueryClient());
+import Index from './pages/Index';
+import Calculator from './pages/Calculator';
+import NotFound from './pages/NotFound';
 
+import Admin from './pages/Admin';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminBrands from './pages/AdminBrands';
+import AdminBrandAdd from './pages/AdminBrandAdd';
+import AdminProducts from './pages/AdminProducts';
+import AdminFixtures from './pages/AdminFixtures';
+import AdminProjects from './pages/AdminProjects';
+import AdminProjectEdit from './pages/AdminProjectEdit';
+import AdminProjectDetail from './pages/AdminProjectDetail';
+import AdminSettings from './pages/AdminSettings';
+import AdminLogin from './pages/AdminLogin';
+import AdminLeads from './pages/AdminLeads';
+
+// New Real Projects routes
+import AdminRealProjects from './pages/AdminRealProjects';
+import AdminRealProjectDetail from './pages/AdminRealProjectDetail';
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AdminAuthProvider>
-          <CalculatorProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/calculator" element={<Calculator />} />
-                  
-                  {/* Admin Routes */}
-                  <Route path="/admin/login" element={<AdminLogin />} />
-                  <Route path="/admin" element={<Admin />}>
-                    <Route path="dashboard" element={<AdminDashboard />} />
-                    <Route path="brands" element={<AdminBrands />} />
-                    <Route path="brands/add" element={<AdminBrandAdd />} />
-                    <Route path="products" element={<AdminProducts />} />
-                    <Route path="fixtures" element={<AdminFixtures />} />
-                    <Route path="settings" element={<AdminSettings />} />
-                    <Route path="leads" element={<AdminLeads />} />
-                    <Route index element={<AdminDashboard />} />
-                    <Route path="projects" element={<AdminProjects />} />
-                    <Route path="projects/detail/:id" element={<AdminProjectDetail />} />
-                    <Route path="projects/edit/:id" element={<AdminProjectEdit />} />
-                  </Route>
-                  
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </CalculatorProvider>
-        </AdminAuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ThemeProvider defaultTheme="dark" storageKey="app-theme">
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/calculator" element={<Calculator />} />
+
+            {/* Admin routes */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+
+            <Route path="/admin" element={<Admin />}>
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="brands" element={<AdminBrands />} />
+              <Route path="brands/add" element={<AdminBrandAdd />} />
+              <Route path="products" element={<AdminProducts />} />
+              <Route path="fixtures" element={<AdminFixtures />} />
+              
+              <Route path="projects" element={<AdminProjects />} />
+              <Route path="projects/:id/edit" element={<AdminProjectEdit />} />
+              <Route path="projects/:id" element={<AdminProjectDetail />} />
+              
+              {/* Real Projects routes */}
+              <Route path="real-projects" element={<AdminRealProjects />} />
+              <Route path="real-projects/:id" element={<AdminRealProjectDetail />} />
+              
+              <Route path="settings" element={<AdminSettings />} />
+              <Route path="leads" element={<AdminLeads />} />
+            </Route>
+
+            {/* Not Found */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+
+          <Toaster />
+        </Router>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
-};
+}
 
 export default App;
