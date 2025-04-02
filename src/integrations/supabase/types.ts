@@ -45,6 +45,39 @@ export type Database = {
         }
         Relationships: []
       }
+      execution_services: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          pricing_type: string
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          pricing_type?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          pricing_type?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fixtures: {
         Row: {
           category: string
@@ -354,6 +387,53 @@ export type Database = {
           },
         ]
       }
+      project_washrooms: {
+        Row: {
+          area: number | null
+          created_at: string
+          height: number
+          id: string
+          length: number
+          name: string
+          project_id: string
+          services: Json | null
+          updated_at: string
+          width: number
+        }
+        Insert: {
+          area?: number | null
+          created_at?: string
+          height?: number
+          id?: string
+          length: number
+          name: string
+          project_id: string
+          services?: Json | null
+          updated_at?: string
+          width: number
+        }
+        Update: {
+          area?: number | null
+          created_at?: string
+          height?: number
+          id?: string
+          length?: number
+          name?: string
+          project_id?: string
+          services?: Json | null
+          updated_at?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_washrooms_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "real_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           client_email: string
@@ -444,6 +524,7 @@ export type Database = {
           selected_fixtures: Json | null
           status: string
           vendor_rates: Json | null
+          washroom_count: number | null
           width: number | null
         }
         Insert: {
@@ -472,6 +553,7 @@ export type Database = {
           selected_fixtures?: Json | null
           status?: string
           vendor_rates?: Json | null
+          washroom_count?: number | null
           width?: number | null
         }
         Update: {
@@ -500,6 +582,7 @@ export type Database = {
           selected_fixtures?: Json | null
           status?: string
           vendor_rates?: Json | null
+          washroom_count?: number | null
           width?: number | null
         }
         Relationships: [
