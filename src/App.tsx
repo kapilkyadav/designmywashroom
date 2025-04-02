@@ -21,6 +21,7 @@ import AdminProjectDetail from './pages/AdminProjectDetail';
 import AdminSettings from './pages/AdminSettings';
 import AdminLogin from './pages/AdminLogin';
 import AdminLeads from './pages/AdminLeads';
+import AdminExecutionServices from './pages/AdminExecutionServices';
 
 // New Real Projects routes
 import AdminRealProjects from './pages/AdminRealProjects';
@@ -59,6 +60,7 @@ function App() {
               <Route path="brands/add" element={<AdminBrandAdd />} />
               <Route path="products" element={<AdminProducts />} />
               <Route path="fixtures" element={<AdminFixtures />} />
+              <Route path="execution-services" element={<AdminExecutionServices />} />
               
               <Route path="projects" element={<AdminProjects />} />
               <Route path="projects/:id/edit" element={<AdminProjectEdit />} />

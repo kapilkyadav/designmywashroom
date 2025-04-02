@@ -1,11 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { RealProject } from '@/services/RealProjectService';
+import { RealProject, RealProjectService } from '@/services/RealProjectService';
 import ProjectDetailsTab from '@/components/admin/real-projects/ProjectDetailsTab';
 import CostingTab from '@/components/admin/real-projects/costing/CostingTab';
 import QuotationsTab from '@/components/admin/real-projects/QuotationsTab';
+import WashroomsTab from '@/components/admin/real-projects/washrooms/WashroomsTab';
+import ExecutionTab from '@/components/admin/real-projects/costing/ExecutionTab';
+import { useQuery } from '@tanstack/react-query';
 
 interface ProjectDetailTabsProps {
   project: RealProject;
@@ -19,12 +22,19 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
   defaultTab = "details" 
 }) => {
   const [activeTab, setActiveTab] = useState(defaultTab);
+  
+  const { data: services = [] } = useQuery({
+    queryKey: ['execution-services'],
+    queryFn: () => RealProjectService.getExecutionServices(),
+  });
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="mb-4">
         <TabsTrigger value="details">Project Details</TabsTrigger>
-        <TabsTrigger value="costing">Costing & Rates</TabsTrigger>
+        <TabsTrigger value="washrooms">Washrooms</TabsTrigger>
+        <TabsTrigger value="execution">Execution Services</TabsTrigger>
+        <TabsTrigger value="costing">Vendor Rates</TabsTrigger>
         <TabsTrigger value="quotations">Quotations</TabsTrigger>
       </TabsList>
       
@@ -40,11 +50,35 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
         </Card>
       </TabsContent>
       
+      <TabsContent value="washrooms">
+        <Card>
+          <CardHeader>
+            <CardTitle>Project Washrooms</CardTitle>
+            <CardDescription>Manage washroom details and dimensions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <WashroomsTab project={project} services={services} onUpdate={onUpdate} />
+          </CardContent>
+        </Card>
+      </TabsContent>
+      
+      <TabsContent value="execution">
+        <Card>
+          <CardHeader>
+            <CardTitle>Execution Services</CardTitle>
+            <CardDescription>Manage execution costs and services</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ExecutionTab project={project} onUpdate={onUpdate} />
+          </CardContent>
+        </Card>
+      </TabsContent>
+      
       <TabsContent value="costing">
         <Card>
           <CardHeader>
-            <CardTitle>Costing & Rates</CardTitle>
-            <CardDescription>Manage project costs, execution rates and additional fees</CardDescription>
+            <CardTitle>Vendor Rates</CardTitle>
+            <CardDescription>Manage vendor rates and additional costs</CardDescription>
           </CardHeader>
           <CardContent>
             <CostingTab project={project} onUpdate={onUpdate} />

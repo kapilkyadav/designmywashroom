@@ -1,108 +1,119 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RealProject, RealProjectService, ProjectQuotation } from '@/services/RealProjectService';
+import { toast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 export const useQuotations = (project: RealProject, onUpdate: () => void) => {
-  const [isGeneratingQuote, setIsGeneratingQuote] = useState(false);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+  const [isGeneratingQuote, setIsGeneratingQuote] = useState(false);
   const [viewQuotationHtml, setViewQuotationHtml] = useState<string | null>(null);
   const [quotationTerms, setQuotationTerms] = useState<string>(
-    "1. This quotation is valid for 30 days.\n2. 50% advance required to start work.\n3. Project timeline will be finalized upon confirmation.\n4. Material specifications as per the quotation only."
+    'Standard terms and conditions apply. 50% advance payment required to start work. ' +
+    'This quotation is valid for 30 days from the date of issue.'
   );
   
-  const { data: quotations, isLoading, refetch } = useQuery({
+  const { data: quotations = [], isLoading, refetch } = useQuery({
     queryKey: ['project-quotations', project.id],
     queryFn: () => RealProjectService.getProjectQuotations(project.id),
+    enabled: !!project.id,
   });
   
   const handleGenerateQuotation = async () => {
-    setIsGeneratingQuote(true);
-    
     try {
-      // Calculate totals
-      const executionTotal = Object.values(project.execution_costs || {}).reduce((sum, item: any) => sum + item.amount, 0);
-      const vendorTotal = Object.values(project.vendor_rates || {}).reduce((sum, item: any) => sum + item.amount, 0);
-      const additionalTotal = Object.values(project.additional_costs || {}).reduce((sum, item: any) => sum + item.amount, 0);
+      setIsGeneratingQuote(true);
       
-      // Create the items for the quotation
-      const quotationItems = [
-        {
-          name: "Project Base Estimate",
-          description: `${project.project_type} for ${project.length || 0} x ${project.width || 0} sqft`,
-          amount: project.original_estimate || 0
-        }
-      ];
-      
-      // Add grouped costs
-      if (executionTotal > 0) {
-        quotationItems.push({
-          name: "Execution & Labor",
-          description: "Project execution and labor charges",
-          amount: executionTotal
-        });
+      // Get quotation data from the dialog
+      const quotationData = (window as any).currentQuotationData;
+      if (!quotationData) {
+        throw new Error('Quotation data not found');
       }
       
-      if (vendorTotal > 0) {
-        quotationItems.push({
-          name: "Materials",
-          description: "Materials and vendor supplies",
-          amount: vendorTotal
-        });
-      }
-      
-      if (additionalTotal > 0) {
-        quotationItems.push({
-          name: "Additional Items",
-          description: "Additional costs and services",
-          amount: additionalTotal
-        });
-      }
-      
-      const quotationData = {
-        items: quotationItems,
-        totalAmount: (project.original_estimate || 0) + executionTotal + vendorTotal + additionalTotal,
-        terms: quotationTerms
-      };
-      
-      const result = await RealProjectService.generateQuotation(project.id, quotationData);
+      const result = await RealProjectService.generateQuotation(
+        project.id, 
+        quotationData
+      );
       
       if (result.success) {
-        // Update the project status to Quoted if it was In Progress
-        if (project.status === 'In Progress') {
-          await RealProjectService.updateRealProject(project.id, { status: 'Quoted' });
-        }
+        setIsQuoteDialogOpen(false);
+        toast({
+          title: 'Quotation Generated',
+          description: 'Your quotation has been successfully generated',
+        });
         
-        // Refresh the quotations list
         refetch();
         onUpdate();
+      } else {
+        throw new Error('Failed to generate quotation');
       }
+    } catch (error: any) {
+      console.error('Error generating quotation:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to generate quotation',
+        variant: 'destructive',
+      });
     } finally {
       setIsGeneratingQuote(false);
-      setIsQuoteDialogOpen(false);
     }
   };
   
   const viewQuotation = async (quotationId: string) => {
-    const quotation = await RealProjectService.getQuotation(quotationId);
-    if (quotation && quotation.quotation_html) {
-      setViewQuotationHtml(quotation.quotation_html);
+    try {
+      const quotation = await RealProjectService.getQuotation(quotationId);
+      if (quotation && quotation.quotation_html) {
+        setViewQuotationHtml(quotation.quotation_html);
+      } else {
+        throw new Error('Quotation HTML not found');
+      }
+    } catch (error: any) {
+      console.error('Error viewing quotation:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to view quotation',
+        variant: 'destructive',
+      });
     }
   };
   
-  // Function to handle download as PDF
-  const downloadAsPdf = (html: string, filename: string) => {
-    // In a real app, you'd send this HTML to a server to convert to PDF
-    // For now, we'll just open it in a new window
-    const newWindow = window.open("", "_blank");
-    if (newWindow) {
-      newWindow.document.write(html);
-      newWindow.document.close();
-      // In a real app, you'd trigger the print dialog or download
-      // newWindow.print();
+  const downloadAsPdf = async (quotationId: string) => {
+    try {
+      const quotation = await RealProjectService.getQuotation(quotationId);
+      
+      if (!quotation || !quotation.quotation_html) {
+        throw new Error('Quotation not found');
+      }
+      
+      // Create a blob from the HTML content
+      const blob = new Blob([quotation.quotation_html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create a link to download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Quotation_${quotation.quotation_number}.html`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: 'Download Started',
+        description: 'Your quotation download has started',
+      });
+    } catch (error: any) {
+      console.error('Error downloading quotation:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to download quotation',
+        variant: 'destructive',
+      });
     }
   };
-
+  
   return {
     quotations,
     isLoading,

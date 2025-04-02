@@ -30,14 +30,26 @@ export interface RealProject {
   quotation_generated_at: string | null;
   last_updated_at: string;
   created_at: string;
+  washrooms: Washroom[];
 
   // Add a helper method to update costs more cleanly
   updateCosts: (data: {
     execution_costs: Record<string, any>;
     vendor_rates: Record<string, any>;
     additional_costs: Record<string, any>;
+    washrooms: Washroom[];
     final_quotation_amount: number;
   }) => Promise<boolean>;
+}
+
+export interface Washroom {
+  id: string;
+  name: string;
+  length: number;
+  width: number;
+  height: number;
+  area: number;
+  services: Record<string, boolean>;
 }
 
 export interface RealProjectFilter {
@@ -129,15 +141,33 @@ export const RealProjectService = {
   // Get a single real project by ID
   async getRealProject(id: string): Promise<RealProject | null> {
     try {
-      const { data, error } = await supabase
+      // First, get the main project data
+      const { data: projectData, error: projectError } = await supabase
         .from('real_projects')
         .select('*')
         .eq('id', id)
         .single();
       
-      if (error) throw error;
+      if (projectError) throw projectError;
       
-      return data ? RealProjectService.extendRealProject(data as RealProject) : null;
+      if (!projectData) return null;
+      
+      // Next, get the washrooms for this project
+      const { data: washroomsData, error: washroomsError } = await supabase
+        .from('project_washrooms')
+        .select('*')
+        .eq('project_id', id)
+        .order('created_at', { ascending: true });
+      
+      if (washroomsError) throw washroomsError;
+      
+      // Combine project and washrooms
+      const project = {
+        ...projectData,
+        washrooms: washroomsData || []
+      } as RealProject;
+      
+      return RealProjectService.extendRealProject(project);
     } catch (error: any) {
       console.error('Error fetching real project:', error);
       toast({
@@ -152,12 +182,37 @@ export const RealProjectService = {
   // Update a real project
   async updateRealProject(id: string, project: Partial<RealProject>): Promise<boolean> {
     try {
-      const { error } = await supabase
+      // Extract washrooms to handle separately
+      const { washrooms, ...projectData } = project;
+      
+      // Update the main project
+      const { error: projectError } = await supabase
         .from('real_projects')
-        .update(project)
+        .update(projectData)
         .eq('id', id);
       
-      if (error) throw error;
+      if (projectError) throw projectError;
+      
+      // Handle washrooms update if provided
+      if (washrooms && washrooms.length > 0) {
+        // First delete existing washrooms
+        await supabase
+          .from('project_washrooms')
+          .delete()
+          .eq('project_id', id);
+        
+        // Then insert new washrooms
+        const washroomsToInsert = washrooms.map(washroom => ({
+          ...washroom,
+          project_id: id
+        }));
+        
+        const { error: washroomsError } = await supabase
+          .from('project_washrooms')
+          .insert(washroomsToInsert);
+        
+        if (washroomsError) throw washroomsError;
+      }
       
       toast({
         title: "Project updated",
@@ -182,6 +237,12 @@ export const RealProjectService = {
       // First delete any quotations associated with this project
       await supabase
         .from('project_quotations')
+        .delete()
+        .eq('project_id', id);
+      
+      // Delete any washrooms associated with this project
+      await supabase
+        .from('project_washrooms')
         .delete()
         .eq('project_id', id);
       
@@ -264,6 +325,21 @@ export const RealProjectService = {
       
       if (projectError) throw projectError;
       
+      // Create default washroom
+      const washroom = {
+        project_id: newProject.id,
+        name: "Washroom 1",
+        length: newProject.length || 0,
+        width: newProject.width || 0,
+        height: newProject.height || 9,
+        area: (newProject.length || 0) * (newProject.width || 0),
+        services: {}
+      };
+      
+      await supabase
+        .from('project_washrooms')
+        .insert(washroom);
+      
       toast({
         title: "Lead converted",
         description: `Successfully created project ${newProject.project_id}`,
@@ -324,6 +400,21 @@ export const RealProjectService = {
       
       if (projectError) throw projectError;
       
+      // Create default washroom
+      const washroom = {
+        project_id: newProject.id,
+        name: "Washroom 1",
+        length: newProject.length || 0,
+        width: newProject.width || 0,
+        height: newProject.height || 9,
+        area: (newProject.length || 0) * (newProject.width || 0),
+        services: {}
+      };
+      
+      await supabase
+        .from('project_washrooms')
+        .insert(washroom);
+      
       toast({
         title: "Estimate converted",
         description: `Successfully created project ${newProject.project_id}`,
@@ -341,6 +432,103 @@ export const RealProjectService = {
     }
   },
   
+  // Get execution services for projects
+  async getExecutionServices(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('execution_services')
+        .select('*')
+        .order('category', { ascending: true });
+      
+      if (error) throw error;
+      
+      return data || [];
+    } catch (error: any) {
+      console.error('Error fetching execution services:', error);
+      toast({
+        title: "Failed to fetch services",
+        description: error.message,
+        variant: "destructive",
+      });
+      return [];
+    }
+  },
+  
+  // Get tiling rates
+  async getTilingRates(): Promise<{ per_tile_cost: number, tile_laying_cost: number } | null> {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      
+      return {
+        per_tile_cost: data.tile_cost_per_unit || 0,
+        tile_laying_cost: data.tiling_labor_per_sqft || 0
+      };
+    } catch (error: any) {
+      console.error('Error fetching tiling rates:', error);
+      return null;
+    }
+  },
+  
+  // Calculate project costs
+  async calculateProjectCosts(
+    projectId: string, 
+    washrooms: Washroom[], 
+    executionCosts: Record<string, any>
+  ): Promise<Record<string, any>> {
+    try {
+      // Get tiling rates
+      const tilingRates = await this.getTilingRates();
+      if (!tilingRates) throw new Error("Unable to fetch tiling rates");
+      
+      const combinedTilingRate = tilingRates.per_tile_cost + tilingRates.tile_laying_cost;
+      
+      // Calculate costs for each washroom
+      let totalTilingCost = 0;
+      let totalArea = 0;
+      
+      washrooms.forEach(washroom => {
+        const area = washroom.length * washroom.width;
+        totalArea += area;
+        
+        // Calculate tiling cost if tiling service is selected
+        if (washroom.services && washroom.services['tiling']) {
+          const washroomTilingCost = area * combinedTilingRate;
+          totalTilingCost += washroomTilingCost;
+        }
+      });
+      
+      // Sum up execution costs
+      const executionServicesTotal = Object.values(executionCosts).reduce(
+        (sum: number, cost: number) => sum + (cost || 0), 
+        0
+      );
+      
+      // Calculate final quote amount
+      const finalQuotationAmount = executionServicesTotal + totalTilingCost;
+      
+      return {
+        tiling_cost: totalTilingCost,
+        execution_services_total: executionServicesTotal,
+        total_area: totalArea,
+        combined_tiling_rate: combinedTilingRate,
+        final_quotation_amount: finalQuotationAmount
+      };
+    } catch (error: any) {
+      console.error('Error calculating project costs:', error);
+      toast({
+        title: "Cost calculation failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return {};
+    }
+  },
+  
   // Generate and save a quotation for a project
   async generateQuotation(projectId: string, quotationData: Record<string, any>): Promise<{ success: boolean, quotation: ProjectQuotation | null }> {
     try {
@@ -353,8 +541,16 @@ export const RealProjectService = {
       
       if (projectError) throw projectError;
       
-      // Generate HTML for the quotation
-      const quotationHtml = this.generateQuotationHtml(project, quotationData);
+      // Get washrooms for this project
+      const { data: washrooms, error: washroomsError } = await supabase
+        .from('project_washrooms')
+        .select('*')
+        .eq('project_id', projectId);
+      
+      if (washroomsError) throw washroomsError;
+      
+      // Generate HTML for the quotation with washroom details
+      const quotationHtml = this.generateQuotationHtml(project, quotationData, washrooms || []);
       
       // Create a quotation number
       const quotationNumber = `QUO-${project.project_id}-${format(new Date(), 'yyyyMMdd')}`;
@@ -407,7 +603,7 @@ export const RealProjectService = {
   },
   
   // Helper function to generate HTML for quotation
-  generateQuotationHtml(project: RealProject, quotationData: Record<string, any>): string {
+  generateQuotationHtml(project: RealProject, quotationData: Record<string, any>, washrooms: Washroom[]): string {
     // Create a basic HTML template for the quotation
     return `
       <!DOCTYPE html>
@@ -427,6 +623,8 @@ export const RealProjectService = {
           th { background-color: #f2f2f2; }
           .total { font-weight: bold; text-align: right; margin-top: 20px; }
           .footer { margin-top: 40px; font-size: 12px; text-align: center; color: #666; }
+          .washroom-details { margin-bottom: 30px; }
+          .washroom-details h3 { border-bottom: 1px solid #eee; padding-bottom: 5px; }
         </style>
       </head>
       <body>
@@ -452,6 +650,28 @@ export const RealProjectService = {
               <p><strong>Project Type:</strong> ${project.project_type}</p>
               <p><strong>Brand:</strong> ${project.selected_brand || 'N/A'}</p>
             </div>
+          </div>
+          
+          <div class="washroom-details">
+            <h3>Washroom Details</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Washroom</th>
+                  <th>Dimensions</th>
+                  <th>Area (sq ft)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${washrooms.map(washroom => `
+                  <tr>
+                    <td>${washroom.name}</td>
+                    <td>${washroom.length}' × ${washroom.width}' × ${washroom.height}'</td>
+                    <td>${washroom.length * washroom.width} sq ft</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
           </div>
           
           <h3>Quotation Details</h3>

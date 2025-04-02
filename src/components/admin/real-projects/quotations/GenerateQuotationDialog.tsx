@@ -1,12 +1,13 @@
 
-import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
-import { RealProject } from '@/services/RealProjectService';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { RealProject, RealProjectService } from '@/services/RealProjectService';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface GenerateQuotationDialogProps {
   open: boolean;
@@ -27,89 +28,238 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
   onGenerateQuotation,
   isGeneratingQuote
 }) => {
-  // Calculate totals for display
-  const executionTotal = Object.values(project.execution_costs || {})
-    .reduce((sum, item: any) => sum + item.amount, 0);
+  const [items, setItems] = useState<{ name: string; description: string; amount: number; }[]>([]);
+  const [isCalculating, setIsCalculating] = useState(false);
   
-  const vendorTotal = Object.values(project.vendor_rates || {})
-    .reduce((sum, item: any) => sum + item.amount, 0);
+  useEffect(() => {
+    const initializeQuotation = async () => {
+      setIsCalculating(true);
+      
+      try {
+        // Initialize with execution costs and tiling costs from project
+        const costs = await RealProjectService.calculateProjectCosts(
+          project.id, 
+          project.washrooms || [], 
+          project.execution_costs || {}
+        );
+        
+        const newItems = [
+          {
+            name: 'Execution Services',
+            description: 'All execution services as specified',
+            amount: costs.execution_services_total || 0
+          }
+        ];
+        
+        if (costs.tiling_cost && costs.tiling_cost > 0) {
+          newItems.push({
+            name: 'Tiling Work',
+            description: `Tiling work for ${costs.total_area.toFixed(2)} sq ft area`,
+            amount: costs.tiling_cost
+          });
+        }
+        
+        setItems(newItems);
+      } catch (error) {
+        console.error('Error initializing quotation:', error);
+      } finally {
+        setIsCalculating(false);
+      }
+    };
+    
+    if (open && project) {
+      initializeQuotation();
+    }
+  }, [open, project]);
   
-  const additionalTotal = Object.values(project.additional_costs || {})
-    .reduce((sum, item: any) => sum + item.amount, 0);
+  const addItem = () => {
+    setItems([...items, { name: '', description: '', amount: 0 }]);
+  };
   
-  const totalAmount = (project.original_estimate || 0) + executionTotal + vendorTotal + additionalTotal;
-
+  const removeItem = (index: number) => {
+    const updatedItems = [...items];
+    updatedItems.splice(index, 1);
+    setItems(updatedItems);
+  };
+  
+  const updateItem = (index: number, field: string, value: string | number) => {
+    const updatedItems = [...items];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    setItems(updatedItems);
+  };
+  
+  const totalAmount = items.reduce((sum, item) => sum + (item.amount || 0), 0);
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
-          <DialogTitle>Generate New Quotation</DialogTitle>
+          <DialogTitle>Generate Quotation</DialogTitle>
+          <DialogDescription>
+            Create a new quotation for project {project.project_id}
+          </DialogDescription>
         </DialogHeader>
         
-        <div className="py-4">
-          <Card className="mb-4">
-            <CardHeader className="py-2">
-              <CardTitle className="text-base">Quotation Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="space-y-1">
-                  <p className="text-muted-foreground">Original Estimate:</p>
-                  <p className="font-medium">₹{(project.original_estimate || 0).toLocaleString('en-IN')}</p>
+        <div className="space-y-6 max-h-[60vh] overflow-y-auto py-4">
+          {isCalculating ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              {/* Washrooms summary */}
+              {project.washrooms && project.washrooms.length > 0 && (
+                <div>
+                  <Label className="text-base">Washroom Details</Label>
+                  <Table className="mt-2">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Washroom</TableHead>
+                        <TableHead>Dimensions</TableHead>
+                        <TableHead className="text-right">Area</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {project.washrooms.map((washroom) => (
+                        <TableRow key={washroom.id}>
+                          <TableCell>{washroom.name}</TableCell>
+                          <TableCell>
+                            {washroom.length}' × {washroom.width}' × {washroom.height}'
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {(washroom.length * washroom.width).toFixed(2)} sq ft
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+              
+              {/* Quotation items */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <Label className="text-base">Quotation Items</Label>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={addItem}
+                    type="button"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Item
+                  </Button>
                 </div>
                 
-                <div className="space-y-1">
-                  <p className="text-muted-foreground">Execution Costs:</p>
-                  <p className="font-medium">₹{executionTotal.toLocaleString('en-IN')}</p>
-                </div>
+                {items.map((item, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-2 mb-3 items-start">
+                    <div className="col-span-4">
+                      <Label htmlFor={`item-name-${index}`} className="sr-only">
+                        Item Name
+                      </Label>
+                      <Input
+                        id={`item-name-${index}`}
+                        placeholder="Item name"
+                        value={item.name}
+                        onChange={(e) => updateItem(index, 'name', e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="col-span-5">
+                      <Label htmlFor={`item-description-${index}`} className="sr-only">
+                        Item Description
+                      </Label>
+                      <Input
+                        id={`item-description-${index}`}
+                        placeholder="Description"
+                        value={item.description}
+                        onChange={(e) => updateItem(index, 'description', e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="col-span-2">
+                      <Label htmlFor={`item-amount-${index}`} className="sr-only">
+                        Amount
+                      </Label>
+                      <div className="flex items-center">
+                        <span className="mr-1">₹</span>
+                        <Input
+                          id={`item-amount-${index}`}
+                          type="number"
+                          min="0"
+                          value={item.amount}
+                          onChange={(e) => updateItem(index, 'amount', parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="col-span-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeItem(index)}
+                        type="button"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
                 
-                <div className="space-y-1">
-                  <p className="text-muted-foreground">Vendor Rates:</p>
-                  <p className="font-medium">₹{vendorTotal.toLocaleString('en-IN')}</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <p className="text-muted-foreground">Additional Costs:</p>
-                  <p className="font-medium">₹{additionalTotal.toLocaleString('en-IN')}</p>
-                </div>
-                
-                <div className="col-span-2 pt-2 border-t">
-                  <p className="text-muted-foreground">Total Quotation Amount:</p>
-                  <p className="font-medium text-lg">₹{totalAmount.toLocaleString('en-IN')}</p>
+                {/* Total amount */}
+                <div className="flex justify-end items-center mt-4 space-x-2 font-medium">
+                  <div>Total Amount:</div>
+                  <div>₹{totalAmount.toLocaleString('en-IN')}</div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="terms">Terms & Conditions</Label>
-              <Textarea
-                id="terms"
-                value={quotationTerms}
-                onChange={(e) => onQuotationTermsChange(e.target.value)}
-                rows={6}
-                className="mt-2"
-              />
-            </div>
-          </div>
+              
+              {/* Terms & conditions */}
+              <div className="space-y-2">
+                <Label htmlFor="quotation-terms" className="text-base">
+                  Terms & Conditions
+                </Label>
+                <Textarea
+                  id="quotation-terms"
+                  placeholder="Enter quotation terms and conditions"
+                  value={quotationTerms}
+                  onChange={(e) => onQuotationTermsChange(e.target.value)}
+                  rows={5}
+                />
+              </div>
+            </>
+          )}
         </div>
         
-        <div className="flex justify-end gap-2">
-          <Button 
-            variant="outline" 
+        <DialogFooter>
+          <Button
+            variant="outline"
             onClick={() => onOpenChange(false)}
+            disabled={isGeneratingQuote}
           >
             Cancel
           </Button>
-          <Button 
-            onClick={onGenerateQuotation}
-            disabled={isGeneratingQuote}
+          <Button
+            disabled={isGeneratingQuote || items.length === 0 || isCalculating}
+            onClick={async () => {
+              // Prepare quotation data
+              const quotationData = {
+                items,
+                totalAmount,
+                terms: quotationTerms,
+                washrooms: project.washrooms || []
+              };
+              
+              // Store in context for the parent component
+              (window as any).currentQuotationData = quotationData;
+              
+              // Call the parent's generate function
+              await onGenerateQuotation();
+            }}
           >
             {isGeneratingQuote && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isGeneratingQuote ? 'Generating...' : 'Generate Quotation'}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
