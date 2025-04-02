@@ -6,7 +6,7 @@ import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/hooks/useTheme';
-import { LayoutDashboard, Package, ShowerHead, Settings, LogOut, Sun, Moon, Menu, X, BarChart, ClipboardList, UserRound, Phone, FileCheck } from 'lucide-react';
+import { LayoutDashboard, Package, ShowerHead, Settings, LogOut, Sun, Moon, Menu, X, BarChart, ClipboardList, UserRound, Phone, FileCheck, Clipboard, Database } from 'lucide-react';
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -56,6 +56,11 @@ const AdminSidebar = () => {
       href: '/admin/real-projects',
       icon: <FileCheck className="h-5 w-5" />
     }, 
+    {
+      name: 'Vendor Rate Card',
+      href: '/admin/vendor-rate-card',
+      icon: <Database className="h-5 w-5" />
+    },
     {
       name: 'Brands',
       href: '/admin/brands',

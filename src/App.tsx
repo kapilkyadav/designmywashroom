@@ -27,6 +27,9 @@ import AdminExecutionServices from './pages/AdminExecutionServices';
 import AdminRealProjects from './pages/AdminRealProjects';
 import AdminRealProjectDetail from './pages/AdminRealProjectDetail';
 
+// New Vendor Rate Card route
+import AdminVendorRateCard from './pages/AdminVendorRateCard';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,6 +72,9 @@ function App() {
               {/* Real Projects routes */}
               <Route path="real-projects" element={<AdminRealProjects />} />
               <Route path="real-projects/:id" element={<AdminRealProjectDetail />} />
+              
+              {/* Vendor Rate Card route */}
+              <Route path="vendor-rate-card" element={<AdminVendorRateCard />} />
               
               <Route path="settings" element={<AdminSettings />} />
               <Route path="leads" element={<AdminLeads />} />

@@ -659,6 +659,121 @@ export type Database = {
         }
         Relationships: []
       }
+      vendor_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vendor_items: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          item_code: string
+          measuring_unit: string
+          scope_of_work: string
+          sl_no: string
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          item_code: string
+          measuring_unit: string
+          scope_of_work: string
+          sl_no: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          item_code?: string
+          measuring_unit?: string
+          scope_of_work?: string
+          sl_no?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_rate_cards: {
+        Row: {
+          client_rate: number
+          created_at: string
+          currency: string | null
+          effective_date: string | null
+          id: string
+          item_id: string
+          notes: string | null
+          updated_at: string
+          vendor_rate1: number | null
+          vendor_rate2: number | null
+          vendor_rate3: number | null
+        }
+        Insert: {
+          client_rate: number
+          created_at?: string
+          currency?: string | null
+          effective_date?: string | null
+          id?: string
+          item_id: string
+          notes?: string | null
+          updated_at?: string
+          vendor_rate1?: number | null
+          vendor_rate2?: number | null
+          vendor_rate3?: number | null
+        }
+        Update: {
+          client_rate?: number
+          created_at?: string
+          currency?: string | null
+          effective_date?: string | null
+          id?: string
+          item_id?: string
+          notes?: string | null
+          updated_at?: string
+          vendor_rate1?: number | null
+          vendor_rate2?: number | null
+          vendor_rate3?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_rate_cards_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       convertible_records: {
