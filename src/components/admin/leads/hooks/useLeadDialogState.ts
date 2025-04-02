@@ -7,13 +7,29 @@ export const useLeadDialogState = (
 ) => {
   const [activeTab, setActiveTab] = useState("details");
   
-  // Safety mechanism to ensure body scrolling is restored
+  // More robust scroll restoration approach
   const restoreBodyScroll = useCallback(() => {
-    // Remove any inline styles that might be blocking scrolling
+    // Remove any potential scroll locks by all means
     document.body.style.removeProperty('overflow');
     document.body.style.removeProperty('padding-right');
     document.documentElement.style.removeProperty('overflow');
+    document.body.classList.remove('no-scroll', 'overflow-hidden');
   }, []);
+
+  // Handle dialog state changes with fail-safe mechanisms
+  const handleOpenChange = useCallback((newOpen: boolean) => {
+    if (!newOpen) {
+      // Restore scroll immediately
+      restoreBodyScroll();
+      
+      // Small delay before state change to allow animation to complete
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 100);
+    } else {
+      onOpenChange(true);
+    }
+  }, [onOpenChange, restoreBodyScroll]);
 
   // Reset everything when dialog closes
   useEffect(() => {
@@ -27,17 +43,6 @@ export const useLeadDialogState = (
       restoreBodyScroll();
     };
   }, [initialOpen, restoreBodyScroll]);
-
-  // Handle dialog state changes with safety mechanisms
-  const handleOpenChange = useCallback((newOpen: boolean) => {
-    // If closing, ensure we restore scroll first before state changes
-    if (!newOpen) {
-      restoreBodyScroll();
-    }
-    
-    // Notify parent component of change
-    onOpenChange(newOpen);
-  }, [onOpenChange, restoreBodyScroll]);
 
   return {
     activeTab,

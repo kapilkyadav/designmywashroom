@@ -59,6 +59,17 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     setIsDetailsDialogOpen
   } = useLeadsTable(onRefresh);
 
+  // Handle refresh after dialog closes
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsDetailsDialogOpen(open);
+    if (!open) {
+      // Add a small delay before refreshing to let animations complete
+      setTimeout(() => {
+        onRefresh();
+      }, 300);
+    }
+  };
+
   return (
     <div>
       <div className="rounded-md border">
@@ -144,7 +155,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         <LeadDetailsDialog 
           lead={selectedLead} 
           open={isDetailsDialogOpen} 
-          onOpenChange={setIsDetailsDialogOpen} 
+          onOpenChange={handleDialogOpenChange} 
           onUpdate={onRefresh}
         />
       )}

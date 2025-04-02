@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LeadService, Lead, LeadFilter } from '@/services/LeadService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +30,7 @@ const AdminLeads = () => {
     search: "",
     page: 1,
     pageSize: 10,
-    sortBy: "created_at",
+    sortBy: "lead_date",
     sortDirection: "desc"
   });
   
@@ -53,9 +53,9 @@ const AdminLeads = () => {
     setActiveTab(value);
     
     if (value === "all") {
-      setFilters({ ...filters, status: undefined });
+      setFilters({ ...filters, status: undefined, sortBy: "lead_date", sortDirection: "desc" });
     } else {
-      setFilters({ ...filters, status: value });
+      setFilters({ ...filters, status: value, sortBy: "lead_date", sortDirection: "desc" });
     }
   };
   
@@ -68,8 +68,12 @@ const AdminLeads = () => {
   };
   
   const handleSortChange = (field: string) => {
-    const direction = filters.sortBy === field && filters.sortDirection === 'asc' ? 'desc' : 'asc';
-    setFilters({ ...filters, sortBy: field, sortDirection: direction });
+    if (field === "lead_date") {
+      setFilters({ ...filters, sortBy: field, sortDirection: "desc" });
+    } else {
+      const direction = filters.sortBy === field && filters.sortDirection === 'asc' ? 'desc' : 'asc';
+      setFilters({ ...filters, sortBy: field, sortDirection: direction });
+    }
   };
   
   const toggleFiltersPanel = () => {
@@ -126,7 +130,7 @@ const AdminLeads = () => {
       search: "",
       page: 1,
       pageSize: 10,
-      sortBy: "created_at",
+      sortBy: "lead_date",
       sortDirection: "desc"
     });
   };
@@ -137,6 +141,16 @@ const AdminLeads = () => {
     filters.dateTo,
     filters.search
   ].filter(Boolean).length;
+
+  useEffect(() => {
+    if (filters.sortBy !== "lead_date" || filters.sortDirection !== "desc") {
+      setFilters(prev => ({
+        ...prev,
+        sortBy: "lead_date",
+        sortDirection: "desc"
+      }));
+    }
+  }, []);
 
   return (
     <div className="space-y-6">

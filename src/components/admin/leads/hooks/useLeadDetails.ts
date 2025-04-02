@@ -14,13 +14,15 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
   const isMounted = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Cleanup function to cancel pending requests and reset state
+  // Improved cleanup function that ensures all state is reset and requests canceled
   const cleanup = useCallback(() => {
+    // Cancel any pending requests
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
     
+    // Reset state only if component is still mounted
     if (isMounted.current) {
       setActivityLogs([]);
       setRemarks([]);
@@ -48,7 +50,8 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
     }
   }, [isOpen, cleanup]);
 
-  const fetchActivityLogs = async () => {
+  // Improved fetch functions with better error handling and cancellation
+  const fetchActivityLogs = useCallback(async () => {
     if (!isOpen || !leadId || !isMounted.current) return; 
     
     // Cancel any existing request
@@ -64,7 +67,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
       if (isMounted.current) {
         setActivityLogs(logs);
       }
-    } catch (error) {
+    } catch (error: any) {
       // Only log error if it's not from aborting
       if (error.name !== 'AbortError') {
         console.error('Error fetching activity logs:', error);
@@ -74,9 +77,9 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
         setIsLoadingLogs(false);
       }
     }
-  };
+  }, [isOpen, leadId]);
   
-  const fetchRemarks = async () => {
+  const fetchRemarks = useCallback(async () => {
     if (!isOpen || !leadId || !isMounted.current) return;
     
     // Cancel any existing request
@@ -92,7 +95,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
       if (isMounted.current) {
         setRemarks(remarkData);
       }
-    } catch (error) {
+    } catch (error: any) {
       // Only log error if it's not from aborting
       if (error.name !== 'AbortError') {
         console.error('Error fetching remarks:', error);
@@ -102,9 +105,9 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
         setIsLoadingRemarks(false);
       }
     }
-  };
+  }, [isOpen, leadId]);
 
-  const fetchLeadDetails = async () => {
+  const fetchLeadDetails = useCallback(async () => {
     if (!isOpen || !leadId || !isMounted.current) return;
     
     // Cancel any existing request
@@ -120,7 +123,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
       if (isMounted.current && leadData) {
         setLead(leadData);
       }
-    } catch (error) {
+    } catch (error: any) {
       // Only log error if it's not from aborting
       if (error.name !== 'AbortError') {
         console.error('Error fetching lead details:', error);
@@ -130,7 +133,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
         setIsLoadingLead(false);
       }
     }
-  };
+  }, [isOpen, leadId]);
 
   // Fetch data when dialog is opened or lead ID changes
   useEffect(() => {
@@ -147,7 +150,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
         abortControllerRef.current = null;
       }
     };
-  }, [isOpen, leadId]);
+  }, [isOpen, leadId, fetchActivityLogs, fetchRemarks, fetchLeadDetails]);
 
   return {
     activityLogs,
