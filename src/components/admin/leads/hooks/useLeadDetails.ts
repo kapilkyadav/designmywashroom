@@ -10,14 +10,14 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
   const [isLoadingRemarks, setIsLoadingRemarks] = useState(false);
   const [isLoadingLead, setIsLoadingLead] = useState(false);
   
-  // Use refs to track mounted state and for request cancellation
+  // Use refs for better request cancellation and cleanup
   const isMounted = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const cleanupTimeoutRef = useRef<number | null>(null);
 
-  // Enhanced cleanup function that ensures all resources are released
+  // Significantly enhanced cleanup function 
   const cleanup = useCallback(() => {
-    // Cancel any pending requests
+    // Cancel pending requests
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -29,7 +29,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
       cleanupTimeoutRef.current = null;
     }
     
-    // Reset state only if component is still mounted
+    // Only reset state if component is still mounted
     if (isMounted.current) {
       setActivityLogs([]);
       setRemarks([]);
@@ -38,12 +38,18 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
       setIsLoadingRemarks(false);
       setIsLoadingLead(false);
     }
+    
+    // Ensure body scroll is restored
+    document.body.style.overflow = 'auto';
+    document.body.style.removeProperty('position');
+    document.body.classList.remove('no-scroll', 'overflow-hidden');
   }, []);
 
   // Set up mount/unmount handling
   useEffect(() => {
     isMounted.current = true;
     
+    // Critical cleanup on unmount
     return () => {
       isMounted.current = false;
       cleanup();
@@ -57,7 +63,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
     }
   }, [isOpen, cleanup]);
 
-  // Improved fetch functions with request cancellation
+  // Improved fetch functions with proper request cancellation
   const fetchActivityLogs = useCallback(async () => {
     if (!isOpen || !leadId || !isMounted.current) return; 
     
@@ -75,8 +81,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
         setActivityLogs(logs);
       }
     } catch (error: any) {
-      // Only log error if it's not from aborting
-      if (error.name !== 'AbortError') {
+      if (error.name !== 'AbortError' && isMounted.current) {
         console.error('Error fetching activity logs:', error);
       }
     } finally {
@@ -103,8 +108,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
         setRemarks(remarkData);
       }
     } catch (error: any) {
-      // Only log error if it's not from aborting
-      if (error.name !== 'AbortError') {
+      if (error.name !== 'AbortError' && isMounted.current) {
         console.error('Error fetching remarks:', error);
       }
     } finally {
@@ -131,8 +135,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
         setLead(leadData);
       }
     } catch (error: any) {
-      // Only log error if it's not from aborting
-      if (error.name !== 'AbortError') {
+      if (error.name !== 'AbortError' && isMounted.current) {
         console.error('Error fetching lead details:', error);
       }
     } finally {
@@ -142,7 +145,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
     }
   }, [isOpen, leadId]);
 
-  // Fetch data when dialog is opened or lead ID changes with better cleanup
+  // Fetch data when dialog is opened with improved cleanup
   useEffect(() => {
     if (isOpen && leadId && isMounted.current) {
       fetchActivityLogs();

@@ -59,12 +59,16 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     setIsDetailsDialogOpen
   } = useLeadsTable(onRefresh);
 
-  // Handle any cleanup needed after dialog operations
-  const handleAfterDialogOperation = () => {
-    // Ensure page is refreshed after dialog interaction
+  // Handle refresh after any dialog operation
+  const handleDialogOperationComplete = () => {
+    // Ensure DOM is ready for interaction
+    document.body.style.overflow = 'auto';
+    document.body.classList.remove('no-scroll', 'overflow-hidden');
+    
+    // Use setTimeout to ensure this runs after dialog animations complete
     setTimeout(() => {
       onRefresh();
-    }, 300);
+    }, 350);
   };
 
   return (
@@ -152,8 +156,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         <LeadDetailsDialog 
           lead={selectedLead} 
           open={isDetailsDialogOpen} 
-          onOpenChange={setIsDetailsDialogOpen} 
-          onUpdate={handleAfterDialogOperation}
+          onOpenChange={setIsDetailsDialogOpen}
+          onUpdate={handleDialogOperationComplete}
         />
       )}
     </div>

@@ -1,9 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Lead, LeadService } from '@/services/LeadService';
 import { useToast } from '@/hooks/use-toast';
-import { addDays } from 'date-fns';
-import { format } from 'date-fns';
+import { addDays, format } from 'date-fns';
 
 export const useLeadsTable = (onRefresh: () => void) => {
   const { toast } = useToast();
@@ -104,18 +103,19 @@ export const useLeadsTable = (onRefresh: () => void) => {
     return budget;
   };
   
-  // Proper handler for dialog state that resets selected lead
-  const handleDetailsDialogOpenChange = (open: boolean) => {
+  // Improved handler for dialog state that ensures cleanup
+  const handleDetailsDialogOpenChange = useCallback((open: boolean) => {
     setIsDetailsDialogOpen(open);
     
-    // Only clear selected lead after dialog is fully closed
     if (!open) {
-      // Use timeout to ensure animations complete before clearing state
+      // Safe timeout for animation to complete before state reset
       setTimeout(() => {
         setSelectedLead(null);
+        // Force a refresh to ensure all data is current
+        onRefresh();
       }, 300);
     }
-  };
+  }, [onRefresh]);
 
   return {
     selectedLead,

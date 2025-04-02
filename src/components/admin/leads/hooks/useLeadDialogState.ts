@@ -7,45 +7,66 @@ export const useLeadDialogState = (
 ) => {
   const [activeTab, setActiveTab] = useState("details");
   
-  // Full body scroll restoration with multiple approaches for reliability
+  // Improved scroll restoration with better approach
   const restoreBodyScroll = useCallback(() => {
-    // Remove all scroll locks with multiple approaches for cross-browser compatibility
+    // Clear any inline styles
     document.body.style.removeProperty('overflow');
     document.body.style.removeProperty('position');
     document.body.style.removeProperty('padding-right');
     document.body.style.removeProperty('top');
     document.body.style.removeProperty('width');
     document.documentElement.style.removeProperty('overflow');
+    
+    // Remove any classes that might be affecting scroll
     document.body.classList.remove('no-scroll', 'overflow-hidden');
     
-    // Force repaint to ensure UI is responsive
-    window.scrollTo(window.scrollX, window.scrollY);
+    // Force layout recalculation
+    document.body.offsetHeight;
+    
+    // Ensure body is scrollable
+    document.body.style.overflow = 'auto';
+    
+    // Wait for next frame to ensure styles are applied
+    requestAnimationFrame(() => {
+      // Restore scroll position if necessary
+      window.scrollTo({
+        top: parseInt(localStorage.getItem('scrollPosition') || '0', 10),
+        behavior: 'auto'
+      });
+      
+      // Remove any other styles that might interfere
+      document.body.style.removeProperty('overflow'); // Remove the auto style after restoration
+    });
   }, []);
 
-  // More robust dialog state management
+  // Save scroll position before dialog opens
+  const saveScrollPosition = useCallback(() => {
+    localStorage.setItem('scrollPosition', window.scrollY.toString());
+  }, []);
+
+  // More robust dialog state management with cleaner transitions
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen) {
-      // Restore scroll immediately as first priority
+      // Restore scroll immediately
       restoreBodyScroll();
       
-      // Then notify parent after a safe delay for animations
-      setTimeout(() => {
-        onOpenChange(false);
-      }, 150);
+      // Then notify parent
+      onOpenChange(false);
     } else {
+      // Save position before opening
+      saveScrollPosition();
       onOpenChange(true);
     }
-  }, [onOpenChange, restoreBodyScroll]);
+  }, [onOpenChange, restoreBodyScroll, saveScrollPosition]);
 
-  // Reset everything when dialog closes
+  // Reset state when dialog opens/closes
   useEffect(() => {
     if (!initialOpen) {
       setActiveTab("details");
       restoreBodyScroll();
     }
     
-    // Critical: Always ensure scroll is restored when component unmounts
-    // This is essential to prevent the UI from becoming unresponsive
+    // Critical cleanup when component unmounts
     return () => {
       restoreBodyScroll();
     };

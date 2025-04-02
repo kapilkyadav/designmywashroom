@@ -54,9 +54,7 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
           setIsTransitioning(false);
           
           // Make sure to refresh data after dialog fully closes
-          if (openRef.current !== false) {
-            onUpdate();
-          }
+          onUpdate();
         }
       }, 300); // Matching animation duration from Shadcn Sheet
     } else {
@@ -81,8 +79,11 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     cleanup
   } = useLeadDetails(lead.id, open);
 
-  // Force cleanup of all resources and restore scroll on unmount
+  // Comprehensive cleanup on unmount with multiple safety measures
   useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    
     const handleBeforeUnload = () => {
       // Emergency cleanup for page reloads/navigation
       restoreBodyScroll();
@@ -94,13 +95,25 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     return () => {
       unmountingRef.current = true;
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      
+      // Multiple cleanup approaches for maximum reliability
       restoreBodyScroll();
       cleanup();
       
-      // Force the UI to be responsive on unmount
-      document.body.style.removeProperty('overflow');
-      document.body.style.removeProperty('position');
-      document.documentElement.style.removeProperty('overflow');
+      // Restore original styles or ensure scrollability
+      document.body.style.overflow = originalOverflow || 'auto';
+      document.body.style.position = originalPosition || '';
+      document.documentElement.style.overflow = '';
+      document.body.classList.remove('no-scroll', 'overflow-hidden');
+      
+      // Force a style recalculation
+      document.body.offsetHeight;
+      
+      // Force refresh of page interaction after component is gone
+      setTimeout(() => {
+        document.body.style.overflow = 'auto';
+        window.scrollTo(window.scrollX, window.scrollY);
+      }, 0);
     };
   }, [restoreBodyScroll, cleanup]);
   
@@ -116,14 +129,14 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     }
   }, [fetchedLead]);
 
-  // Reset form when lead changes
+  // Reset form when lead changes or dialog opens
   useEffect(() => {
     if (open) {
       resetForm();
     }
   }, [open, lead.id, resetForm]);
 
-  // Handle remark added - refresh data and update parent
+  // Handle remark added with proper state updates
   const handleRemarkAdded = useCallback(async (newRemark: string) => {
     // First update the current lead's remark in the local state 
     // to immediately reflect changes in the UI
@@ -133,10 +146,14 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     }));
     
     // Then refresh all data
-    await refreshRemarks();
-    await refreshLogs();
-    await refreshLead(); // This will fetch the latest lead data
-    onUpdate(); // Update the main leads list to reflect the new remark
+    await Promise.all([
+      refreshRemarks(),
+      refreshLogs(),
+      refreshLead()
+    ]);
+    
+    // Update parent component
+    onUpdate();
   }, [refreshRemarks, refreshLogs, refreshLead, onUpdate]);
 
   return (
