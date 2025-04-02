@@ -79,7 +79,7 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
         execution_costs: executionCostsObj,
         vendor_rates: vendorRatesObj,
         additional_costs: additionalCostsObj,
-        washrooms: project.washrooms || [], // Include the washrooms property
+        washrooms: project.washrooms || [], // Add the missing washrooms property
         final_quotation_amount: grandTotal
       });
       
