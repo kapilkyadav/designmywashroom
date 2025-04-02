@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, PenLine, Trash2, FilePdf, Download } from 'lucide-react';
+import { Loader2, ArrowLeft, PenLine, Trash2, FileText, Download } from 'lucide-react';
 import ProjectDetailsTab from '@/components/admin/real-projects/ProjectDetailsTab';
 import CostingTab from '@/components/admin/real-projects/CostingTab';
 import QuotationsTab from '@/components/admin/real-projects/QuotationsTab';
