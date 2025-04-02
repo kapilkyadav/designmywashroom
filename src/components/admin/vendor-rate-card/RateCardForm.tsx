@@ -28,34 +28,19 @@ const formSchema = z.object({
   item_id: z.string({
     required_error: "Please select an item",
   }),
-  vendor_rate1: z.string()
-    .optional()
-    .transform(val => val === '' ? null : Number(val)),
-  vendor_rate2: z.string()
-    .optional()
-    .transform(val => val === '' ? null : Number(val)),
-  vendor_rate3: z.string()
-    .optional()
-    .transform(val => val === '' ? null : Number(val)),
-  client_rate: z.string({
+  vendor_rate1: z.coerce.number().nullable().optional(),
+  vendor_rate2: z.coerce.number().nullable().optional(),
+  vendor_rate3: z.coerce.number().nullable().optional(),
+  client_rate: z.coerce.number({
     required_error: "Client rate is required",
-  }).refine(val => !isNaN(Number(val)), {
-    message: "Client rate must be a valid number",
-  }).transform(val => Number(val)),
-  currency: z.string().optional(),
+    invalid_type_error: "Client rate must be a number",
+  }),
+  currency: z.string().default("INR").optional(),
   notes: z.string().optional(),
 });
 
-// This represents the form field types (before transformation)
-type FormValues = {
-  item_id: string;
-  vendor_rate1: string;
-  vendor_rate2: string;
-  vendor_rate3: string;
-  client_rate: string;
-  currency?: string;
-  notes?: string;
-};
+// Form values after Zod validation
+type FormValues = z.infer<typeof formSchema>;
 
 interface RateCardFormProps {
   defaultValues?: Partial<VendorRateCard>;
@@ -74,10 +59,10 @@ const RateCardForm: React.FC<RateCardFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       item_id: defaultValues?.item_id || '',
-      vendor_rate1: defaultValues?.vendor_rate1 !== null ? String(defaultValues?.vendor_rate1) : '',
-      vendor_rate2: defaultValues?.vendor_rate2 !== null ? String(defaultValues?.vendor_rate2) : '',
-      vendor_rate3: defaultValues?.vendor_rate3 !== null ? String(defaultValues?.vendor_rate3) : '',
-      client_rate: defaultValues?.client_rate !== undefined ? String(defaultValues?.client_rate) : '',
+      vendor_rate1: defaultValues?.vendor_rate1 || null,
+      vendor_rate2: defaultValues?.vendor_rate2 || null,
+      vendor_rate3: defaultValues?.vendor_rate3 || null,
+      client_rate: defaultValues?.client_rate || 0,
       currency: defaultValues?.currency || 'INR',
       notes: defaultValues?.notes || '',
     },
@@ -87,10 +72,10 @@ const RateCardForm: React.FC<RateCardFormProps> = ({
     if (defaultValues && items.length > 0) {
       form.reset({
         item_id: defaultValues.item_id,
-        vendor_rate1: defaultValues.vendor_rate1 !== null ? String(defaultValues.vendor_rate1) : '',
-        vendor_rate2: defaultValues.vendor_rate2 !== null ? String(defaultValues.vendor_rate2) : '',
-        vendor_rate3: defaultValues.vendor_rate3 !== null ? String(defaultValues.vendor_rate3) : '',
-        client_rate: defaultValues.client_rate !== undefined ? String(defaultValues.client_rate) : '',
+        vendor_rate1: defaultValues.vendor_rate1 || null,
+        vendor_rate2: defaultValues.vendor_rate2 || null,
+        vendor_rate3: defaultValues.vendor_rate3 || null,
+        client_rate: defaultValues.client_rate || 0,
         currency: defaultValues.currency || 'INR',
         notes: defaultValues.notes || '',
       });
@@ -98,8 +83,7 @@ const RateCardForm: React.FC<RateCardFormProps> = ({
   }, [defaultValues, items, form]);
 
   const handleSubmit = async (values: FormValues) => {
-    // The zodResolver will transform the values according to our schema
-    await onSubmit(formSchema.parse(values));
+    await onSubmit(values);
   };
 
   return (
@@ -142,7 +126,12 @@ const RateCardForm: React.FC<RateCardFormProps> = ({
               <FormItem>
                 <FormLabel>Vendor Rate 1</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="0.00" {...field} />
+                  <Input 
+                    type="number" 
+                    placeholder="0.00" 
+                    value={field.value ?? ''} 
+                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -156,7 +145,12 @@ const RateCardForm: React.FC<RateCardFormProps> = ({
               <FormItem>
                 <FormLabel>Vendor Rate 2</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="0.00" {...field} />
+                  <Input 
+                    type="number" 
+                    placeholder="0.00" 
+                    value={field.value ?? ''} 
+                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -170,7 +164,12 @@ const RateCardForm: React.FC<RateCardFormProps> = ({
               <FormItem>
                 <FormLabel>Vendor Rate 3</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="0.00" {...field} />
+                  <Input 
+                    type="number" 
+                    placeholder="0.00" 
+                    value={field.value ?? ''} 
+                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -184,7 +183,13 @@ const RateCardForm: React.FC<RateCardFormProps> = ({
               <FormItem>
                 <FormLabel>Client Rate*</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="0.00" required {...field} />
+                  <Input 
+                    type="number" 
+                    placeholder="0.00" 
+                    required 
+                    value={field.value ?? 0} 
+                    onChange={(e) => field.onChange(Number(e.target.value))} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
