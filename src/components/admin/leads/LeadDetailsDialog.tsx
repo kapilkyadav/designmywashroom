@@ -1,21 +1,15 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { 
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription
-} from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Lead } from '@/services/LeadService';
-import LeadDetailsForm from './components/LeadDetailsForm';
-import ActivityLogTab from './components/ActivityLogTab';
-import RemarksTab from './components/RemarksTab';
 import { useLeadDetails } from './hooks/useLeadDetails';
 import { useLeadForm } from './hooks/useLeadForm';
 import { useLeadDialogState } from './hooks/useLeadDialogState';
-import { Loader2 } from 'lucide-react';
+
+// Import the newly created components
+import DialogHeader from './components/DialogHeader';
+import DialogTabs from './components/DialogTabs';
+import LoadingIndicator from './components/LoadingIndicator';
 
 interface LeadDetailsDialogProps {
   lead: Lead;
@@ -30,7 +24,7 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
   onOpenChange,
   onUpdate
 }) => {
-  // Track current lead data to ensure we have the latest remarks
+  // State management
   const [currentLead, setCurrentLead] = useState<Lead>(lead);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const unmountingRef = useRef(false);
@@ -165,55 +159,29 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
         side="right"
         className="w-full sm:w-[600px] overflow-y-auto"
       >
-        <SheetHeader>
-          <SheetTitle>Lead Details</SheetTitle>
-          <SheetDescription>
-            View and modify details for {currentLead.customer_name}
-          </SheetDescription>
-        </SheetHeader>
+        <DialogHeader customerName={currentLead.customer_name} />
         
         {isTransitioning ? (
-          <div className="flex items-center justify-center h-[80vh]">
-            <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
-          </div>
+          <LoadingIndicator />
         ) : (
           <div className="py-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="w-full">
-                <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
-                <TabsTrigger value="remarks" className="flex-1">Remarks</TabsTrigger>
-                <TabsTrigger value="activity" className="flex-1">Activity Log</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="details" className="pt-4">
-                <LeadDetailsForm
-                  formData={formData}
-                  handleChange={handleChange}
-                  handleSelectChange={handleSelectChange}
-                  handleDateChange={handleDateChange}
-                  handleSubmit={handleSubmit}
-                  isUpdating={isUpdating}
-                  onCancel={() => handleOpenChange(false)}
-                />
-              </TabsContent>
-              
-              <TabsContent value="remarks" className="pt-4">
-                <RemarksTab 
-                  leadId={currentLead.id}
-                  isLoading={isLoadingRemarks}
-                  remarks={remarks}
-                  currentRemark={currentLead.remarks}
-                  onRemarkAdded={handleRemarkAdded}
-                />
-              </TabsContent>
-              
-              <TabsContent value="activity" className="pt-4">
-                <ActivityLogTab 
-                  isLoading={isLoadingLogs} 
-                  activityLogs={activityLogs} 
-                />
-              </TabsContent>
-            </Tabs>
+            <DialogTabs
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              formData={formData}
+              handleChange={handleChange}
+              handleSelectChange={handleSelectChange}
+              handleDateChange={handleDateChange}
+              handleSubmit={handleSubmit}
+              isUpdating={isUpdating}
+              onCancel={() => handleOpenChange(false)}
+              isLoadingRemarks={isLoadingRemarks}
+              remarks={remarks}
+              currentLead={currentLead}
+              onRemarkAdded={handleRemarkAdded}
+              isLoadingLogs={isLoadingLogs}
+              activityLogs={activityLogs}
+            />
           </div>
         )}
       </SheetContent>
