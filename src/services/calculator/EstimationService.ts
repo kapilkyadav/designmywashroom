@@ -115,6 +115,22 @@ export class EstimationService {
       }
     }
     
+    // Always add "other execution charges" fixture to every estimate
+    try {
+      const otherExecutionCharges = additionalFixtures.find(
+        fixture => fixture.name.toLowerCase().includes('other execution charges')
+      );
+      
+      if (otherExecutionCharges) {
+        console.log('Adding mandatory other execution charges:', otherExecutionCharges.client_price);
+        fixtureCost += otherExecutionCharges.client_price;
+      } else {
+        console.warn('Other execution charges fixture not found in the database');
+      }
+    } catch (error) {
+      console.error('Error adding other execution charges:', error);
+    }
+    
     return fixtureCost;
   }
   

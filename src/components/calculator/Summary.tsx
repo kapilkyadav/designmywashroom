@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useCalculator } from '@/hooks/useCalculator';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -6,13 +7,24 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { Check, Download, Share2 } from 'lucide-react';
 import { BrandService } from '@/services/BrandService';
+import { FixtureService } from '@/services/FixtureService'; 
+import { Fixture } from '@/lib/supabase';
 
 const Summary = () => {
   const { state, resetCalculator } = useCalculator();
-  const [brandName, setBrandName] = React.useState('');
+  const [brandName, setBrandName] = useState('');
+  const [fixtures, setFixtures] = useState<{
+    electrical: Fixture[];
+    plumbing: Fixture[];
+    additional: Fixture[];
+  }>({
+    electrical: [],
+    plumbing: [],
+    additional: []
+  });
 
   // Fetch brand name on component mount
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchBrand = async () => {
       try {
         if (state.selectedBrand) {
@@ -27,6 +39,27 @@ const Summary = () => {
     
     fetchBrand();
   }, [state.selectedBrand]);
+  
+  // Fetch fixtures data
+  useEffect(() => {
+    const fetchFixtures = async () => {
+      try {
+        const electrical = await FixtureService.getFixturesByCategory('electrical');
+        const plumbing = await FixtureService.getFixturesByCategory('plumbing');
+        const additional = await FixtureService.getFixturesByCategory('additional');
+        
+        setFixtures({
+          electrical,
+          plumbing,
+          additional
+        });
+      } catch (error) {
+        console.error('Error fetching fixtures:', error);
+      }
+    };
+    
+    fetchFixtures();
+  }, []);
 
   // Function to format currency in Indian Rupees
   const formatCurrency = (amount: number) => {
@@ -61,24 +94,60 @@ const Summary = () => {
     });
   };
 
+  // Helper to find fixture name from fixture key
+  const getFixtureName = (category: 'electrical' | 'plumbing' | 'additional', fixtureKey: string): string => {
+    const fixtureList = fixtures[category];
+    if (!fixtureList.length) return formatFixtureKey(fixtureKey);
+    
+    const fixture = fixtureList.find(f => 
+      f.name.toLowerCase().includes(fixtureKey.toLowerCase())
+    );
+    
+    return fixture ? fixture.name : formatFixtureKey(fixtureKey);
+  };
+  
+  // Format fixture key as fallback
+  const formatFixtureKey = (key: string): string => {
+    return key
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase());
+  };
+
   // Helper to determine which fixtures were selected
   const getSelectedFixtures = () => {
     const selected = [];
     
     // Electrical fixtures
-    if (state.fixtures.electrical.ledMirror) selected.push('LED Mirror');
-    if (state.fixtures.electrical.exhaustFan) selected.push('Exhaust Fan');
-    if (state.fixtures.electrical.waterHeater) selected.push('Water Heater');
+    if (state.fixtures.electrical.ledMirror) 
+      selected.push(getFixtureName('electrical', 'ledMirror'));
+    if (state.fixtures.electrical.exhaustFan) 
+      selected.push(getFixtureName('electrical', 'exhaustFan'));
+    if (state.fixtures.electrical.waterHeater) 
+      selected.push(getFixtureName('electrical', 'waterHeater'));
     
     // Plumbing fixtures
-    if (state.fixtures.plumbing.completePlumbing) selected.push('Complete Plumbing');
-    if (state.fixtures.plumbing.fixtureInstallationOnly) selected.push('Fixture Installation Only');
+    if (state.fixtures.plumbing.completePlumbing) 
+      selected.push(getFixtureName('plumbing', 'completePlumbing'));
+    if (state.fixtures.plumbing.fixtureInstallationOnly) 
+      selected.push(getFixtureName('plumbing', 'fixtureInstallationOnly'));
     
     // Additional fixtures
-    if (state.fixtures.additional.showerPartition) selected.push('Shower Partition');
-    if (state.fixtures.additional.vanity) selected.push('Vanity');
-    if (state.fixtures.additional.bathtub) selected.push('Bathtub');
-    if (state.fixtures.additional.jacuzzi) selected.push('Jacuzzi');
+    if (state.fixtures.additional.showerPartition) 
+      selected.push(getFixtureName('additional', 'showerPartition'));
+    if (state.fixtures.additional.vanity) 
+      selected.push(getFixtureName('additional', 'vanity'));
+    if (state.fixtures.additional.bathtub) 
+      selected.push(getFixtureName('additional', 'bathtub'));
+    if (state.fixtures.additional.jacuzzi) 
+      selected.push(getFixtureName('additional', 'jacuzzi'));
+    
+    // Always add other execution charges
+    const otherExecutionCharges = fixtures.additional.find(
+      f => f.name.toLowerCase().includes('other execution charges')
+    );
+    if (otherExecutionCharges) {
+      selected.push(otherExecutionCharges.name);
+    }
     
     return selected;
   };
