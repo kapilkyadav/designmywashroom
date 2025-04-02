@@ -2,6 +2,7 @@
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { Lead, LeadFilter } from './types';
+import { ActivityLogService } from './ActivityLogService';
 
 export const LeadCrudService = {
   async getLeads(filters: LeadFilter = {}): Promise<{ data: Lead[], count: number }> {
