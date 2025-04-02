@@ -7,25 +7,31 @@ export const useLeadDialogState = (
 ) => {
   const [activeTab, setActiveTab] = useState("details");
   
-  // More robust scroll restoration approach
+  // Full body scroll restoration with multiple approaches for reliability
   const restoreBodyScroll = useCallback(() => {
-    // Remove any potential scroll locks by all means
+    // Remove all scroll locks with multiple approaches for cross-browser compatibility
     document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('position');
     document.body.style.removeProperty('padding-right');
+    document.body.style.removeProperty('top');
+    document.body.style.removeProperty('width');
     document.documentElement.style.removeProperty('overflow');
     document.body.classList.remove('no-scroll', 'overflow-hidden');
+    
+    // Force repaint to ensure UI is responsive
+    window.scrollTo(window.scrollX, window.scrollY);
   }, []);
 
-  // Handle dialog state changes with fail-safe mechanisms
+  // More robust dialog state management
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen) {
-      // Restore scroll immediately
+      // Restore scroll immediately as first priority
       restoreBodyScroll();
       
-      // Small delay before state change to allow animation to complete
+      // Then notify parent after a safe delay for animations
       setTimeout(() => {
         onOpenChange(false);
-      }, 100);
+      }, 150);
     } else {
       onOpenChange(true);
     }
@@ -38,7 +44,8 @@ export const useLeadDialogState = (
       restoreBodyScroll();
     }
     
-    // Always ensure scroll is restored when component unmounts
+    // Critical: Always ensure scroll is restored when component unmounts
+    // This is essential to prevent the UI from becoming unresponsive
     return () => {
       restoreBodyScroll();
     };

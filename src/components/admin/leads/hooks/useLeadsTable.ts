@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Lead, LeadService } from '@/services/LeadService';
 import { useToast } from '@/hooks/use-toast';
@@ -102,6 +103,19 @@ export const useLeadsTable = (onRefresh: () => void) => {
     if (!budget || budget === 'not_specified') return '—';
     return budget;
   };
+  
+  // Proper handler for dialog state that resets selected lead
+  const handleDetailsDialogOpenChange = (open: boolean) => {
+    setIsDetailsDialogOpen(open);
+    
+    // Only clear selected lead after dialog is fully closed
+    if (!open) {
+      // Use timeout to ensure animations complete before clearing state
+      setTimeout(() => {
+        setSelectedLead(null);
+      }, 300);
+    }
+  };
 
   return {
     selectedLead,
@@ -116,6 +130,6 @@ export const useLeadsTable = (onRefresh: () => void) => {
     scheduleFollowUp,
     getBudgetDisplay,
     setIsDeleteDialogOpen,
-    setIsDetailsDialogOpen
+    setIsDetailsDialogOpen: handleDetailsDialogOpenChange
   };
 };

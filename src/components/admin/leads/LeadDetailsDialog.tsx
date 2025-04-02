@@ -34,6 +34,12 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
   const [currentLead, setCurrentLead] = useState<Lead>(lead);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const unmountingRef = useRef(false);
+  const openRef = useRef(open);
+  
+  // Update openRef when open prop changes
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
   
   // Custom hooks for different concerns
   const { activeTab, setActiveTab, handleOpenChange, restoreBodyScroll } = useLeadDialogState(open, (newOpen) => {
@@ -46,6 +52,11 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
         if (!unmountingRef.current) {
           onOpenChange(false);
           setIsTransitioning(false);
+          
+          // Make sure to refresh data after dialog fully closes
+          if (openRef.current !== false) {
+            onUpdate();
+          }
         }
       }, 300); // Matching animation duration from Shadcn Sheet
     } else {
@@ -70,16 +81,30 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
     cleanup
   } = useLeadDetails(lead.id, open);
 
-  // Ensure cleanup on unmount
+  // Force cleanup of all resources and restore scroll on unmount
   useEffect(() => {
-    return () => {
-      unmountingRef.current = true;
+    const handleBeforeUnload = () => {
+      // Emergency cleanup for page reloads/navigation
       restoreBodyScroll();
       cleanup();
     };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      unmountingRef.current = true;
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      restoreBodyScroll();
+      cleanup();
+      
+      // Force the UI to be responsive on unmount
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('position');
+      document.documentElement.style.removeProperty('overflow');
+    };
   }, [restoreBodyScroll, cleanup]);
   
-  // Update currentLead when lead changes or refreshLead is called
+  // Update currentLead when lead changes
   useEffect(() => {
     setCurrentLead(lead);
   }, [lead]);
@@ -115,7 +140,10 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
   }, [refreshRemarks, refreshLogs, refreshLead, onUpdate]);
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
+    <Sheet 
+      open={open} 
+      onOpenChange={handleOpenChange}
+    >
       <SheetContent 
         side="right"
         className="w-full sm:w-[600px] overflow-y-auto"

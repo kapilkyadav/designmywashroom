@@ -10,16 +10,23 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
   const [isLoadingRemarks, setIsLoadingRemarks] = useState(false);
   const [isLoadingLead, setIsLoadingLead] = useState(false);
   
-  // Use refs to track mounted state and for cancellation
+  // Use refs to track mounted state and for request cancellation
   const isMounted = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const cleanupTimeoutRef = useRef<number | null>(null);
 
-  // Improved cleanup function that ensures all state is reset and requests canceled
+  // Enhanced cleanup function that ensures all resources are released
   const cleanup = useCallback(() => {
     // Cancel any pending requests
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
+    }
+    
+    // Clear any pending timeouts
+    if (cleanupTimeoutRef.current) {
+      window.clearTimeout(cleanupTimeoutRef.current);
+      cleanupTimeoutRef.current = null;
     }
     
     // Reset state only if component is still mounted
@@ -33,7 +40,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
     }
   }, []);
 
-  // Set up cleanup on unmount
+  // Set up mount/unmount handling
   useEffect(() => {
     isMounted.current = true;
     
@@ -50,7 +57,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
     }
   }, [isOpen, cleanup]);
 
-  // Improved fetch functions with better error handling and cancellation
+  // Improved fetch functions with request cancellation
   const fetchActivityLogs = useCallback(async () => {
     if (!isOpen || !leadId || !isMounted.current) return; 
     
@@ -135,7 +142,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
     }
   }, [isOpen, leadId]);
 
-  // Fetch data when dialog is opened or lead ID changes
+  // Fetch data when dialog is opened or lead ID changes with better cleanup
   useEffect(() => {
     if (isOpen && leadId && isMounted.current) {
       fetchActivityLogs();
