@@ -1,6 +1,5 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { LeadService, LeadRemark } from '@/services/LeadService';
+import { LeadService, LeadRemark } from '@/services/leads';
 
 export const useRemarks = (leadId: string, isOpen: boolean) => {
   const [remarks, setRemarks] = useState<LeadRemark[]>([]);

@@ -1,6 +1,6 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Lead, LeadService } from '@/services/LeadService';
+import { Lead } from '@/services/leads';
+import { LeadService } from '@/services/leads';
 
 export const useSingleLead = (leadId: string, isOpen: boolean) => {
   const [lead, setLead] = useState<Lead | null>(null);

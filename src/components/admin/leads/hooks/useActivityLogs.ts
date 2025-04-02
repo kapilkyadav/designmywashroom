@@ -1,31 +1,25 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { LeadService, LeadActivityLog } from '@/services/LeadService';
+import { LeadService, LeadActivityLog } from '@/services/leads';
 
 export const useActivityLogs = (leadId: string, isOpen: boolean) => {
   const [activityLogs, setActivityLogs] = useState<LeadActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Use refs for better request cancellation
   const isMounted = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Cleanup function for unmounting or dialog closing
   const cleanup = useCallback(() => {
-    // Cancel pending requests
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
     
-    // Only reset state if component is still mounted
     if (isMounted.current) {
       setActivityLogs([]);
       setIsLoading(false);
     }
   }, []);
 
-  // Set up mount/unmount handling
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -34,18 +28,15 @@ export const useActivityLogs = (leadId: string, isOpen: boolean) => {
     };
   }, [cleanup]);
 
-  // Clear states and cancel requests when dialog closes
   useEffect(() => {
     if (!isOpen) {
       cleanup();
     }
   }, [isOpen, cleanup]);
 
-  // Fetch activity logs with proper request cancellation
   const fetchActivityLogs = useCallback(async () => {
     if (!isOpen || !leadId || !isMounted.current) return; 
     
-    // Cancel any existing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -69,13 +60,11 @@ export const useActivityLogs = (leadId: string, isOpen: boolean) => {
     }
   }, [isOpen, leadId]);
   
-  // Fetch data when dialog is opened
   useEffect(() => {
     if (isOpen && leadId && isMounted.current) {
       fetchActivityLogs();
     }
     
-    // Cleanup on effect change
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
