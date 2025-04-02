@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { 
   Sheet,
   SheetContent,
@@ -15,6 +15,7 @@ import RemarksTab from './components/RemarksTab';
 import { useLeadDetails } from './hooks/useLeadDetails';
 import { useLeadForm } from './hooks/useLeadForm';
 import { useLeadDialogState } from './hooks/useLeadDialogState';
+import { Loader2 } from 'lucide-react';
 
 interface LeadDetailsDialogProps {
   lead: Lead;
@@ -31,15 +32,53 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
 }) => {
   // Track current lead data to ensure we have the latest remarks
   const [currentLead, setCurrentLead] = useState<Lead>(lead);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const unmountingRef = useRef(false);
   
   // Custom hooks for different concerns
-  const { activeTab, setActiveTab, handleOpenChange } = useLeadDialogState(open, onOpenChange);
+  const { activeTab, setActiveTab, handleOpenChange, restoreBodyScroll } = useLeadDialogState(open, (newOpen) => {
+    if (!newOpen) {
+      // Start transition when closing
+      setIsTransitioning(true);
+      
+      // Short timeout to ensure animation completes before state updates
+      setTimeout(() => {
+        if (!unmountingRef.current) {
+          onOpenChange(false);
+          setIsTransitioning(false);
+        }
+      }, 300); // Matching animation duration from Shadcn Sheet
+    } else {
+      onOpenChange(true);
+    }
+  });
+  
   const { formData, isUpdating, handleChange, handleSelectChange, handleDateChange, handleSubmit, resetForm } = useLeadForm(lead, () => {
     onUpdate();
     handleOpenChange(false);
   });
-  const { activityLogs, remarks, lead: fetchedLead, isLoadingLogs, isLoadingRemarks, refreshRemarks, refreshLogs, refreshLead } = useLeadDetails(lead.id, open);
+  
+  const { 
+    activityLogs, 
+    remarks, 
+    lead: fetchedLead, 
+    isLoadingLogs, 
+    isLoadingRemarks, 
+    refreshRemarks, 
+    refreshLogs, 
+    refreshLead,
+    cleanup
+  } = useLeadDetails(lead.id, open);
 
+  // Ensure cleanup on unmount
+  useEffect(() => {
+    return () => {
+      unmountingRef.current = true;
+      restoreBodyScroll();
+      cleanup();
+    };
+  }, [restoreBodyScroll, cleanup]);
+  
   // Update currentLead when lead changes or refreshLead is called
   useEffect(() => {
     setCurrentLead(lead);
@@ -88,44 +127,50 @@ const LeadDetailsDialog: React.FC<LeadDetailsDialogProps> = ({
           </SheetDescription>
         </SheetHeader>
         
-        <div className="py-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full">
-              <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
-              <TabsTrigger value="remarks" className="flex-1">Remarks</TabsTrigger>
-              <TabsTrigger value="activity" className="flex-1">Activity Log</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="details" className="pt-4">
-              <LeadDetailsForm
-                formData={formData}
-                handleChange={handleChange}
-                handleSelectChange={handleSelectChange}
-                handleDateChange={handleDateChange}
-                handleSubmit={handleSubmit}
-                isUpdating={isUpdating}
-                onCancel={() => handleOpenChange(false)}
-              />
-            </TabsContent>
-            
-            <TabsContent value="remarks" className="pt-4">
-              <RemarksTab 
-                leadId={currentLead.id}
-                isLoading={isLoadingRemarks}
-                remarks={remarks}
-                currentRemark={currentLead.remarks}
-                onRemarkAdded={handleRemarkAdded}
-              />
-            </TabsContent>
-            
-            <TabsContent value="activity" className="pt-4">
-              <ActivityLogTab 
-                isLoading={isLoadingLogs} 
-                activityLogs={activityLogs} 
-              />
-            </TabsContent>
-          </Tabs>
-        </div>
+        {isTransitioning ? (
+          <div className="flex items-center justify-center h-[80vh]">
+            <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="py-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="w-full">
+                <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
+                <TabsTrigger value="remarks" className="flex-1">Remarks</TabsTrigger>
+                <TabsTrigger value="activity" className="flex-1">Activity Log</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="details" className="pt-4">
+                <LeadDetailsForm
+                  formData={formData}
+                  handleChange={handleChange}
+                  handleSelectChange={handleSelectChange}
+                  handleDateChange={handleDateChange}
+                  handleSubmit={handleSubmit}
+                  isUpdating={isUpdating}
+                  onCancel={() => handleOpenChange(false)}
+                />
+              </TabsContent>
+              
+              <TabsContent value="remarks" className="pt-4">
+                <RemarksTab 
+                  leadId={currentLead.id}
+                  isLoading={isLoadingRemarks}
+                  remarks={remarks}
+                  currentRemark={currentLead.remarks}
+                  onRemarkAdded={handleRemarkAdded}
+                />
+              </TabsContent>
+              
+              <TabsContent value="activity" className="pt-4">
+                <ActivityLogTab 
+                  isLoading={isLoadingLogs} 
+                  activityLogs={activityLogs} 
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );

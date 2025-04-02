@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Lead, LeadService, LeadActivityLog, LeadRemark } from '@/services/LeadService';
 
 export const useLeadDetails = (leadId: string, isOpen: boolean) => {
@@ -9,28 +9,19 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [isLoadingRemarks, setIsLoadingRemarks] = useState(false);
   const [isLoadingLead, setIsLoadingLead] = useState(false);
+  
+  // Use refs to track mounted state and for cancellation
   const isMounted = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Set up cleanup on unmount
-  useEffect(() => {
-    isMounted.current = true;
+  // Cleanup function to cancel pending requests and reset state
+  const cleanup = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     
-    return () => {
-      isMounted.current = false;
-      // Clear states when unmounting to avoid memory leaks
-      setActivityLogs([]);
-      setRemarks([]);
-      setLead(null);
-      setIsLoadingLogs(false);
-      setIsLoadingRemarks(false);
-      setIsLoadingLead(false);
-    };
-  }, []);
-
-  // Clear states when dialog closes
-  useEffect(() => {
-    if (!isOpen) {
-      // Clear states when dialog closes
+    if (isMounted.current) {
       setActivityLogs([]);
       setRemarks([]);
       setLead(null);
@@ -38,10 +29,34 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
       setIsLoadingRemarks(false);
       setIsLoadingLead(false);
     }
-  }, [isOpen]);
+  }, []);
+
+  // Set up cleanup on unmount
+  useEffect(() => {
+    isMounted.current = true;
+    
+    return () => {
+      isMounted.current = false;
+      cleanup();
+    };
+  }, [cleanup]);
+
+  // Clear states and cancel requests when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      cleanup();
+    }
+  }, [isOpen, cleanup]);
 
   const fetchActivityLogs = async () => {
-    if (!isOpen || !leadId || !isMounted.current) return; // Don't fetch if dialog is closed or no leadId
+    if (!isOpen || !leadId || !isMounted.current) return; 
+    
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    abortControllerRef.current = new AbortController();
     
     setIsLoadingLogs(true);
     try {
@@ -50,7 +65,10 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
         setActivityLogs(logs);
       }
     } catch (error) {
-      console.error('Error fetching activity logs:', error);
+      // Only log error if it's not from aborting
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching activity logs:', error);
+      }
     } finally {
       if (isMounted.current) {
         setIsLoadingLogs(false);
@@ -59,7 +77,14 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
   };
   
   const fetchRemarks = async () => {
-    if (!isOpen || !leadId || !isMounted.current) return; // Don't fetch if dialog is closed or no leadId
+    if (!isOpen || !leadId || !isMounted.current) return;
+    
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    abortControllerRef.current = new AbortController();
     
     setIsLoadingRemarks(true);
     try {
@@ -68,7 +93,10 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
         setRemarks(remarkData);
       }
     } catch (error) {
-      console.error('Error fetching remarks:', error);
+      // Only log error if it's not from aborting
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching remarks:', error);
+      }
     } finally {
       if (isMounted.current) {
         setIsLoadingRemarks(false);
@@ -77,7 +105,14 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
   };
 
   const fetchLeadDetails = async () => {
-    if (!isOpen || !leadId || !isMounted.current) return; // Don't fetch if dialog is closed or no leadId
+    if (!isOpen || !leadId || !isMounted.current) return;
+    
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    abortControllerRef.current = new AbortController();
     
     setIsLoadingLead(true);
     try {
@@ -86,7 +121,10 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
         setLead(leadData);
       }
     } catch (error) {
-      console.error('Error fetching lead details:', error);
+      // Only log error if it's not from aborting
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching lead details:', error);
+      }
     } finally {
       if (isMounted.current) {
         setIsLoadingLead(false);
@@ -101,6 +139,14 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
       fetchRemarks();
       fetchLeadDetails();
     }
+    
+    // Cleanup on effect change
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, [isOpen, leadId]);
 
   return {
@@ -112,6 +158,7 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
     isLoadingLead,
     refreshRemarks: fetchRemarks,
     refreshLogs: fetchActivityLogs,
-    refreshLead: fetchLeadDetails
+    refreshLead: fetchLeadDetails,
+    cleanup
   };
 };
