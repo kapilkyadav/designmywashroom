@@ -1,49 +1,41 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Lead, LeadService, LeadActivityLog, LeadRemark } from '@/services/LeadService';
+import { Lead } from '@/services/LeadService';
+import { useActivityLogs } from './useActivityLogs';
+import { useRemarks } from './useRemarks';
+import { useSingleLead } from './useSingleLead';
+import { useCleanup } from './useCleanup';
 
 export const useLeadDetails = (leadId: string, isOpen: boolean) => {
-  const [activityLogs, setActivityLogs] = useState<LeadActivityLog[]>([]);
-  const [remarks, setRemarks] = useState<LeadRemark[]>([]);
-  const [lead, setLead] = useState<Lead | null>(null);
-  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
-  const [isLoadingRemarks, setIsLoadingRemarks] = useState(false);
-  const [isLoadingLead, setIsLoadingLead] = useState(false);
-  
-  // Use refs for better request cancellation and cleanup
+  // Combined refs
   const isMounted = useRef(true);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const cleanupTimeoutRef = useRef<number | null>(null);
-
-  // Significantly enhanced cleanup function 
-  const cleanup = useCallback(() => {
-    // Cancel pending requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    
-    // Clear any pending timeouts
-    if (cleanupTimeoutRef.current) {
-      window.clearTimeout(cleanupTimeoutRef.current);
-      cleanupTimeoutRef.current = null;
-    }
-    
-    // Only reset state if component is still mounted
-    if (isMounted.current) {
-      setActivityLogs([]);
-      setRemarks([]);
-      setLead(null);
-      setIsLoadingLogs(false);
-      setIsLoadingRemarks(false);
-      setIsLoadingLead(false);
-    }
-    
-    // Ensure body scroll is restored
-    document.body.style.overflow = 'auto';
-    document.body.style.removeProperty('position');
-    document.body.classList.remove('no-scroll', 'overflow-hidden');
-  }, []);
+  
+  // Import individual hooks
+  const { 
+    activityLogs, 
+    isLoading: isLoadingLogs, 
+    refresh: refreshLogs,
+    cleanup: cleanupLogs
+  } = useActivityLogs(leadId, isOpen);
+  
+  const {
+    remarks,
+    isLoading: isLoadingRemarks,
+    refresh: refreshRemarks,
+    cleanup: cleanupRemarks
+  } = useRemarks(leadId, isOpen);
+  
+  const {
+    lead,
+    isLoading: isLoadingLead,
+    refresh: refreshLead,
+    cleanup: cleanupLead
+  } = useSingleLead(leadId, isOpen);
+  
+  const {
+    cleanup: cleanupResources,
+    restoreBodyScroll
+  } = useCleanup();
 
   // Set up mount/unmount handling
   useEffect(() => {
@@ -52,115 +44,27 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
     // Critical cleanup on unmount
     return () => {
       isMounted.current = false;
-      cleanup();
+      cleanupAll();
     };
-  }, [cleanup]);
+  }, []);
+
+  // Combined master cleanup function
+  const cleanupAll = useCallback(() => {
+    cleanupLogs();
+    cleanupRemarks();
+    cleanupLead();
+    cleanupResources();
+    
+    // Ensure body scroll is restored
+    restoreBodyScroll();
+  }, [cleanupLogs, cleanupRemarks, cleanupLead, cleanupResources, restoreBodyScroll]);
 
   // Clear states and cancel requests when dialog closes
   useEffect(() => {
     if (!isOpen) {
-      cleanup();
+      cleanupAll();
     }
-  }, [isOpen, cleanup]);
-
-  // Improved fetch functions with proper request cancellation
-  const fetchActivityLogs = useCallback(async () => {
-    if (!isOpen || !leadId || !isMounted.current) return; 
-    
-    // Cancel any existing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    abortControllerRef.current = new AbortController();
-    
-    setIsLoadingLogs(true);
-    try {
-      const logs = await LeadService.getActivityLogs(leadId);
-      if (isMounted.current) {
-        setActivityLogs(logs);
-      }
-    } catch (error: any) {
-      if (error.name !== 'AbortError' && isMounted.current) {
-        console.error('Error fetching activity logs:', error);
-      }
-    } finally {
-      if (isMounted.current) {
-        setIsLoadingLogs(false);
-      }
-    }
-  }, [isOpen, leadId]);
-  
-  const fetchRemarks = useCallback(async () => {
-    if (!isOpen || !leadId || !isMounted.current) return;
-    
-    // Cancel any existing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    abortControllerRef.current = new AbortController();
-    
-    setIsLoadingRemarks(true);
-    try {
-      const remarkData = await LeadService.getRemarks(leadId);
-      if (isMounted.current) {
-        setRemarks(remarkData);
-      }
-    } catch (error: any) {
-      if (error.name !== 'AbortError' && isMounted.current) {
-        console.error('Error fetching remarks:', error);
-      }
-    } finally {
-      if (isMounted.current) {
-        setIsLoadingRemarks(false);
-      }
-    }
-  }, [isOpen, leadId]);
-
-  const fetchLeadDetails = useCallback(async () => {
-    if (!isOpen || !leadId || !isMounted.current) return;
-    
-    // Cancel any existing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    abortControllerRef.current = new AbortController();
-    
-    setIsLoadingLead(true);
-    try {
-      const leadData = await LeadService.getLead(leadId);
-      if (isMounted.current && leadData) {
-        setLead(leadData);
-      }
-    } catch (error: any) {
-      if (error.name !== 'AbortError' && isMounted.current) {
-        console.error('Error fetching lead details:', error);
-      }
-    } finally {
-      if (isMounted.current) {
-        setIsLoadingLead(false);
-      }
-    }
-  }, [isOpen, leadId]);
-
-  // Fetch data when dialog is opened with improved cleanup
-  useEffect(() => {
-    if (isOpen && leadId && isMounted.current) {
-      fetchActivityLogs();
-      fetchRemarks();
-      fetchLeadDetails();
-    }
-    
-    // Cleanup on effect change
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-    };
-  }, [isOpen, leadId, fetchActivityLogs, fetchRemarks, fetchLeadDetails]);
+  }, [isOpen, cleanupAll]);
 
   return {
     activityLogs,
@@ -169,9 +73,9 @@ export const useLeadDetails = (leadId: string, isOpen: boolean) => {
     isLoadingLogs,
     isLoadingRemarks,
     isLoadingLead,
-    refreshRemarks: fetchRemarks,
-    refreshLogs: fetchActivityLogs,
-    refreshLead: fetchLeadDetails,
-    cleanup
+    refreshRemarks,
+    refreshLogs,
+    refreshLead,
+    cleanup: cleanupAll
   };
 };
