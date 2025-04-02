@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,16 @@ const formSchema = z.object({
   notes: z.string().optional(),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+// This represents the form field types (before transformation)
+type FormValues = {
+  item_id: string;
+  vendor_rate1: string;
+  vendor_rate2: string;
+  vendor_rate3: string;
+  client_rate: string;
+  currency?: string;
+  notes?: string;
+};
 
 interface RateCardFormProps {
   defaultValues?: Partial<VendorRateCard>;
@@ -88,7 +98,8 @@ const RateCardForm: React.FC<RateCardFormProps> = ({
   }, [defaultValues, items, form]);
 
   const handleSubmit = async (values: FormValues) => {
-    await onSubmit(values);
+    // The zodResolver will transform the values according to our schema
+    await onSubmit(formSchema.parse(values));
   };
 
   return (
