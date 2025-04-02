@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Zap, ShowerHead, Lightbulb, Fan, Thermometer, Bath, Palette, Waves } from 'lucide-react';
 
 const FixturesStep = () => {
@@ -72,7 +72,7 @@ const FixturesStep = () => {
       .replace(/^./, str => str.toUpperCase());
   };
   
-  // Find the selected plumbing option for the radio group
+  // Find the selected plumbing option for the toggle group
   const getSelectedPlumbingOption = (): string => {
     const plumbingOptions = Object.entries(state.fixtures.plumbing);
     const selectedOption = plumbingOptions.find(([_, value]) => value);
@@ -131,7 +131,7 @@ const FixturesStep = () => {
           </CardContent>
         </Card>
         
-        {/* Plumbing Options - Changed to RadioGroup */}
+        {/* Plumbing Options - Changed to ToggleGroup */}
         <Card className="overflow-hidden">
           <div className="bg-secondary px-4 py-3 flex items-center">
             <div className="mr-2 text-primary"><ShowerHead className="h-5 w-5" /></div>
@@ -139,20 +139,23 @@ const FixturesStep = () => {
           </div>
           <Separator />
           <CardContent className="p-6">
-            <RadioGroup 
+            <ToggleGroup 
+              type="single" 
               value={getSelectedPlumbingOption()} 
               onValueChange={handlePlumbingChange}
-              className="space-y-4"
+              className="justify-start flex-wrap gap-2"
             >
               {['completePlumbing', 'fixtureInstallationOnly'].map((fixtureKey) => (
-                <div key={fixtureKey} className="flex items-center space-x-2">
-                  <RadioGroupItem value={fixtureKey} id={`plumbing-${fixtureKey}`} />
-                  <Label htmlFor={`plumbing-${fixtureKey}`} className="cursor-pointer">
-                    {getFixtureName(plumbingFixtures, fixtureKey)}
-                  </Label>
-                </div>
+                <ToggleGroupItem 
+                  key={fixtureKey} 
+                  value={fixtureKey}
+                  variant="outline"
+                  className="px-4 py-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                >
+                  {getFixtureName(plumbingFixtures, fixtureKey)}
+                </ToggleGroupItem>
               ))}
-            </RadioGroup>
+            </ToggleGroup>
           </CardContent>
         </Card>
         
