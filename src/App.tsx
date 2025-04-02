@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { Toaster } from '@/components/ui/toaster';
+import { AdminAuthProvider } from '@/hooks/useAdminAuth';
 
 import Index from './pages/Index';
 import Calculator from './pages/Calculator';
@@ -48,7 +49,11 @@ function App() {
             {/* Admin routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
 
-            <Route path="/admin" element={<Admin />}>
+            <Route path="/admin" element={
+              <AdminAuthProvider>
+                <Admin />
+              </AdminAuthProvider>
+            }>
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="brands" element={<AdminBrands />} />
               <Route path="brands/add" element={<AdminBrandAdd />} />
