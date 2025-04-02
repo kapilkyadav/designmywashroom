@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -31,6 +30,14 @@ export interface RealProject {
   quotation_generated_at: string | null;
   last_updated_at: string;
   created_at: string;
+
+  // Add a helper method to update costs more cleanly
+  updateCosts: (data: {
+    execution_costs: Record<string, any>;
+    vendor_rates: Record<string, any>;
+    additional_costs: Record<string, any>;
+    final_quotation_amount: number;
+  }) => Promise<boolean>;
 }
 
 export interface RealProjectFilter {
@@ -130,7 +137,7 @@ export const RealProjectService = {
       
       if (error) throw error;
       
-      return data as RealProject;
+      return data ? RealProjectService.extendRealProject(data as RealProject) : null;
     } catch (error: any) {
       console.error('Error fetching real project:', error);
       toast({
@@ -530,5 +537,15 @@ export const RealProjectService = {
       });
       return null;
     }
+  },
+  
+  // Add prototype methods to RealProject objects
+  extendRealProject(project: RealProject): RealProject {
+    return {
+      ...project,
+      updateCosts: async (costData) => {
+        return RealProjectService.updateRealProject(project.id, costData);
+      }
+    };
   }
 };

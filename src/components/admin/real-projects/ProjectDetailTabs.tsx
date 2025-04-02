@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { RealProject } from '@/services/RealProjectService';
 import ProjectDetailsTab from '@/components/admin/real-projects/ProjectDetailsTab';
-import CostingTab from '@/components/admin/real-projects/CostingTab';
+import CostingTab from '@/components/admin/real-projects/costing/CostingTab';
 import QuotationsTab from '@/components/admin/real-projects/QuotationsTab';
 
 interface ProjectDetailTabsProps {
