@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -28,12 +27,20 @@ const formSchema = z.object({
   item_id: z.string({
     required_error: "Please select an item",
   }),
-  vendor_rate1: z.string().optional().transform(val => val === '' ? null : parseFloat(val)),
-  vendor_rate2: z.string().optional().transform(val => val === '' ? null : parseFloat(val)),
-  vendor_rate3: z.string().optional().transform(val => val === '' ? null : parseFloat(val)),
+  vendor_rate1: z.string()
+    .optional()
+    .transform(val => val === '' ? null : Number(val)),
+  vendor_rate2: z.string()
+    .optional()
+    .transform(val => val === '' ? null : Number(val)),
+  vendor_rate3: z.string()
+    .optional()
+    .transform(val => val === '' ? null : Number(val)),
   client_rate: z.string({
     required_error: "Client rate is required",
-  }).transform(val => parseFloat(val)),
+  }).refine(val => !isNaN(Number(val)), {
+    message: "Client rate must be a valid number",
+  }).transform(val => Number(val)),
   currency: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -57,10 +64,10 @@ const RateCardForm: React.FC<RateCardFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       item_id: defaultValues?.item_id || '',
-      vendor_rate1: defaultValues?.vendor_rate1?.toString() || '',
-      vendor_rate2: defaultValues?.vendor_rate2?.toString() || '',
-      vendor_rate3: defaultValues?.vendor_rate3?.toString() || '',
-      client_rate: defaultValues?.client_rate?.toString() || '',
+      vendor_rate1: defaultValues?.vendor_rate1 !== null ? String(defaultValues?.vendor_rate1) : '',
+      vendor_rate2: defaultValues?.vendor_rate2 !== null ? String(defaultValues?.vendor_rate2) : '',
+      vendor_rate3: defaultValues?.vendor_rate3 !== null ? String(defaultValues?.vendor_rate3) : '',
+      client_rate: defaultValues?.client_rate !== undefined ? String(defaultValues?.client_rate) : '',
       currency: defaultValues?.currency || 'INR',
       notes: defaultValues?.notes || '',
     },
@@ -70,10 +77,10 @@ const RateCardForm: React.FC<RateCardFormProps> = ({
     if (defaultValues && items.length > 0) {
       form.reset({
         item_id: defaultValues.item_id,
-        vendor_rate1: defaultValues.vendor_rate1?.toString() || '',
-        vendor_rate2: defaultValues.vendor_rate2?.toString() || '',
-        vendor_rate3: defaultValues.vendor_rate3?.toString() || '',
-        client_rate: defaultValues.client_rate?.toString() || '',
+        vendor_rate1: defaultValues.vendor_rate1 !== null ? String(defaultValues.vendor_rate1) : '',
+        vendor_rate2: defaultValues.vendor_rate2 !== null ? String(defaultValues.vendor_rate2) : '',
+        vendor_rate3: defaultValues.vendor_rate3 !== null ? String(defaultValues.vendor_rate3) : '',
+        client_rate: defaultValues.client_rate !== undefined ? String(defaultValues.client_rate) : '',
         currency: defaultValues.currency || 'INR',
         notes: defaultValues.notes || '',
       });
