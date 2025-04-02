@@ -359,14 +359,15 @@ const AdminVendorRateCard = () => {
                                   rateCard.item || 
                                   { scope_of_work: 'Unknown', category_id: '' };
                       
-                      const category = categories.find(c => c.id === item.category_id) || 
-                                      item.category || 
-                                      { name: 'Unknown' };
+                      const categoryId = 'category' in item ? item.category?.id : item.category_id;
+                      const categoryName = 'category' in item && item.category ? 
+                          item.category.name : 
+                          categories.find(c => c.id === categoryId)?.name || 'Unknown';
                       
                       return (
                         <TableRow key={rateCard.id}>
                           <TableCell>{item.scope_of_work}</TableCell>
-                          <TableCell>{category.name}</TableCell>
+                          <TableCell>{categoryName}</TableCell>
                           <TableCell>{rateCard.vendor_rate1 ? `₹${rateCard.vendor_rate1}` : '-'}</TableCell>
                           <TableCell>{rateCard.vendor_rate2 ? `₹${rateCard.vendor_rate2}` : '-'}</TableCell>
                           <TableCell>{rateCard.vendor_rate3 ? `₹${rateCard.vendor_rate3}` : '-'}</TableCell>
