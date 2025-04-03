@@ -16,6 +16,14 @@ interface WashroomScopeStepProps {
   onSubmit: (washrooms: WashroomWithAreas[]) => void;
 }
 
+// Define a type for the service items
+interface ServiceItem {
+  id: string;
+  name: string;
+  category: string;
+  description?: string;
+}
+
 const WashroomScopeStep: React.FC<WashroomScopeStepProps> = ({ washrooms, onSubmit }) => {
   const [activeTab, setActiveTab] = useState<string>(washrooms[0]?.name || '');
   const [washroomsWithScope, setWashroomsWithScope] = useState<WashroomWithAreas[]>(washrooms);
@@ -27,7 +35,7 @@ const WashroomScopeStep: React.FC<WashroomScopeStepProps> = ({ washrooms, onSubm
   });
 
   // Group services by category
-  const servicesByCategory = services.reduce((acc: Record<string, any[]>, service) => {
+  const servicesByCategory = services.reduce((acc: Record<string, ServiceItem[]>, service) => {
     if (!acc[service.category]) {
       acc[service.category] = [];
     }
@@ -138,7 +146,7 @@ const WashroomScopeStep: React.FC<WashroomScopeStepProps> = ({ washrooms, onSubm
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 pl-6">
-                          {categoryServices.map((service: any) => (
+                          {categoryServices.map((service: ServiceItem) => (
                             <div key={service.id} className="flex items-center space-x-2">
                               <Checkbox 
                                 id={`service-${washroomIndex}-${service.id}`}
