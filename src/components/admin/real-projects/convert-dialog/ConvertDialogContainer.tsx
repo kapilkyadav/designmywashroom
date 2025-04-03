@@ -9,7 +9,8 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { RealProjectService, ConvertibleRecord } from '@/services/real-projects/types';
+import { ConvertibleRecord } from '@/services/real-projects/types';
+import { RealProjectService } from '@/services/RealProjectService';
 import RecordsList from './RecordsList';
 
 interface ConvertDialogContainerProps {
