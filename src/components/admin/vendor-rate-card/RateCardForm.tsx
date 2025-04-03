@@ -39,7 +39,6 @@ const formSchema = z.object({
   notes: z.string().optional(),
 });
 
-// Form values after Zod validation
 type FormValues = z.infer<typeof formSchema>;
 
 interface RateCardFormProps {
@@ -72,9 +71,9 @@ const RateCardForm: React.FC<RateCardFormProps> = ({
     if (defaultValues && items.length > 0) {
       form.reset({
         item_id: defaultValues.item_id,
-        vendor_rate1: defaultValues.vendor_rate1 || null,
-        vendor_rate2: defaultValues.vendor_rate2 || null,
-        vendor_rate3: defaultValues.vendor_rate3 || null,
+        vendor_rate1: defaultValues.vendor_rate1,
+        vendor_rate2: defaultValues.vendor_rate2,
+        vendor_rate3: defaultValues.vendor_rate3,
         client_rate: defaultValues.client_rate || 0,
         currency: defaultValues.currency || 'INR',
         notes: defaultValues.notes || '',
