@@ -25,7 +25,7 @@ const CategoryDialog: React.FC<CategoryDialogProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (values: Partial<VendorCategory>) => {
+  const handleSubmit = async (values: { name: string; description?: string }) => {
     try {
       setIsSubmitting(true);
       

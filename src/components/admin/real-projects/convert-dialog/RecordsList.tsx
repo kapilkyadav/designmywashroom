@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
-import { ConvertibleRecord } from '@/services/RealProjectService';
+import { ConvertibleRecord } from '@/services/real-projects/types';
 
 interface RecordsListProps {
   records: ConvertibleRecord[];

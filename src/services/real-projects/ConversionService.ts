@@ -30,7 +30,7 @@ export class ConversionService extends BaseService {
       
       // Transform leads data
       const leads = leadsData.map(lead => ({
-        record_type: 'lead',
+        record_type: 'lead' as const,
         record_id: lead.id,
         client_name: lead.customer_name,
         client_email: lead.email,
@@ -39,11 +39,11 @@ export class ConversionService extends BaseService {
         created_date: lead.lead_date || lead.created_at,
         status: lead.status,
         real_project_id: null
-      })) as ConvertibleRecord[];
+      }));
       
       // Transform project estimates data
       const estimates = estimatesData.map(estimate => ({
-        record_type: 'project_estimate',
+        record_type: 'project_estimate' as const,
         record_id: estimate.id,
         client_name: estimate.client_name,
         client_email: estimate.client_email,
@@ -52,7 +52,7 @@ export class ConversionService extends BaseService {
         created_date: estimate.created_at,
         status: null,
         real_project_id: null
-      })) as ConvertibleRecord[];
+      }));
       
       // Combine and sort by created_date descending
       const records = [...leads, ...estimates].sort((a, b) => 
@@ -60,14 +60,65 @@ export class ConversionService extends BaseService {
       );
       
       console.log('Fetched records:', records);
-      return records;
+      return records as ConvertibleRecord[];
     } catch (error) {
-      return this.handleError(error, 'Failed to fetch convertible records', []);
+      return this.handleError(error, 'Failed to fetch convertible records');
     }
   }
   
   /**
-   * Convert a record (lead or project estimate) to a real project
+   * Convert a lead to a real project
+   */
+  static async convertLeadToProject(leadId: string, projectData: any): Promise<{ success: boolean; project: RealProject | null }> {
+    try {
+      // Create the new real project
+      const { data: newProject, error: projectError } = await supabase
+        .from('real_projects')
+        .insert({
+          ...projectData,
+          lead_id: leadId,
+          project_estimate_id: null,
+        })
+        .select()
+        .single();
+      
+      if (projectError) throw projectError;
+      
+      // Mark the lead as converted
+      await LeadCrudService.markLeadAsConverted(leadId, newProject.id);
+      
+      return { success: true, project: newProject as RealProject };
+    } catch (error) {
+      return this.handleError(error, 'Failed to convert lead to project');
+    }
+  }
+  
+  /**
+   * Convert a project estimate to a real project
+   */
+  static async convertEstimateToProject(estimateId: string, projectData: any): Promise<{ success: boolean; project: RealProject | null }> {
+    try {
+      // Create the new real project
+      const { data: newProject, error: projectError } = await supabase
+        .from('real_projects')
+        .insert({
+          ...projectData,
+          lead_id: null,
+          project_estimate_id: estimateId,
+        })
+        .select()
+        .single();
+      
+      if (projectError) throw projectError;
+      
+      return { success: true, project: newProject as RealProject };
+    } catch (error) {
+      return this.handleError(error, 'Failed to convert estimate to project');
+    }
+  }
+  
+  /**
+   * Generic method to convert any record to a real project
    */
   static async convertToProject(record: ConvertibleRecord): Promise<{ success: boolean; project: RealProject | null }> {
     try {
@@ -98,7 +149,7 @@ export class ConversionService extends BaseService {
       
       return { success: true, project: newProject as RealProject };
     } catch (error) {
-      return this.handleError(error, 'Failed to convert record to project', { success: false, project: null });
+      return this.handleError(error, 'Failed to convert record to project');
     }
   }
 }

@@ -3,6 +3,7 @@ import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ServiceItem } from '../hooks/useWashroomScope';
+import { cn } from '@/lib/utils';
 
 interface ServiceCategoryProps {
   category: string;
@@ -31,7 +32,9 @@ const ServiceCategory: React.FC<ServiceCategoryProps> = ({
         <Checkbox 
           id={`category-${washroomIndex}-${category}`}
           checked={areAllSelected}
-          indeterminate={!areAllSelected && areSomeSelected}
+          // Handle indeterminate state through className and data attribute
+          className={cn(areSomeSelected && !areAllSelected && "opacity-80")}
+          data-state={areSomeSelected && !areAllSelected ? "indeterminate" : areAllSelected ? "checked" : "unchecked"}
           onCheckedChange={(checked) => onSelectAllInCategory(washroomIndex, category, !!checked)}
         />
         <Label 

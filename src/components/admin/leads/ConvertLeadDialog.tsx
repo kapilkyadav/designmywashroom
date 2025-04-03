@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { Lead } from '@/services/leads/types';
 import ProjectCreateWizard from '@/components/admin/real-projects/creation/ProjectCreateWizard';
-import { ConvertibleRecord } from '@/services/RealProjectService';
+import { ConvertibleRecord } from '@/services/real-projects/types';
 
 interface ConvertLeadDialogProps {
   lead: Lead;
