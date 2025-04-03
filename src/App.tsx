@@ -68,6 +68,8 @@ function App() {
               <Route path="projects" element={<AdminProjects />} />
               <Route path="projects/:id/edit" element={<AdminProjectEdit />} />
               <Route path="projects/:id" element={<AdminProjectDetail />} />
+              {/* Add the new route that matches the URL structure being used */}
+              <Route path="projects/detail/:id" element={<AdminProjectDetail />} />
               
               {/* Real Projects routes */}
               <Route path="real-projects" element={<AdminRealProjects />} />
