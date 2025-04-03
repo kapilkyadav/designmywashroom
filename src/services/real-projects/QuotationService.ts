@@ -4,6 +4,7 @@ import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { BaseService } from './BaseService';
 import { ProjectQuotation, RealProject, Washroom } from './types';
+import { VendorRateCardService } from '@/services/VendorRateCardService';
 
 export class QuotationService extends BaseService {
   /**

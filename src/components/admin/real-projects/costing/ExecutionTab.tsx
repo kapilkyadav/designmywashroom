@@ -9,7 +9,6 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 
 interface ExecutionTabProps {
@@ -25,6 +24,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
   });
   const [isUpdating, setIsUpdating] = useState(false);
   const [costSummary, setCostSummary] = useState<Record<string, any>>({});
+  const [serviceRates, setServiceRates] = useState<Record<string, number>>({});
   
   // Fetch execution services
   const { data: services, isLoading: isLoadingServices } = useQuery({
@@ -63,6 +63,21 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
         );
         
         setCostSummary(calculatedCosts);
+        
+        // If we have service rates, update execution costs
+        if (calculatedCosts.service_rates) {
+          setServiceRates(calculatedCosts.service_rates);
+          
+          // Pre-fill execution costs with rates from vendor rate cards if not already set
+          const updatedCosts = { ...executionCosts };
+          Object.entries(calculatedCosts.service_rates).forEach(([serviceId, rate]) => {
+            if (!updatedCosts[serviceId]) {
+              updatedCosts[serviceId] = rate as number;
+            }
+          });
+          
+          setExecutionCosts(updatedCosts);
+        }
       } catch (error) {
         console.error("Error calculating costs:", error);
       }
@@ -119,10 +134,11 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
   const servicesByCategory: Record<string, any[]> = {};
   if (services) {
     services.forEach(service => {
-      if (!servicesByCategory[service.category]) {
-        servicesByCategory[service.category] = [];
+      const categoryName = service.category?.name || "Uncategorized";
+      if (!servicesByCategory[categoryName]) {
+        servicesByCategory[categoryName] = [];
       }
-      servicesByCategory[service.category].push(service);
+      servicesByCategory[categoryName].push(service);
     });
   }
   
@@ -220,28 +236,36 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
             
             <div className="p-4">
               <div className="grid grid-cols-1 gap-4">
-                {categoryServices.map(service => (
-                  <div key={service.id} className="grid grid-cols-3 gap-4 items-center">
-                    <div className="col-span-2">
-                      <Label htmlFor={`service-cost-${service.id}`}>{service.name}</Label>
-                      <p className="text-sm text-muted-foreground">{service.description}</p>
-                    </div>
-                    <div>
-                      <div className="flex items-center">
-                        <span className="mr-2 text-muted-foreground">₹</span>
-                        <Input
-                          id={`service-cost-${service.id}`}
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={executionCosts[service.id] || ''}
-                          onChange={(e) => handleCostChange(service.id, parseFloat(e.target.value) || 0)}
-                          className="text-right"
-                        />
+                {categoryServices.map(service => {
+                  // Get suggested rate from vendor rate card if available
+                  const suggestedRate = serviceRates[service.id] || 0;
+                  const currentRate = executionCosts[service.id] || suggestedRate;
+                  
+                  return (
+                    <div key={service.id} className="grid grid-cols-3 gap-4 items-center">
+                      <div className="col-span-2">
+                        <Label htmlFor={`service-cost-${service.id}`}>{service.scope_of_work}</Label>
+                        <p className="text-sm text-muted-foreground">
+                          {suggestedRate > 0 && `Suggested rate: ₹${suggestedRate}`}
+                        </p>
+                      </div>
+                      <div>
+                        <div className="flex items-center">
+                          <span className="mr-2 text-muted-foreground">₹</span>
+                          <Input
+                            id={`service-cost-${service.id}`}
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={currentRate || ''}
+                            onChange={(e) => handleCostChange(service.id, parseFloat(e.target.value) || 0)}
+                            className="text-right"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </CardContent>
@@ -253,7 +277,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
           onClick={saveCosts}
           disabled={isUpdating}
         >
-          {isUpdating && <Save className="mr-2 h-4 w-4 animate-spin" />}
+          {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save Execution Costs
         </Button>
       </div>

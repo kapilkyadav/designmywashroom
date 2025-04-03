@@ -25,6 +25,11 @@ export interface RealProject {
   converted_at: string;
   quotation_generated_at?: string;
   washrooms?: Washroom[];
+  execution_costs?: Record<string, any>;
+  vendor_rates?: Record<string, any>;
+  additional_costs?: Record<string, any>;
+  final_quotation_amount?: number;
+  original_estimate?: number;
   // Methods added during extension
   updateCosts: (data: Partial<RealProject>) => Promise<boolean>;
 }
@@ -98,4 +103,14 @@ export interface AdditionalCost {
   name: string;
   amount: number;
   description?: string;
+}
+
+export interface ProjectQuotation {
+  id: string;
+  project_id: string;
+  quotation_number: string;
+  quotation_data: Record<string, any>;
+  quotation_html?: string;
+  created_by?: string;
+  created_at: string;
 }

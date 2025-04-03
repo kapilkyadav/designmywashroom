@@ -27,8 +27,8 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
 
   // Transform vendor items to service items format
   const services: ServiceItem[] = vendorItems.map((item: VendorItem) => {
-    // Get category name from category_id
-    const categoryName = item.category_name || "Uncategorized";
+    // Extract category name from item.category object or use a default
+    const categoryName = item.category?.name || "Uncategorized";
     
     return {
       id: item.id,

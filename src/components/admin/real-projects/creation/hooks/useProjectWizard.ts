@@ -1,160 +1,115 @@
 
 import { useState } from 'react';
-import { RealProjectService, ConvertibleRecord } from '@/services/RealProjectService';
-import { ProjectInfoValues, WashroomWithAreas } from '../types';
+import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { WashroomWithAreas } from '../types';
+import { RealProjectService } from '@/services/RealProjectService';
 
-export function useProjectWizard(
-  recordToConvert: ConvertibleRecord | undefined,
-  onComplete: (project: any | null) => void,
-  onCancel: () => void
-) {
-  const [step, setStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [projectInfo, setProjectInfo] = useState<ProjectInfoValues | null>(null);
+// Define the steps in the wizard
+const STEPS = ['project-info', 'washrooms', 'scope-of-work', 'summary'];
+
+export const useProjectWizard = () => {
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [projectInfo, setProjectInfo] = useState<Record<string, any>>({});
   const [washrooms, setWashrooms] = useState<WashroomWithAreas[]>([]);
-
-  // Handle project info submission
-  const handleProjectInfoSubmit = (data: ProjectInfoValues) => {
-    setProjectInfo(data);
-    setStep(2);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Determine if we can navigate to the next step
+  const canNavigateNext = () => {
+    if (currentStep === 0) {
+      // Project info validation
+      const requiredFields = ['client_name', 'client_mobile', 'project_type'];
+      return requiredFields.every(field => projectInfo[field]?.trim());
+    }
+    
+    if (currentStep === 1) {
+      // Washrooms validation
+      return washrooms.length > 0;
+    }
+    
+    return true;
   };
   
-  // Handle washrooms step submission
-  const handleWashroomsSubmit = (washroomData: WashroomWithAreas[]) => {
-    setWashrooms(washroomData);
-    setStep(3);
-  };
-  
-  // Handle washroom scope selection
-  const handleScopeSubmit = (updatedWashrooms: WashroomWithAreas[]) => {
-    setWashrooms(updatedWashrooms);
-    setStep(4);
-  };
-  
-  // Navigate back to previous step
-  const goToPreviousStep = () => {
-    if (step > 1) {
-      setStep(prev => prev - 1);
+  // Navigate to the next step
+  const nextStep = () => {
+    if (currentStep < STEPS.length - 1 && canNavigateNext()) {
+      setCurrentStep(prev => prev + 1);
     }
   };
   
-  // Cancel the wizard
-  const handleCancel = () => {
-    if (window.confirm("Are you sure you want to cancel? All entered data will be lost.")) {
-      onCancel();
+  // Navigate to the previous step
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
     }
   };
   
-  // Handle final submission of the entire project
-  const handleSubmitProject = async () => {
-    if (!projectInfo) return;
+  // Handle project creation submission
+  const createProject = async () => {
+    setIsSubmitting(true);
     
     try {
-      setIsSubmitting(true);
-      
-      let result;
-      
-      // Create project with new fields
+      // Prepare project data
       const projectData = {
         ...projectInfo,
-        height: projectInfo.height || 8,
-        width: projectInfo.width || 0,
-        length: projectInfo.length || 0,
-        // Store additional fields in project_details
+        height: projectInfo.height || 8, // Default height if not provided
+        width: projectInfo.width || undefined, 
+        length: projectInfo.length || undefined,
+        status: 'In Progress',
         project_details: {
           address: projectInfo.address || '',
-          floor_number: projectInfo.floor_number || null,
+          floor_number: projectInfo.floor_number || '',
           service_lift_available: projectInfo.service_lift_available || false,
         },
       };
       
-      console.log('Record to convert:', recordToConvert);
-      console.log('Form values:', projectInfo);
+      // Create the project
+      const project = await RealProjectService.createRealProject(projectData);
       
-      // Convert from lead or estimate if needed
-      if (recordToConvert) {
-        if (recordToConvert.record_type === 'lead') {
-          result = await RealProjectService.convertLeadToRealProject(
-            recordToConvert.record_id,
-            projectData
-          );
-        } else if (recordToConvert.record_type === 'project_estimate') {
-          result = await RealProjectService.convertEstimateToRealProject(
-            recordToConvert.record_id,
-            projectData
-          );
-        } else {
-          // Direct creation without conversion
-          result = await RealProjectService.createRealProject(projectData);
-        }
-      } else {
-        // Direct creation without conversion
-        result = await RealProjectService.createRealProject(projectData);
+      // Add washrooms to the project
+      for (const washroom of washrooms) {
+        await RealProjectService.addWashroomToProject(project.id, {
+          name: washroom.name,
+          length: washroom.length,
+          width: washroom.width, 
+          height: washroom.height || 8, // Default height if not provided
+          area: washroom.area,
+          services: washroom.services || {},
+          wall_area: washroom.wallArea,
+          ceiling_area: washroom.ceilingArea,
+        });
       }
       
-      if (result && result.success && result.project) {
-        // Create all washrooms with their scope of work
-        try {
-          const washroomPromises = washrooms.map(washroom => {
-            const washroomData = {
-              project_id: result.project!.id,
-              name: washroom.name,
-              length: washroom.length,
-              width: washroom.width,
-              height: washroom.height || 8,
-              area: washroom.floorArea,
-              wall_area: washroom.wallArea,
-              ceiling_area: washroom.ceilingArea,
-              services: washroom.services || {}
-            };
-            
-            return RealProjectService.addWashroomToProject(result.project!.id, washroomData);
-          });
-          
-          await Promise.all(washroomPromises);
-          
-          toast({
-            title: "Project created successfully",
-            description: `Project ${result.project.project_id} has been created with ${washrooms.length} washroom(s)`,
-          });
-          
-          onComplete(result.project);
-        } catch (error: any) {
-          console.error("Error creating washrooms:", error);
-          toast({
-            title: "Error adding washrooms",
-            description: error.message || "Failed to add washrooms to project",
-            variant: "destructive",
-          });
-          // Still complete with the created project
-          onComplete(result.project);
-        }
-      } else {
-        throw new Error("Failed to create project");
-      }
-    } catch (error: any) {
-      console.error("Error creating project:", error);
       toast({
-        title: "Error creating project",
-        description: error.message || "An unexpected error occurred",
+        title: "Project created",
+        description: "Real project has been created successfully!"
+      });
+      
+      // Redirect to the project detail page
+      navigate(`/admin/real-projects/${project.id}`);
+    } catch (error: any) {
+      console.error('Error creating project:', error);
+      toast({
+        title: "Failed to create project",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-
+  
   return {
-    step,
-    isSubmitting,
+    currentStep,
     projectInfo,
     washrooms,
-    handleProjectInfoSubmit,
-    handleWashroomsSubmit,
-    handleScopeSubmit,
-    handleSubmitProject,
-    goToPreviousStep,
-    handleCancel
+    isSubmitting,
+    setProjectInfo,
+    setWashrooms,
+    nextStep,
+    prevStep,
+    createProject,
+    canNavigateNext,
   };
-}
+};

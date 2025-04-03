@@ -41,6 +41,19 @@ export class CostingService extends BaseService {
   }
   
   /**
+   * Get rate for a vendor item from rate card
+   */
+  static async getVendorItemRate(itemId: string): Promise<number> {
+    try {
+      const rateCard = await VendorRateCardService.getRateCardByItemId(itemId);
+      return rateCard?.client_rate || 0;
+    } catch (error) {
+      console.error('Error fetching vendor item rate:', error);
+      return 0;
+    }
+  }
+  
+  /**
    * Calculate project costs
    */
   static async calculateProjectCosts(
@@ -58,6 +71,33 @@ export class CostingService extends BaseService {
       // Calculate costs for each washroom
       let totalTilingCost = 0;
       let totalArea = 0;
+      let executionServicesTotal = 0;
+      
+      // Extract all service IDs that are selected across washrooms
+      const selectedServiceIds: string[] = [];
+      washrooms.forEach(washroom => {
+        if (washroom.services) {
+          Object.entries(washroom.services).forEach(([id, selected]) => {
+            if (selected && !selectedServiceIds.includes(id)) {
+              selectedServiceIds.push(id);
+            }
+          });
+        }
+      });
+      
+      // Get rate cards for all selected services in one batch
+      const serviceItems = await VendorRateCardService.getItemsByIds(selectedServiceIds);
+      const rateCards = await Promise.all(
+        selectedServiceIds.map(id => VendorRateCardService.getRateCardByItemId(id))
+      );
+      
+      // Create a map of service ID to rate
+      const serviceRates: Record<string, number> = {};
+      rateCards.forEach((rateCard, index) => {
+        if (rateCard) {
+          serviceRates[selectedServiceIds[index]] = rateCard.client_rate;
+        }
+      });
       
       washrooms.forEach(washroom => {
         const area = washroom.length * washroom.width;
@@ -69,13 +109,31 @@ export class CostingService extends BaseService {
           const washroomTilingCost = area * combinedTilingRate;
           totalTilingCost += washroomTilingCost;
         }
+        
+        // Calculate cost for other selected services
+        if (washroom.services) {
+          Object.entries(washroom.services).forEach(([serviceId, isSelected]) => {
+            if (isSelected) {
+              // Use the rate from our serviceRates map
+              const serviceRate = serviceRates[serviceId] || 0;
+              // Store in executionCosts if not already there
+              if (!executionCosts[serviceId]) {
+                executionCosts[serviceId] = serviceRate;
+              }
+              // Add to total
+              executionServicesTotal += serviceRate;
+            }
+          });
+        }
       });
       
-      // Sum up execution costs
-      const executionServicesTotal = Object.values(executionCosts).reduce(
-        (sum: number, cost: number) => sum + (cost || 0), 
-        0
-      );
+      // If executionCosts already contains values, use those for calculating total
+      if (Object.keys(executionCosts).length > 0) {
+        executionServicesTotal = Object.values(executionCosts).reduce(
+          (sum: number, cost: number) => sum + (cost || 0), 
+          0
+        );
+      }
       
       // Calculate final quote amount
       const finalQuotationAmount = executionServicesTotal + totalTilingCost;
@@ -85,7 +143,8 @@ export class CostingService extends BaseService {
         execution_services_total: executionServicesTotal,
         total_area: totalArea,
         combined_tiling_rate: combinedTilingRate,
-        final_quotation_amount: finalQuotationAmount
+        final_quotation_amount: finalQuotationAmount,
+        service_rates: serviceRates
       };
     } catch (error: any) {
       console.error('Error calculating project costs:', error);

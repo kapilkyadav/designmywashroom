@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { RealProject, RealProjectService } from '@/services/RealProjectService';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { VendorRateCardService } from '@/services/VendorRateCardService';
 
 interface GenerateQuotationDialogProps {
   open: boolean;
@@ -57,6 +58,45 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
             description: `Tiling work for ${costs.total_area.toFixed(2)} sq ft area`,
             amount: costs.tiling_cost
           });
+        }
+        
+        // If we have selected services, add them as individual items
+        if (project.washrooms) {
+          // Extract all unique selected service IDs
+          const selectedServices: Record<string, boolean> = {};
+          project.washrooms.forEach(washroom => {
+            if (washroom.services) {
+              Object.entries(washroom.services).forEach(([id, isSelected]) => {
+                if (isSelected) {
+                  selectedServices[id] = true;
+                }
+              });
+            }
+          });
+          
+          // Get details for all selected service items
+          const serviceIds = Object.keys(selectedServices);
+          if (serviceIds.length > 0) {
+            const serviceItems = await VendorRateCardService.getItemsByIds(serviceIds);
+            
+            // Get rate cards for these items
+            const ratePromises = serviceIds.map(id => VendorRateCardService.getRateCardByItemId(id));
+            const rateCards = await Promise.all(ratePromises);
+            
+            // Create an item for each service with its rate
+            rateCards.forEach((rateCard, index) => {
+              if (rateCard && serviceItems[index]) {
+                const serviceItem = serviceItems.find(item => item.id === serviceIds[index]);
+                if (serviceItem) {
+                  newItems.push({
+                    name: serviceItem.scope_of_work,
+                    description: `${serviceItem.category?.name || 'Service'} - ${serviceItem.measuring_unit || 'Unit'}`,
+                    amount: rateCard.client_rate || 0
+                  });
+                }
+              }
+            });
+          }
         }
         
         setItems(newItems);

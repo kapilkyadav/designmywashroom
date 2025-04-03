@@ -1,124 +1,100 @@
 
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import ProjectCreateWizard from '@/components/admin/real-projects/creation/ProjectCreateWizard';
-import { ConvertibleRecord } from '@/services/RealProjectService';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { ConvertibleRecord } from '@/services/real-projects/types';
+import { RealProjectService } from '@/services/RealProjectService';
+import { useQuery } from '@tanstack/react-query';
 import RecordsListView from './RecordsListView';
+import LoadingIndicator from './LoadingIndicator';
+import { toast } from '@/hooks/use-toast';
 
-interface ConvertDialogContainerProps {
+interface ConvertRecordDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onProjectCreated: () => void;
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
-const ConvertDialogContainer: React.FC<ConvertDialogContainerProps> = ({ 
-  open, 
-  onOpenChange,
-  onProjectCreated
-}) => {
+const ConvertDialogContainer: React.FC<ConvertRecordDialogProps> = ({ open, onClose, onSuccess }) => {
   const [selectedRecord, setSelectedRecord] = useState<ConvertibleRecord | null>(null);
-  const [showWizard, setShowWizard] = useState(false);
-
-  // Create an empty convertible record for direct project creation
-  const emptyRecord: ConvertibleRecord = {
-    record_type: "direct",
-    record_id: "",
-    client_name: "",
-    client_email: "",
-    client_mobile: "",
-    client_location: "",
-    created_date: new Date().toISOString(),
-    status: "In Progress",
-    real_project_id: null
-  };
-
-  // Handle record selection
-  const handleSelectRecord = (record: ConvertibleRecord) => {
-    setSelectedRecord(record);
-    setShowWizard(true);
-  };
-
-  // Handle create new project directly
-  const handleCreateDirect = () => {
-    setSelectedRecord(emptyRecord);
-    setShowWizard(true);
-  };
-
-  // This will be called when the project creation is completed
-  const handleProjectCreated = () => {
-    onProjectCreated();
-    onOpenChange(false);
-  };
-
-  // If the user cancels the conversion
-  const handleCancel = () => {
-    if (showWizard) {
-      setShowWizard(false);
-      setSelectedRecord(null);
-    } else {
-      onOpenChange(false);
+  const [isConverting, setIsConverting] = useState(false);
+  const [recordType, setRecordType] = useState<'lead' | 'project_estimate'>('lead');
+  
+  // Fetch convertible records
+  const { data: records = [], isLoading, refetch } = useQuery({
+    queryKey: ['convertible-records'],
+    queryFn: () => RealProjectService.getConvertibleRecords(),
+    enabled: open,
+  });
+  
+  const handleConvert = async () => {
+    if (!selectedRecord) return;
+    
+    try {
+      setIsConverting(true);
+      
+      // Additional data for the conversion
+      const additionalData = {
+        project_type: 'Remodeling',
+        project_details: {
+          address: '',
+          floor_number: '',
+          service_lift_available: false,
+        },
+      };
+      
+      await RealProjectService.convertToProject(selectedRecord, additionalData);
+      
+      toast({
+        title: 'Conversion successful',
+        description: 'The record has been converted to a real project.',
+      });
+      
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      toast({
+        title: 'Conversion failed',
+        description: error.message || 'An error occurred during conversion.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsConverting(false);
     }
   };
-
-  // Reset state when dialog closes
-  const handleOpenChange = (open: boolean) => {
-    onOpenChange(open);
-    if (!open) {
-      setSelectedRecord(null);
-      setShowWizard(false);
-    }
-  };
-
+  
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
-          <DialogTitle>
-            {showWizard ? 'Create New Project' : 'Select Record to Convert'}
-          </DialogTitle>
-          <DialogDescription>
-            {showWizard 
-              ? 'Fill in the details to create a new project' 
-              : 'Select a lead or estimate to convert, or create a new project directly'}
-          </DialogDescription>
+          <DialogTitle>Convert to Real Project</DialogTitle>
         </DialogHeader>
-
-        {showWizard && selectedRecord ? (
-          <WizardView 
-            recordToConvert={selectedRecord}
-            onComplete={handleProjectCreated}
-            onCancel={handleCancel}
-          />
+        
+        {isLoading ? (
+          <LoadingIndicator message="Loading convertible records..." />
         ) : (
           <RecordsListView
-            onSelectRecord={handleSelectRecord}
-            onCreateDirect={handleCreateDirect}
-            onCancel={handleCancel}
+            records={records}
+            selectedRecord={selectedRecord}
+            recordType={recordType}
+            onSelectRecord={setSelectedRecord}
+            onChangeRecordType={setRecordType as (type: string) => void}
           />
         )}
+        
+        <div className="flex justify-end space-x-2 mt-4">
+          <Button variant="outline" onClick={onClose} disabled={isConverting}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleConvert} 
+            disabled={!selectedRecord || isConverting}
+          >
+            {isConverting ? 'Converting...' : 'Convert to Project'}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
-  );
-};
-
-// Wizard view component
-const WizardView: React.FC<{
-  recordToConvert: ConvertibleRecord;
-  onComplete: () => void;
-  onCancel: () => void;
-}> = ({ recordToConvert, onComplete, onCancel }) => {
-  return (
-    <ProjectCreateWizard 
-      recordToConvert={recordToConvert}
-      onComplete={onComplete}
-      onCancel={onCancel}
-    />
   );
 };
 
