@@ -1,3 +1,4 @@
+
 import { User } from "@/lib/supabase";
 
 // Real Project Types
@@ -65,14 +66,14 @@ export interface RealProjectFilter {
 }
 
 export interface ConvertibleRecord {
-  record_type: 'lead' | 'estimate' | 'direct';
+  record_type: 'lead' | 'estimate' | 'project_estimate' | 'direct';
   record_id: string;
   client_name: string;
   client_email: string | null;
   client_mobile: string | null;
   client_location: string | null;
   created_date: string;
-  status: string;
+  status: string | null;
   real_project_id: string | null;
 }
 

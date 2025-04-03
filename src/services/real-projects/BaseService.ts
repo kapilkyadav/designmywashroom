@@ -3,6 +3,12 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { RealProject } from './types';
 
+// Forward declaration for RealProjectService
+// Will be set in index.ts to resolve circular dependency
+export class RealProjectService {
+  static updateRealProject: (id: string, project: Partial<RealProject>) => Promise<boolean>;
+}
+
 export class BaseService {
   /**
    * Handle errors consistently across all real project services
@@ -11,7 +17,7 @@ export class BaseService {
     console.error(`Error: ${title}`, error);
     toast({
       title,
-      description: error.message,
+      description: error.message || "An unexpected error occurred",
       variant: "destructive",
     });
     throw error;
@@ -29,7 +35,3 @@ export class BaseService {
     };
   }
 }
-
-// Temporary circular dependency solution
-// Will be imported from the index file later
-export class RealProjectService {}

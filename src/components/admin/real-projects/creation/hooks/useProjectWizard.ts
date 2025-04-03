@@ -5,7 +5,7 @@ import { ProjectInfoValues, WashroomWithAreas } from '../types';
 import { toast } from '@/hooks/use-toast';
 
 export function useProjectWizard(
-  recordToConvert?: ConvertibleRecord,
+  recordToConvert: ConvertibleRecord | undefined,
   onComplete: (project: any | null) => void,
   onCancel: () => void
 ) {
@@ -73,11 +73,14 @@ export function useProjectWizard(
             recordToConvert.record_id,
             projectData
           );
-        } else {
+        } else if (recordToConvert.record_type === 'project_estimate') {
           result = await RealProjectService.convertEstimateToRealProject(
             recordToConvert.record_id,
             projectData
           );
+        } else {
+          // Direct creation without conversion
+          result = await RealProjectService.createRealProject(projectData);
         }
       } else {
         // Direct creation without conversion

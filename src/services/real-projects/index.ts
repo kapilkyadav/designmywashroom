@@ -5,7 +5,7 @@ import { WashroomService } from './WashroomService';
 import { QuotationService } from './QuotationService';
 import { CostingService } from './CostingService';
 import { RealProject, RealProjectFilter, ConvertibleRecord, ProjectQuotation, Washroom } from './types';
-import { BaseService } from './BaseService';
+import { BaseService, RealProjectService as BaseRealProjectService } from './BaseService';
 
 export * from './types';
 
@@ -24,6 +24,7 @@ export class RealProjectService {
   
   // Conversion Service Methods
   static getConvertibleRecords = ConversionService.getConvertibleRecords;
+  static convertToProject = ConversionService.convertToProject;
   static convertLeadToRealProject = ConversionService.convertLeadToRealProject;
   static convertEstimateToRealProject = ConversionService.convertEstimateToRealProject;
   
@@ -41,6 +42,5 @@ export class RealProjectService {
   static extendRealProject = BaseService.extendRealProject;
 }
 
-// Add the RealProjectService class to the BaseService to resolve circular dependency
-import { BaseService as BaseServiceType } from './BaseService';
-(BaseService as any).RealProjectService = RealProjectService;
+// Update the BaseService RealProjectService reference to resolve circular dependency
+BaseRealProjectService.updateRealProject = ProjectService.updateRealProject;
