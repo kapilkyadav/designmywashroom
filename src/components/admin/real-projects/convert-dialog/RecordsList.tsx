@@ -112,7 +112,7 @@ const RecordsList: React.FC<RecordsListProps> = ({
                       </TableCell>
                       <TableCell>{record.client_location || "N/A"}</TableCell>
                       <TableCell>
-                        <span className="capitalize">{record.record_type}</span>
+                        <span className="capitalize">{record.record_type.replace('_', ' ')}</span>
                       </TableCell>
                       <TableCell>
                         {format(new Date(record.created_date), 'MMM dd, yyyy')}
