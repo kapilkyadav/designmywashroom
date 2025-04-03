@@ -42,7 +42,7 @@ const ConvertLeadDialog: React.FC<ConvertLeadDialogProps> = ({
   // Create a convertible record object from the lead
   // Explicitly type record_type as "lead" to match the ConvertibleRecord type
   const convertibleRecord = {
-    record_type: "lead" as "lead", // Type assertion to ensure it's the correct literal type
+    record_type: "lead" as const, // Using const assertion instead of type assertion for better type safety
     record_id: lead.id,
     client_name: lead.customer_name,
     created_date: lead.created_at,
