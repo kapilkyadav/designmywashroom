@@ -14,15 +14,10 @@ interface WashroomsStepProps {
 }
 
 const WashroomsStep: React.FC<WashroomsStepProps> = ({ initialWashrooms, onSubmit }) => {
-  const [washrooms, setWashrooms] = useState<WashroomWithAreas[]>(
-    initialWashrooms.length > 0 
-      ? initialWashrooms 
-      : [createDefaultWashroom()]
-  );
-  
-  function createDefaultWashroom(): WashroomWithAreas {
+  // Define createDefaultWashroom function before using it
+  const createDefaultWashroom = (count: number = 1): WashroomWithAreas => {
     return {
-      name: "Washroom " + (washrooms?.length + 1 || 1),
+      name: "Washroom " + count,
       length: 0,
       width: 0,
       height: 8,
@@ -31,7 +26,13 @@ const WashroomsStep: React.FC<WashroomsStepProps> = ({ initialWashrooms, onSubmi
       ceilingArea: 0,
       services: {}
     };
-  }
+  };
+  
+  const [washrooms, setWashrooms] = useState<WashroomWithAreas[]>(
+    initialWashrooms.length > 0 
+      ? initialWashrooms 
+      : [createDefaultWashroom(1)]
+  );
   
   // Calculate areas whenever dimensions change
   useEffect(() => {
@@ -54,7 +55,7 @@ const WashroomsStep: React.FC<WashroomsStepProps> = ({ initialWashrooms, onSubmi
   }, [washrooms]);
   
   const handleAddWashroom = () => {
-    setWashrooms([...washrooms, createDefaultWashroom()]);
+    setWashrooms([...washrooms, createDefaultWashroom(washrooms.length + 1)]);
   };
   
   const handleRemoveWashroom = (index: number) => {
