@@ -46,13 +46,16 @@ const ConvertDialogContainer: React.FC<ConvertDialogContainerProps> = ({
 
       setIsFetching(true);
       try {
-        const records = await RealProjectService.getConvertibleRecords({
-          record_type: recordType,
-          record_id: recordId,
-        });
+        // Remove the argument as getConvertibleRecords doesn't expect any parameters
+        const records = await RealProjectService.getConvertibleRecords();
 
-        if (records && records.length > 0) {
-          setRecord(records[0]);
+        // Filter the records based on recordId and recordType
+        const filteredRecords = records.filter(
+          r => r.record_type === recordType && r.record_id === recordId
+        );
+
+        if (filteredRecords && filteredRecords.length > 0) {
+          setRecord(filteredRecords[0]);
         } else {
           setRecord(null);
           toast({
@@ -88,7 +91,7 @@ const ConvertDialogContainer: React.FC<ConvertDialogContainerProps> = ({
         description: "You will be redirected to the project creation page.",
       });
       onOpenChange(false);
-      onProjectCreated(); // Fixed: Call without any arguments
+      onProjectCreated();
     } catch (error: any) {
       console.error("Error converting record:", error);
       toast({
