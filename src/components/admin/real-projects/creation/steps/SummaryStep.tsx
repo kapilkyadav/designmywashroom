@@ -9,6 +9,7 @@ import { BrandService } from '@/services/BrandService';
 import { ProductService } from '@/services/ProductService';
 import { Product } from '@/lib/supabase';
 import { VendorRateCardService } from '@/services/VendorRateCardService';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface SummaryStepProps {
   projectInfo: ProjectInfoValues;
@@ -210,7 +211,7 @@ const SummaryStep: React.FC<SummaryStepProps> = ({ projectInfo, washrooms }) => 
               </div>
             </div>
             
-            {projectInfo.selected_brand && products.length > 0 && (
+            {projectInfo.selected_brand && (
               <>
                 <Separator />
                 
@@ -218,40 +219,43 @@ const SummaryStep: React.FC<SummaryStepProps> = ({ projectInfo, washrooms }) => 
                   <div className="flex justify-between mb-2">
                     <div className="flex items-center gap-1">
                       <Package className="h-4 w-4 text-muted-foreground" />
-                      <h4 className="text-sm font-semibold text-muted-foreground">Selected Brand Products</h4>
+                      <h4 className="text-sm font-semibold text-muted-foreground">{brandName} Products</h4>
                     </div>
                     <Badge variant="secondary">{products.length} product(s)</Badge>
                   </div>
                   
                   <div className="overflow-auto max-h-64 border rounded-md">
-                    <table className="min-w-full text-sm">
-                      <thead className="bg-muted">
-                        <tr>
-                          <th className="py-2 px-3 text-left">Name</th>
-                          <th className="py-2 px-3 text-left">Category</th>
-                          <th className="py-2 px-3 text-right">MRP</th>
-                          <th className="py-2 px-3 text-right">Client Price</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {products.slice(0, 10).map((product) => (
-                          <tr key={product.id} className="hover:bg-muted/50">
-                            <td className="py-2 px-3">{product.name}</td>
-                            <td className="py-2 px-3">{product.category || '-'}</td>
-                            <td className="py-2 px-3 text-right">₹{product.mrp.toLocaleString('en-IN')}</td>
-                            <td className="py-2 px-3 text-right">₹{product.client_price.toLocaleString('en-IN')}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <Table>
+                      <TableHeader className="bg-muted">
+                        <TableRow>
+                          <TableHead className="text-xs">Name</TableHead>
+                          <TableHead className="text-xs">Category</TableHead>
+                          <TableHead className="text-xs text-right">MRP</TableHead>
+                          <TableHead className="text-xs text-right">YDS Offer Price</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="divide-y">
+                        {products.length > 0 ? (
+                          products.slice(0, 10).map((product) => (
+                            <TableRow key={product.id} className="hover:bg-muted/50">
+                              <TableCell className="text-sm py-2">{product.name}</TableCell>
+                              <TableCell className="text-sm py-2">{product.category || '-'}</TableCell>
+                              <TableCell className="text-sm py-2 text-right">₹{product.mrp.toLocaleString('en-IN')}</TableCell>
+                              <TableCell className="text-sm py-2 text-right">₹{product.client_price.toLocaleString('en-IN')}</TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                              {loading ? "Loading products..." : "No products available for this brand"}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
                     {products.length > 10 && (
                       <div className="p-2 text-center text-xs text-muted-foreground">
                         Showing 10 of {products.length} products
-                      </div>
-                    )}
-                    {products.length === 0 && (
-                      <div className="p-4 text-center text-muted-foreground">
-                        {loading ? "Loading products..." : "No products available for this brand"}
                       </div>
                     )}
                   </div>
