@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -87,7 +88,7 @@ const ConvertDialogContainer: React.FC<ConvertDialogContainerProps> = ({
         description: "You will be redirected to the project creation page.",
       });
       onOpenChange(false);
-      onProjectCreated(); // Notify parent to redirect
+      onProjectCreated(); // Notify parent to redirect without arguments
     } catch (error: any) {
       console.error("Error converting record:", error);
       toast({

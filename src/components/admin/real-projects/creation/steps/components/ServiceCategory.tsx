@@ -4,32 +4,28 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ServiceItem } from '../hooks/useWashroomScope';
-import { WashroomWithAreas } from '../../types';
 
 interface ServiceCategoryProps {
   category: string;
   services: ServiceItem[];
   washroomIndex: number;
-  washroomData: WashroomWithAreas;
+  washroomServices: Record<string, boolean>;
   handleServiceChange: (washroomIndex: number, serviceId: string, checked: boolean) => void;
   handleSelectAllInCategory: (washroomIndex: number, category: string, checked: boolean) => void;
-  areAllServicesInCategorySelected: (washroomIndex: number, category: string) => boolean;
-  areSomeServicesInCategorySelected: (washroomIndex: number, category: string) => boolean;
+  areAllSelected: boolean;
+  areSomeSelected: boolean;
 }
 
 const ServiceCategory: React.FC<ServiceCategoryProps> = ({
   category,
   services,
   washroomIndex,
-  washroomData,
+  washroomServices,
   handleServiceChange,
   handleSelectAllInCategory,
-  areAllServicesInCategorySelected,
-  areSomeServicesInCategorySelected
+  areAllSelected,
+  areSomeSelected
 }) => {
-  const isAllSelected = areAllServicesInCategorySelected(washroomIndex, category);
-  const isSomeSelected = areSomeServicesInCategorySelected(washroomIndex, category);
-
   // Custom checkbox state that handles indeterminate state manually
   const checkboxRef = React.useRef<HTMLButtonElement>(null);
   
@@ -37,9 +33,9 @@ const ServiceCategory: React.FC<ServiceCategoryProps> = ({
   React.useEffect(() => {
     if (checkboxRef.current) {
       // Directly set the indeterminate property on the DOM element
-      (checkboxRef.current as any).dataset.indeterminate = isSomeSelected && !isAllSelected ? 'true' : 'false';
+      (checkboxRef.current as any).dataset.indeterminate = areSomeSelected && !areAllSelected ? 'true' : 'false';
     }
-  }, [isAllSelected, isSomeSelected]);
+  }, [areAllSelected, areSomeSelected]);
   
   return (
     <Card className="mb-4">
@@ -48,8 +44,8 @@ const ServiceCategory: React.FC<ServiceCategoryProps> = ({
           <Checkbox
             ref={checkboxRef}
             id={`category-${category}-${washroomIndex}`}
-            checked={isAllSelected}
-            data-state={isSomeSelected && !isAllSelected ? "indeterminate" : isAllSelected ? "checked" : "unchecked"}
+            checked={areAllSelected}
+            data-state={areSomeSelected && !areAllSelected ? "indeterminate" : areAllSelected ? "checked" : "unchecked"}
             onCheckedChange={(checked) => 
               handleSelectAllInCategory(washroomIndex, category, !!checked)
             }
@@ -67,7 +63,7 @@ const ServiceCategory: React.FC<ServiceCategoryProps> = ({
             <div key={service.id} className="flex items-center space-x-2">
               <Checkbox
                 id={`service-${washroomIndex}-${service.id}`}
-                checked={washroomData.services?.[service.id] || false}
+                checked={washroomServices?.[service.id] || false}
                 onCheckedChange={(checked) => 
                   handleServiceChange(washroomIndex, service.id, !!checked)
                 }
