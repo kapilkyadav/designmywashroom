@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,9 @@ import { Switch } from '@/components/ui/switch';
 import { ArrowRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ProjectInfoValues } from '../ProjectCreateWizard';
+import { BrandService } from '@/services/BrandService';
+import { Brand } from '@/lib/supabase';
+import { useQuery } from '@tanstack/react-query';
 
 interface ProjectInfoStepProps {
   form: UseFormReturn<ProjectInfoValues>;
@@ -16,6 +19,12 @@ interface ProjectInfoStepProps {
 }
 
 const ProjectInfoStep: React.FC<ProjectInfoStepProps> = ({ form, onSubmit }) => {
+  // Fetch brands for dropdown
+  const { data: brands = [] } = useQuery({
+    queryKey: ['brands'],
+    queryFn: BrandService.getAllBrands,
+  });
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -155,10 +164,25 @@ const ProjectInfoStep: React.FC<ProjectInfoStepProps> = ({ form, onSubmit }) => 
             name="selected_brand"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Preferred Brand (if any)</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="Enter brand name" />
-                </FormControl>
+                <FormLabel>Preferred Brand</FormLabel>
+                <Select
+                  value={field.value || ""}
+                  onValueChange={field.onChange}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select brand" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="">None Selected</SelectItem>
+                    {brands.map((brand: Brand) => (
+                      <SelectItem key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}

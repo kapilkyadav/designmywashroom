@@ -68,9 +68,9 @@ const ProjectCreateWizard: React.FC<ProjectCreateWizardProps> = ({
     resolver: zodResolver(projectInfoSchema),
     defaultValues: {
       client_name: recordToConvert?.client_name || '',
-      client_email: '',
-      client_mobile: '',
-      client_location: '',
+      client_email: recordToConvert?.client_email || '',
+      client_mobile: recordToConvert?.client_mobile || '',
+      client_location: recordToConvert?.client_location || '',
       address: '',
       floor_number: '',
       service_lift_available: false,

@@ -45,6 +45,9 @@ const ConvertLeadDialog: React.FC<ConvertLeadDialogProps> = ({
     record_type: "lead",
     record_id: lead.id,
     client_name: lead.customer_name,
+    client_email: lead.email || "",
+    client_mobile: lead.phone || "",
+    client_location: lead.location || "",
     created_date: lead.created_at,
     status: lead.status,
     real_project_id: null

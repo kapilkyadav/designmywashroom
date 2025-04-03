@@ -67,9 +67,12 @@ export interface RealProjectFilter {
 }
 
 export interface ConvertibleRecord {
-  record_type: 'lead' | 'project_estimate';
+  record_type: 'lead' | 'estimate';
   record_id: string;
   client_name: string;
+  client_email?: string;
+  client_mobile?: string;
+  client_location?: string;
   created_date: string;
   status: string | null;
   real_project_id: string | null;
