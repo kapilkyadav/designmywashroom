@@ -88,21 +88,22 @@ const RecordsList: React.FC<RecordsListProps> = ({
                     <TableRow key={`${record.record_type}-${record.record_id}`}>
                       <TableCell className="font-medium">{record.client_name || "N/A"}</TableCell>
                       <TableCell>
-                        <div className="flex flex-col space-y-1">
-                          {record.client_email && (
-                            <div className="text-sm">
-                              <span className="text-muted-foreground">Email:</span> {record.client_email}
-                            </div>
-                          )}
-                          {record.client_mobile && (
-                            <div className="text-sm">
-                              <span className="text-muted-foreground">Mobile:</span> {record.client_mobile}
-                            </div>
-                          )}
-                          {!record.client_email && !record.client_mobile && (
-                            <div className="text-sm text-muted-foreground">No contact info</div>
-                          )}
-                        </div>
+                        {record.client_email || record.client_mobile ? (
+                          <div className="flex flex-col space-y-1">
+                            {record.client_email && (
+                              <div className="text-sm">
+                                <span className="text-muted-foreground">Email:</span> {record.client_email}
+                              </div>
+                            )}
+                            {record.client_mobile && (
+                              <div className="text-sm">
+                                <span className="text-muted-foreground">Mobile:</span> {record.client_mobile}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">No contact info</div>
+                        )}
                       </TableCell>
                       <TableCell>{record.client_location || "N/A"}</TableCell>
                       <TableCell>
