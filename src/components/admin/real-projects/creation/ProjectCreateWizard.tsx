@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, ArrowLeft, ArrowRight, Save, CheckCircle } from 'lucide-react';
@@ -77,6 +78,14 @@ const ProjectCreateWizard: React.FC<ProjectCreateWizardProps> = ({
       selected_brand: 'none',
     }
   });
+
+  // Log the form values
+  useEffect(() => {
+    if (recordToConvert) {
+      console.log("Record to convert:", recordToConvert);
+      console.log("Form values:", projectInfoForm.getValues());
+    }
+  }, [recordToConvert]);
   
   // Handle project info submission
   const handleProjectInfoSubmit = (data: ProjectInfoValues) => {

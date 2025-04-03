@@ -40,11 +40,11 @@ const ConvertLeadDialog: React.FC<ConvertLeadDialogProps> = ({
     onOpenChange(false);
   };
 
-  // Create a convertible record object from the lead
+  // Create a convertible record object from the lead with all available info
   const convertibleRecord: ConvertibleRecord = {
     record_type: "lead",
     record_id: lead.id,
-    client_name: lead.customer_name,
+    client_name: lead.customer_name || "",
     client_email: lead.email || "",
     client_mobile: lead.phone || "",
     client_location: lead.location || "",
@@ -52,6 +52,8 @@ const ConvertLeadDialog: React.FC<ConvertLeadDialogProps> = ({
     status: lead.status,
     real_project_id: null
   };
+
+  console.log("Converting lead with data:", convertibleRecord);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
