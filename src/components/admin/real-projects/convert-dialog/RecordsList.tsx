@@ -40,10 +40,15 @@ const RecordsList: React.FC<RecordsListProps> = ({
     const matchesTab = 
       activeTab === 'all' || 
       (activeTab === 'leads' && record.record_type === 'lead') ||
-      (activeTab === 'estimates' && record.record_type === 'estimate');
+      (activeTab === 'estimates' && record.record_type === 'project_estimate');
     
     return matchesSearch && matchesTab;
   });
+
+  // Helper function to format contact info
+  const hasContactInfo = (record: ConvertibleRecord) => {
+    return !!(record.client_email || record.client_mobile);
+  };
 
   return (
     <div className="space-y-4">
@@ -88,7 +93,7 @@ const RecordsList: React.FC<RecordsListProps> = ({
                     <TableRow key={`${record.record_type}-${record.record_id}`}>
                       <TableCell className="font-medium">{record.client_name || "N/A"}</TableCell>
                       <TableCell>
-                        {record.client_email || record.client_mobile ? (
+                        {hasContactInfo(record) ? (
                           <div className="flex flex-col space-y-1">
                             {record.client_email && (
                               <div className="text-sm">

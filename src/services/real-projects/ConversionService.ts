@@ -1,202 +1,104 @@
 
 import { supabase } from '@/lib/supabase';
-import { toast } from '@/hooks/use-toast';
-import { BaseService } from './BaseService';
 import { ConvertibleRecord, RealProject } from './types';
 import { LeadCrudService } from '../leads/LeadCrudService';
+import { BaseService } from './BaseService';
 
 export class ConversionService extends BaseService {
   /**
-   * Get convertible records (leads and project estimates that can be converted)
+   * Fetch convertible records (leads and project estimates)
    */
   static async getConvertibleRecords(): Promise<ConvertibleRecord[]> {
     try {
-      const { data, error } = await supabase
-        .from('convertible_records')
-        .select('*')
-        .order('created_date', { ascending: false });
-      
-      if (error) throw error;
-      
-      console.log("Fetched convertible records:", data);
-      
-      // Make sure we have the required fields
-      const processedData = data.map((record: any) => ({
-        ...record,
-        client_name: record.client_name || "No Name",
-        client_email: record.client_email || null,
-        client_mobile: record.client_mobile || null,
-        client_location: record.client_location || null
-      }));
-      
-      return processedData as ConvertibleRecord[];
-    } catch (error: any) {
-      return this.handleError(error, 'Failed to fetch records');
-    }
-  }
-  
-  /**
-   * Convert a lead to a real project with extended data
-   */
-  static async convertLeadToRealProject(
-    leadId: string, 
-    projectData?: any
-  ): Promise<{ success: boolean, project: RealProject | null }> {
-    try {
-      // First, get the lead details
-      const { data: lead, error: leadError } = await supabase
+      // Fetch leads
+      const { data: leadsData, error: leadsError } = await supabase
         .from('leads')
-        .select('*')
-        .eq('id', leadId)
-        .single();
+        .select('id, customer_name, phone, email, location, lead_date, status, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50);
       
-      if (leadError) throw leadError;
+      if (leadsError) throw leadsError;
       
-      // Create a new real project from the lead data
-      const dataToInsert = projectData ? {
-        lead_id: leadId,
-        ...projectData
-      } : {
-        lead_id: leadId,
+      // Fetch project estimates
+      const { data: estimatesData, error: estimatesError } = await supabase
+        .from('projects')
+        .select('id, client_name, client_email, client_mobile, client_location, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (estimatesError) throw estimatesError;
+      
+      // Transform leads data
+      const leads = leadsData.map(lead => ({
+        record_type: 'lead',
+        record_id: lead.id,
         client_name: lead.customer_name,
         client_email: lead.email,
         client_mobile: lead.phone,
         client_location: lead.location,
-        project_type: 'Not Specified', // Default value as leads might not have this info
-        project_details: {}, // Empty object as default
-        status: 'In Progress'
-      };
+        created_date: lead.lead_date || lead.created_at,
+        status: lead.status,
+        real_project_id: null
+      })) as ConvertibleRecord[];
       
-      const { data: newProject, error: projectError } = await supabase
-        .from('real_projects')
-        .insert(dataToInsert)
-        .select()
-        .single();
-      
-      if (projectError) throw projectError;
-      
-      // Only create default washroom if not provided through projectData
-      if (!projectData) {
-        // Create default washroom
-        const washroom = {
-          project_id: newProject.id,
-          name: "Washroom 1",
-          length: newProject.length || 0,
-          width: newProject.width || 0,
-          height: newProject.height || 9,
-          area: (newProject.length || 0) * (newProject.width || 0),
-          services: {}
-        };
-        
-        await supabase
-          .from('project_washrooms')
-          .insert(washroom);
-      }
-      
-      // Mark the lead as converted
-      await LeadCrudService.markLeadAsConverted(leadId, newProject.project_id);
-      
-      toast({
-        title: "Lead converted",
-        description: `Successfully created project ${newProject.project_id}`,
-      });
-      
-      return { success: true, project: newProject as RealProject };
-    } catch (error: any) {
-      console.error('Error converting lead to real project:', error);
-      toast({
-        title: "Conversion failed",
-        description: error.message,
-        variant: "destructive",
-      });
-      return { success: false, project: null };
-    }
-  }
-  
-  /**
-   * Convert a project estimate to a real project with extended data
-   */
-  static async convertEstimateToRealProject(
-    estimateId: string,
-    projectData?: any
-  ): Promise<{ success: boolean, project: RealProject | null }> {
-    try {
-      // First, get the project estimate details
-      const { data: estimate, error: estimateError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', estimateId)
-        .single();
-      
-      if (estimateError) throw estimateError;
-      
-      // Create a new real project from the project estimate data
-      const dataToInsert = projectData ? {
-        project_estimate_id: estimateId,
-        ...projectData,
-        original_estimate: estimate.final_estimate,
-      } : {
-        project_estimate_id: estimateId,
+      // Transform project estimates data
+      const estimates = estimatesData.map(estimate => ({
+        record_type: 'project_estimate',
+        record_id: estimate.id,
         client_name: estimate.client_name,
         client_email: estimate.client_email,
         client_mobile: estimate.client_mobile,
         client_location: estimate.client_location,
-        project_type: estimate.project_type,
-        selected_brand: estimate.selected_brand,
-        length: estimate.length,
-        width: estimate.width,
-        height: estimate.height,
-        selected_fixtures: estimate.selected_fixtures,
-        original_estimate: estimate.final_estimate,
-        project_details: {
-          timeline: estimate.timeline,
-          fixture_cost: estimate.fixture_cost,
-          plumbing_cost: estimate.plumbing_cost,
-          tiling_cost: estimate.tiling_cost || 0,
-        },
-        status: 'In Progress'
-      };
+        created_date: estimate.created_at,
+        status: null,
+        real_project_id: null
+      })) as ConvertibleRecord[];
       
+      // Combine and sort by created_date descending
+      const records = [...leads, ...estimates].sort((a, b) => 
+        new Date(b.created_date).getTime() - new Date(a.created_date).getTime()
+      );
+      
+      console.log('Fetched records:', records);
+      return records;
+    } catch (error) {
+      return this.handleError(error, 'Failed to fetch convertible records', []);
+    }
+  }
+  
+  /**
+   * Convert a record (lead or project estimate) to a real project
+   */
+  static async convertToProject(record: ConvertibleRecord): Promise<{ success: boolean; project: RealProject | null }> {
+    try {
+      // Create the new real project
       const { data: newProject, error: projectError } = await supabase
         .from('real_projects')
-        .insert(dataToInsert)
+        .insert({
+          client_name: record.client_name,
+          client_email: record.client_email,
+          client_mobile: record.client_mobile,
+          client_location: record.client_location,
+          project_type: 'new-construction',
+          project_details: {},
+          status: 'In Progress',
+          // Set reference to original record
+          lead_id: record.record_type === 'lead' ? record.record_id : null,
+          project_estimate_id: record.record_type === 'project_estimate' ? record.record_id : null,
+        })
         .select()
         .single();
       
       if (projectError) throw projectError;
       
-      // Only create default washroom if not provided through projectData
-      if (!projectData) {
-        // Create default washroom
-        const washroom = {
-          project_id: newProject.id,
-          name: "Washroom 1",
-          length: newProject.length || 0,
-          width: newProject.width || 0,
-          height: newProject.height || 9,
-          area: (newProject.length || 0) * (newProject.width || 0),
-          services: {}
-        };
-        
-        await supabase
-          .from('project_washrooms')
-          .insert(washroom);
+      // If converting from a lead, mark the lead as converted
+      if (record.record_type === 'lead') {
+        await LeadCrudService.markLeadAsConverted(record.record_id, newProject.id);
       }
       
-      toast({
-        title: "Estimate converted",
-        description: `Successfully created project ${newProject.project_id}`,
-      });
-      
       return { success: true, project: newProject as RealProject };
-    } catch (error: any) {
-      console.error('Error converting estimate to real project:', error);
-      toast({
-        title: "Conversion failed",
-        description: error.message,
-        variant: "destructive",
-      });
-      return { success: false, project: null };
+    } catch (error) {
+      return this.handleError(error, 'Failed to convert record to project', { success: false, project: null });
     }
   }
 }
