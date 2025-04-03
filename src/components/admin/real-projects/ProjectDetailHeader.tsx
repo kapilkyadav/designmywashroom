@@ -1,92 +1,170 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
 import { RealProject } from '@/services/RealProjectService';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { 
+  User, 
+  Phone, 
+  Mail, 
+  MapPin, 
+  Calendar, 
+  Trash2,
+  FileEdit,
+  Building
+} from 'lucide-react';
+import ProjectAddressInfo from './ProjectAddressInfo';
 
 interface ProjectDetailHeaderProps {
   project: RealProject;
   onDeleteClick: () => void;
 }
 
-const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ project, onDeleteClick }) => {
-  const navigate = useNavigate();
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'In Progress':
-        return <Badge className="bg-blue-500">In Progress</Badge>;
-      case 'Quoted':
-        return <Badge className="bg-amber-500">Quoted</Badge>;
-      case 'Finalized':
-        return <Badge className="bg-emerald-500">Finalized</Badge>;
-      case 'Completed':
-        return <Badge className="bg-green-500">Completed</Badge>;
-      case 'Cancelled':
-        return <Badge className="bg-destructive">Cancelled</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
+const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ 
+  project, 
+  onDeleteClick 
+}) => {
+  // Status badge color based on status
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case 'In Progress': return 'bg-blue-100 text-blue-800';
+      case 'Quoted': return 'bg-amber-100 text-amber-800';
+      case 'Finalized': return 'bg-violet-100 text-violet-800';
+      case 'Completed': return 'bg-green-100 text-green-800';
+      case 'Cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
+  // Format dates nicely
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+  
+  // Extract address info
+  const address = project.project_details?.address;
+  
   return (
-    <>
-      <div className="flex justify-between items-center">
-        <Button 
-          variant="ghost"
-          onClick={() => navigate('/admin/real-projects')}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Projects
-        </Button>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold">{project.project_id}</h1>
+            <Badge className={getStatusColor(project.status)}>
+              {project.status}
+            </Badge>
+          </div>
+          <p className="text-muted-foreground mt-1">
+            Created on {formatDate(project.created_at)} • Last updated {formatDate(project.last_updated_at)}
+          </p>
+        </div>
         
         <div className="flex gap-2">
           <Button 
-            variant="outline" 
+            variant="destructive" 
+            size="sm"
             onClick={onDeleteClick}
           >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete Project
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
           </Button>
         </div>
       </div>
       
-      <div className="flex flex-col md:flex-row justify-between bg-card p-6 rounded-lg shadow-md gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">{project.project_id}</h1>
-          <p className="text-muted-foreground">{project.client_name}</p>
-          <div className="mt-2">
-            {getStatusBadge(project.status)}
+      <Card>
+        <CardContent className="p-4 md:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Client Information */}
+            <div className="space-y-3">
+              <h3 className="font-medium">Client Information</h3>
+              
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span>{project.client_name}</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span>{project.client_mobile}</span>
+              </div>
+              
+              {project.client_email && (
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span>{project.client_email}</span>
+                </div>
+              )}
+              
+              {project.client_location && (
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span>{project.client_location}</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Project Information */}
+            <div className="space-y-3">
+              <h3 className="font-medium">Project Details</h3>
+              
+              <div className="flex items-center gap-2">
+                <Building className="h-4 w-4 text-muted-foreground" />
+                <span>Type: {project.project_type}</span>
+              </div>
+              
+              {project.selected_brand && (
+                <div className="flex items-center gap-2">
+                  <FileEdit className="h-4 w-4 text-muted-foreground" />
+                  <span>Brand: {project.selected_brand}</span>
+                </div>
+              )}
+              
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span>
+                  {project.washrooms?.length || 'No'} Washroom{(project.washrooms?.length || 0) !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+            
+            {/* Address Information */}
+            <div className="space-y-3">
+              <h3 className="font-medium">Location</h3>
+              
+              {address ? (
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
+                  <span className="line-clamp-3">{address}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <MapPin className="h-4 w-4" />
+                  <span>No address information</span>
+                </div>
+              )}
+
+              {project.project_details?.floor_number && (
+                <div className="flex items-center gap-2">
+                  <Building className="h-4 w-4 text-muted-foreground" />
+                  <span>Floor: {project.project_details.floor_number}</span>
+                </div>
+              )}
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm">
+                  Service Lift: {project.project_details?.service_lift_available ? 'Available' : 'Not Available'}
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-          <div>
-            <span className="text-muted-foreground">Created On:</span> 
-            <span className="ml-2 font-medium">{format(new Date(project.created_at), 'dd MMM yyyy')}</span>
-          </div>
-          
-          <div>
-            <span className="text-muted-foreground">Last Updated:</span> 
-            <span className="ml-2 font-medium">{format(new Date(project.last_updated_at), 'dd MMM yyyy')}</span>
-          </div>
-          
-          <div>
-            <span className="text-muted-foreground">Client Phone:</span> 
-            <span className="ml-2 font-medium">{project.client_mobile}</span>
-          </div>
-          
-          <div>
-            <span className="text-muted-foreground">Location:</span> 
-            <span className="ml-2 font-medium">{project.client_location || 'Not specified'}</span>
-          </div>
-        </div>
-      </div>
-    </>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

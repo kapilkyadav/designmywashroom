@@ -43,12 +43,14 @@ export interface RealProject {
 }
 
 export interface Washroom {
-  id: string;
+  id?: string;
   name: string;
   length: number;
   width: number;
   height: number;
   area: number;
+  wall_area?: number;
+  ceiling_area?: number;
   services: Record<string, boolean>;
 }
 
@@ -293,8 +295,48 @@ export const RealProjectService = {
     }
   },
   
-  // Convert a lead to a real project
-  async convertLeadToRealProject(leadId: string): Promise<{ success: boolean, project: RealProject | null }> {
+  // Create a new real project directly
+  async createRealProject(projectData: any): Promise<{ success: boolean, project: RealProject | null }> {
+    try {
+      const { data: newProject, error: projectError } = await supabase
+        .from('real_projects')
+        .insert({
+          client_name: projectData.client_name,
+          client_email: projectData.client_email || null,
+          client_mobile: projectData.client_mobile,
+          client_location: projectData.client_location || null,
+          project_type: projectData.project_type,
+          selected_brand: projectData.selected_brand || null,
+          project_details: projectData.project_details || {},
+          status: 'In Progress'
+        })
+        .select()
+        .single();
+      
+      if (projectError) throw projectError;
+      
+      toast({
+        title: "Project created",
+        description: `Successfully created project ${newProject.project_id}`,
+      });
+      
+      return { success: true, project: newProject as RealProject };
+    } catch (error: any) {
+      console.error('Error creating real project:', error);
+      toast({
+        title: "Project creation failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return { success: false, project: null };
+    }
+  },
+  
+  // Convert a lead to a real project with extended data
+  async convertLeadToRealProject(
+    leadId: string, 
+    projectData?: any
+  ): Promise<{ success: boolean, project: RealProject | null }> {
     try {
       // First, get the lead details
       const { data: lead, error: leadError } = await supabase
@@ -306,39 +348,45 @@ export const RealProjectService = {
       if (leadError) throw leadError;
       
       // Create a new real project from the lead data
-      const projectData = {
+      const dataToInsert = projectData ? {
+        lead_id: leadId,
+        ...projectData
+      } : {
         lead_id: leadId,
         client_name: lead.customer_name,
         client_email: lead.email,
         client_mobile: lead.phone,
         client_location: lead.location,
         project_type: 'Not Specified', // Default value as leads might not have this info
-        project_details: {} as Record<string, any>,
+        project_details: {}, // Empty object as default
         status: 'In Progress'
       };
       
       const { data: newProject, error: projectError } = await supabase
         .from('real_projects')
-        .insert(projectData)
+        .insert(dataToInsert)
         .select()
         .single();
       
       if (projectError) throw projectError;
       
-      // Create default washroom
-      const washroom = {
-        project_id: newProject.id,
-        name: "Washroom 1",
-        length: newProject.length || 0,
-        width: newProject.width || 0,
-        height: newProject.height || 9,
-        area: (newProject.length || 0) * (newProject.width || 0),
-        services: {}
-      };
-      
-      await supabase
-        .from('project_washrooms')
-        .insert(washroom);
+      // Only create default washroom if not provided through projectData
+      if (!projectData) {
+        // Create default washroom
+        const washroom = {
+          project_id: newProject.id,
+          name: "Washroom 1",
+          length: newProject.length || 0,
+          width: newProject.width || 0,
+          height: newProject.height || 9,
+          area: (newProject.length || 0) * (newProject.width || 0),
+          services: {}
+        };
+        
+        await supabase
+          .from('project_washrooms')
+          .insert(washroom);
+      }
       
       toast({
         title: "Lead converted",
@@ -357,8 +405,11 @@ export const RealProjectService = {
     }
   },
   
-  // Convert a project estimate to a real project
-  async convertEstimateToRealProject(estimateId: string): Promise<{ success: boolean, project: RealProject | null }> {
+  // Convert a project estimate to a real project with extended data
+  async convertEstimateToRealProject(
+    estimateId: string,
+    projectData?: any
+  ): Promise<{ success: boolean, project: RealProject | null }> {
     try {
       // First, get the project estimate details
       const { data: estimate, error: estimateError } = await supabase
@@ -370,7 +421,11 @@ export const RealProjectService = {
       if (estimateError) throw estimateError;
       
       // Create a new real project from the project estimate data
-      const projectData = {
+      const dataToInsert = projectData ? {
+        project_estimate_id: estimateId,
+        ...projectData,
+        original_estimate: estimate.final_estimate,
+      } : {
         project_estimate_id: estimateId,
         client_name: estimate.client_name,
         client_email: estimate.client_email,
@@ -394,26 +449,29 @@ export const RealProjectService = {
       
       const { data: newProject, error: projectError } = await supabase
         .from('real_projects')
-        .insert(projectData)
+        .insert(dataToInsert)
         .select()
         .single();
       
       if (projectError) throw projectError;
       
-      // Create default washroom
-      const washroom = {
-        project_id: newProject.id,
-        name: "Washroom 1",
-        length: newProject.length || 0,
-        width: newProject.width || 0,
-        height: newProject.height || 9,
-        area: (newProject.length || 0) * (newProject.width || 0),
-        services: {}
-      };
-      
-      await supabase
-        .from('project_washrooms')
-        .insert(washroom);
+      // Only create default washroom if not provided through projectData
+      if (!projectData) {
+        // Create default washroom
+        const washroom = {
+          project_id: newProject.id,
+          name: "Washroom 1",
+          length: newProject.length || 0,
+          width: newProject.width || 0,
+          height: newProject.height || 9,
+          area: (newProject.length || 0) * (newProject.width || 0),
+          services: {}
+        };
+        
+        await supabase
+          .from('project_washrooms')
+          .insert(washroom);
+      }
       
       toast({
         title: "Estimate converted",
@@ -429,6 +487,35 @@ export const RealProjectService = {
         variant: "destructive",
       });
       return { success: false, project: null };
+    }
+  },
+  
+  // Add a washroom to a project
+  async addWashroomToProject(projectId: string, washroomData: any): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('project_washrooms')
+        .insert({
+          ...washroomData,
+          project_id: projectId
+        });
+      
+      if (error) throw error;
+      
+      // Update washroom count in project
+      await supabase.rpc('increment_washroom_count', { 
+        p_project_id: projectId 
+      });
+      
+      return true;
+    } catch (error: any) {
+      console.error('Error adding washroom to project:', error);
+      toast({
+        title: "Failed to add washroom",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
     }
   },
   
