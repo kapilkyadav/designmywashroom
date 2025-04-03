@@ -88,7 +88,7 @@ const ConvertDialogContainer: React.FC<ConvertDialogContainerProps> = ({
         description: "You will be redirected to the project creation page.",
       });
       onOpenChange(false);
-      onProjectCreated(); // Fixed: Removed the argument since onProjectCreated takes no arguments
+      onProjectCreated(); // Call without any arguments
     } catch (error: any) {
       console.error("Error converting record:", error);
       toast({
