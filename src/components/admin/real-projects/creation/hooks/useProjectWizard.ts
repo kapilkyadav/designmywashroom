@@ -58,13 +58,19 @@ export function useProjectWizard(
       // Create project with new fields
       const projectData = {
         ...projectInfo,
+        height: projectInfo.height || 8,
+        width: projectInfo.width || 0,
+        length: projectInfo.length || 0,
         // Store additional fields in project_details
         project_details: {
-          address: projectInfo.address,
+          address: projectInfo.address || '',
           floor_number: projectInfo.floor_number || null,
           service_lift_available: projectInfo.service_lift_available || false,
         },
       };
+      
+      console.log('Record to convert:', recordToConvert);
+      console.log('Form values:', projectInfo);
       
       // Convert from lead or estimate if needed
       if (recordToConvert) {
@@ -96,7 +102,7 @@ export function useProjectWizard(
               name: washroom.name,
               length: washroom.length,
               width: washroom.width,
-              height: washroom.height,
+              height: washroom.height || 8,
               area: washroom.floorArea,
               wall_area: washroom.wallArea,
               ceiling_area: washroom.ceilingArea,

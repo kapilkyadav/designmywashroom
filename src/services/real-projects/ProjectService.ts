@@ -127,7 +127,9 @@ export class ProjectService extends BaseService {
         // Then insert new washrooms
         const washroomsToInsert = washrooms.map(washroom => ({
           ...washroom,
-          project_id: id
+          project_id: id,
+          wall_area: washroom.wall_area || washroom.wallArea,
+          ceiling_area: washroom.ceiling_area || washroom.ceilingArea
         }));
         
         const { error: washroomsError } = await supabase
@@ -199,6 +201,9 @@ export class ProjectService extends BaseService {
           project_type: projectData.project_type,
           selected_brand: projectData.selected_brand || null,
           project_details: projectData.project_details || {},
+          height: projectData.height || 8,
+          width: projectData.width || null, 
+          length: projectData.length || null,
           status: 'In Progress'
         })
         .select()

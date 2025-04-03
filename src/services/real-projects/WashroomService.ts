@@ -11,7 +11,9 @@ export class WashroomService extends BaseService {
     try {
       const washroomData = {
         ...washroom,
-        project_id: projectId
+        project_id: projectId,
+        wall_area: washroom.wall_area || washroom.wallArea,
+        ceiling_area: washroom.ceiling_area || washroom.ceilingArea
       };
 
       const { data, error } = await supabase

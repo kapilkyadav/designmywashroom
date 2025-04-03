@@ -26,15 +26,20 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
   });
 
   // Transform vendor items to service items format
-  const services: ServiceItem[] = vendorItems.map((item: VendorItem) => ({
-    id: item.id,
-    name: item.scope_of_work,
-    category: item.category?.name || 'Uncategorized',
-    description: item.scope_of_work,
-    scope_of_work: item.scope_of_work,
-    measuring_unit: item.measuring_unit,
-    category_id: item.category_id
-  }));
+  const services: ServiceItem[] = vendorItems.map((item: VendorItem) => {
+    // Get category name from category_id
+    const categoryName = item.category_name || "Uncategorized";
+    
+    return {
+      id: item.id,
+      name: item.scope_of_work,
+      category: categoryName,
+      description: item.scope_of_work,
+      scope_of_work: item.scope_of_work,
+      measuring_unit: item.measuring_unit,
+      category_id: item.category_id
+    };
+  });
 
   // Group services by category
   const servicesByCategory = services.reduce((acc: Record<string, ServiceItem[]>, service) => {
