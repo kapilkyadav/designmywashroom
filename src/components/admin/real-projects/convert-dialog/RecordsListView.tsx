@@ -1,19 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
-import { RealProjectService, ConvertibleRecord } from '@/services/RealProjectService';
+import { ConvertibleRecord } from '@/services/real-projects/types';
+import { RealProjectService } from '@/services/RealProjectService';
 import RecordsList from './RecordsList';
 import LoadingIndicator from './LoadingIndicator';
 
 interface RecordsListViewProps {
+  selectedRecord: ConvertibleRecord | null;
+  recordType: 'lead' | 'project_estimate';
   onSelectRecord: (record: ConvertibleRecord) => void;
-  onCreateDirect: () => void;
-  onCancel: () => void;
+  onChangeRecordType: (type: string) => void;
 }
 
 const RecordsListView: React.FC<RecordsListViewProps> = ({
+  selectedRecord,
+  recordType,
   onSelectRecord,
-  onCreateDirect,
-  onCancel
+  onChangeRecordType
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [records, setRecords] = useState<ConvertibleRecord[]>([]);
@@ -39,20 +42,11 @@ const RecordsListView: React.FC<RecordsListViewProps> = ({
     }
   };
 
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
   return (
     <RecordsList
       records={records}
-      searchTerm={searchTerm}
-      setSearchTerm={setSearchTerm}
-      activeTab={activeTab}
-      setActiveTab={setActiveTab}
+      isLoading={isLoading}
       onSelectRecord={onSelectRecord}
-      onCreateDirect={onCreateDirect}
-      onCancel={onCancel}
     />
   );
 };

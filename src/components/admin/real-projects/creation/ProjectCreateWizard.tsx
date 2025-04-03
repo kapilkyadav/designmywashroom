@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { RealProject, ConvertibleRecord } from '@/services/RealProjectService';
+import { ConvertibleRecord } from '@/services/real-projects/types';
 
 import ProjectInfoStep from './steps/ProjectInfoStep';
 import WashroomsStep from './steps/WashroomsStep';
@@ -11,11 +11,10 @@ import WizardHeader from './components/WizardHeader';
 import WizardFooter from './components/WizardFooter';
 import { useProjectWizard } from './hooks/useProjectWizard';
 import { useProjectInfoForm } from './hooks/useProjectInfoForm';
-import { WashroomWithAreas, ProjectInfoValues } from './types';
 
 interface ProjectCreateWizardProps {
   recordToConvert?: ConvertibleRecord;
-  onComplete: (project: RealProject | null) => void;
+  onComplete: () => void;
   onCancel: () => void;
 }
 
@@ -25,48 +24,69 @@ const ProjectCreateWizard: React.FC<ProjectCreateWizardProps> = ({
   onCancel 
 }) => {
   const {
-    step,
+    currentStep,
     isSubmitting,
     projectInfo,
     washrooms,
-    handleProjectInfoSubmit,
-    handleWashroomsSubmit,
-    handleScopeSubmit,
-    handleSubmitProject,
-    goToPreviousStep,
-    handleCancel
-  } = useProjectWizard(recordToConvert, onComplete, onCancel);
+    setProjectInfo,
+    setWashrooms,
+    nextStep,
+    prevStep,
+    createProject,
+    canNavigateNext
+  } = useProjectWizard();
   
   const projectInfoForm = useProjectInfoForm(recordToConvert);
+  
+  const handleProjectInfoSubmit = (values: any) => {
+    setProjectInfo(values);
+    nextStep();
+  };
+
+  const handleWashroomsSubmit = (washroomData: any) => {
+    setWashrooms(washroomData);
+    nextStep();
+  };
+
+  const handleScopeSubmit = () => {
+    nextStep();
+  };
+
+  const handleSubmitProject = async () => {
+    const success = await createProject();
+    if (success) {
+      onComplete();
+    }
+  };
   
   return (
     <div className="w-full max-w-4xl mx-auto">
       <Card>
-        <WizardHeader step={step} recordToConvert={recordToConvert} />
+        <WizardHeader step={currentStep} recordToConvert={recordToConvert} />
         
         <CardContent>
-          {step === 1 && (
+          {currentStep === 0 && (
             <ProjectInfoStep 
               form={projectInfoForm} 
               onSubmit={handleProjectInfoSubmit} 
             />
           )}
           
-          {step === 2 && projectInfo && (
+          {currentStep === 1 && projectInfo && (
             <WashroomsStep 
               initialWashrooms={washrooms}
               onSubmit={handleWashroomsSubmit} 
             />
           )}
           
-          {step === 3 && (
+          {currentStep === 2 && (
             <WashroomScopeStep 
               washrooms={washrooms}
               onSubmit={handleScopeSubmit} 
             />
           )}
           
-          {step === 4 && projectInfo && (
+          {currentStep === 3 && projectInfo && (
             <SummaryStep 
               projectInfo={projectInfo}
               washrooms={washrooms}
@@ -75,10 +95,10 @@ const ProjectCreateWizard: React.FC<ProjectCreateWizardProps> = ({
         </CardContent>
         
         <WizardFooter
-          step={step}
+          step={currentStep}
           isSubmitting={isSubmitting}
-          onBack={goToPreviousStep}
-          onCancel={handleCancel}
+          onBack={prevStep}
+          onCancel={onCancel}
           onSubmit={handleSubmitProject}
         />
       </Card>

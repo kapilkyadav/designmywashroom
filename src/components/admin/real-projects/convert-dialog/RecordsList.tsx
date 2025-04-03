@@ -17,9 +17,25 @@ interface RecordsListProps {
   records: ConvertibleRecord[];
   isLoading: boolean;
   onSelectRecord: (record: ConvertibleRecord) => void;
+  searchTerm?: string;
+  setSearchTerm?: (term: string) => void;
+  activeTab?: string;
+  setActiveTab?: (tab: string) => void;
+  onCreateDirect?: () => void;
+  onCancel?: () => void;
 }
 
-const RecordsList: React.FC<RecordsListProps> = ({ records, isLoading, onSelectRecord }) => {
+const RecordsList: React.FC<RecordsListProps> = ({ 
+  records, 
+  isLoading, 
+  onSelectRecord,
+  searchTerm,
+  setSearchTerm,
+  activeTab,
+  setActiveTab,
+  onCreateDirect,
+  onCancel
+}) => {
   if (isLoading) {
     return (
       <div className="text-center py-8">

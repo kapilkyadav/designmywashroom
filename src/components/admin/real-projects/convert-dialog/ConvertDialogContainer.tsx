@@ -9,13 +9,13 @@ import RecordsListView from './RecordsListView';
 import LoadingIndicator from './LoadingIndicator';
 import { toast } from '@/hooks/use-toast';
 
-interface ConvertRecordDialogProps {
+interface ConvertDialogContainerProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-const ConvertDialogContainer: React.FC<ConvertRecordDialogProps> = ({ open, onClose, onSuccess }) => {
+const ConvertDialogContainer: React.FC<ConvertDialogContainerProps> = ({ open, onClose, onSuccess }) => {
   const [selectedRecord, setSelectedRecord] = useState<ConvertibleRecord | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [recordType, setRecordType] = useState<'lead' | 'project_estimate'>('lead');
@@ -74,7 +74,6 @@ const ConvertDialogContainer: React.FC<ConvertRecordDialogProps> = ({ open, onCl
           <LoadingIndicator message="Loading convertible records..." />
         ) : (
           <RecordsListView
-            records={records}
             selectedRecord={selectedRecord}
             recordType={recordType}
             onSelectRecord={setSelectedRecord}

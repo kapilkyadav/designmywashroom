@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { WashroomWithAreas } from '../types';
 import { RealProjectService } from '@/services/RealProjectService';
+import { RealProject } from '@/services/real-projects/types';
 
 // Define the steps in the wizard
 const STEPS = ['project-info', 'washrooms', 'scope-of-work', 'summary'];
@@ -46,7 +47,7 @@ export const useProjectWizard = () => {
   };
   
   // Handle project creation submission
-  const createProject = async () => {
+  const createProject = async (): Promise<boolean> => {
     setIsSubmitting(true);
     
     try {
@@ -65,7 +66,13 @@ export const useProjectWizard = () => {
       };
       
       // Create the project
-      const project = await RealProjectService.createRealProject(projectData);
+      const result = await RealProjectService.createRealProject(projectData);
+      
+      if (!result.success || !result.project) {
+        throw new Error("Failed to create project");
+      }
+      
+      const project: RealProject = result.project;
       
       // Add washrooms to the project
       for (const washroom of washrooms) {
@@ -74,7 +81,7 @@ export const useProjectWizard = () => {
           length: washroom.length,
           width: washroom.width, 
           height: washroom.height || 8, // Default height if not provided
-          area: washroom.area,
+          area: washroom.floorArea,  // Use floorArea instead of area
           services: washroom.services || {},
           wall_area: washroom.wallArea,
           ceiling_area: washroom.ceilingArea,
@@ -88,6 +95,7 @@ export const useProjectWizard = () => {
       
       // Redirect to the project detail page
       navigate(`/admin/real-projects/${project.id}`);
+      return true;
     } catch (error: any) {
       console.error('Error creating project:', error);
       toast({
@@ -95,6 +103,7 @@ export const useProjectWizard = () => {
         description: error.message,
         variant: "destructive",
       });
+      return false;
     } finally {
       setIsSubmitting(false);
     }

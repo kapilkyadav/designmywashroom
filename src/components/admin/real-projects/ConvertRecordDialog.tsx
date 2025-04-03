@@ -1,13 +1,5 @@
 
-import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import ProjectCreateWizard from '@/components/admin/real-projects/creation/ProjectCreateWizard';
+import React from 'react';
 import ConvertDialogContainer from '@/components/admin/real-projects/convert-dialog/ConvertDialogContainer';
 
 interface ConvertRecordDialogProps {
@@ -24,8 +16,8 @@ const ConvertRecordDialog: React.FC<ConvertRecordDialogProps> = ({
   return (
     <ConvertDialogContainer
       open={open}
-      onOpenChange={onOpenChange}
-      onProjectCreated={onProjectCreated}
+      onClose={() => onOpenChange(false)}
+      onSuccess={onProjectCreated}
     />
   );
 };
