@@ -2,7 +2,7 @@
 import { LeadCrudService } from './LeadCrudService';
 import { ActivityLogService } from './ActivityLogService';
 import { LeadRemarksService } from './LeadRemarksService';
-import { SyncConfigService } from './SyncOperationsService';
+import { SyncConfigService } from './SyncConfigService';
 import { SyncOperationsService } from './SyncOperationsService';
 import { Lead, LeadFilter, LeadActivityLog, LeadRemark, LeadSyncConfig } from './types';
 
