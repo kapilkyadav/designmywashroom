@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,12 +7,15 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { ArrowRight, CheckCircle, Smartphone, Ruler, Clock, Sparkles } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+
 const Index = () => {
   const heroRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  
   useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
+    // Create IntersectionObserver instance before using it
+    const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('animate-fade-in');
@@ -20,13 +24,19 @@ const Index = () => {
     }, {
       threshold: 0.1
     });
+    
+    // Now use the observer after it's defined
     const elements = document.querySelectorAll('.reveal');
     elements.forEach(el => observer.observe(el));
+    
+    // Clean up observer on component unmount
     return () => {
       elements.forEach(el => observer.unobserve(el));
     };
   }, []);
-  return <div className="min-h-screen flex flex-col">
+  
+  return (
+    <div className="min-h-screen flex flex-col">
       <Header />
       
       {/* Hero Section */}
@@ -89,31 +99,42 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
-            {[{
-            icon: <Smartphone className="h-8 w-8 md:h-10 md:w-10" />,
-            title: "Select Project Type",
-            description: "Choose between new construction or renovation for your washroom project."
-          }, {
-            icon: <Ruler className="h-8 w-8 md:h-10 md:w-10" />,
-            title: "Enter Dimensions",
-            description: "Specify your washroom dimensions for precise material calculations."
-          }, {
-            icon: <Sparkles className="h-8 w-8 md:h-10 md:w-10" />,
-            title: "Choose Fixtures",
-            description: "Select from premium fixtures and brand options for your perfect washroom."
-          }, {
-            icon: <Clock className="h-8 w-8 md:h-10 md:w-10" />,
-            title: "Get Instant Estimate",
-            description: "Receive a detailed breakdown of costs and timeline for your project."
-          }].map((feature, index) => <Card key={index} className="p-4 sm:p-6 border border-border hover:shadow-md transition-all duration-300 reveal opacity-0" style={{
-            animationDelay: `${0.1 * (index + 1)}s`
-          }}>
+            {[
+              {
+                icon: <Smartphone className="h-8 w-8 md:h-10 md:w-10" />,
+                title: "Select Project Type",
+                description: "Choose between new construction or renovation for your washroom project."
+              }, 
+              {
+                icon: <Ruler className="h-8 w-8 md:h-10 md:w-10" />,
+                title: "Enter Dimensions",
+                description: "Specify your washroom dimensions for precise material calculations."
+              }, 
+              {
+                icon: <Sparkles className="h-8 w-8 md:h-10 md:w-10" />,
+                title: "Choose Fixtures",
+                description: "Select from premium fixtures and brand options for your perfect washroom."
+              }, 
+              {
+                icon: <Clock className="h-8 w-8 md:h-10 md:w-10" />,
+                title: "Get Instant Estimate",
+                description: "Receive a detailed breakdown of costs and timeline for your project."
+              }
+            ].map((feature, index) => (
+              <Card 
+                key={index} 
+                className="p-4 sm:p-6 border border-border hover:shadow-md transition-all duration-300 reveal opacity-0" 
+                style={{
+                  animationDelay: `${0.1 * (index + 1)}s`
+                }}
+              >
                 <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                   {feature.icon}
                 </div>
                 <h3 className="text-lg md:text-xl font-medium mb-2">{feature.title}</h3>
                 <p className="text-sm md:text-base text-muted-foreground">{feature.description}</p>
-              </Card>)}
+              </Card>
+            ))}
           </div>
         </div>
       </section>
@@ -129,10 +150,18 @@ const Index = () => {
               </p>
               
               <div className="space-y-3 md:space-y-4">
-                {["Accurate cost estimates with no hidden charges", "Premium fixtures from leading Indian and international brands", "Professional design and installation services", "Comprehensive project management from start to finish", "Post-installation support and maintenance"].map((benefit, index) => <div key={index} className="flex items-start gap-3">
+                {[
+                  "Accurate cost estimates with no hidden charges", 
+                  "Premium fixtures from leading Indian and international brands", 
+                  "Professional design and installation services", 
+                  "Comprehensive project management from start to finish", 
+                  "Post-installation support and maintenance"
+                ].map((benefit, index) => (
+                  <div key={index} className="flex items-start gap-3">
                     <CheckCircle className="h-5 w-5 md:h-6 md:w-6 text-primary flex-shrink-0 mt-0.5" />
                     <span className="text-sm sm:text-base">{benefit}</span>
-                  </div>)}
+                  </div>
+                ))}
               </div>
               
               <div className="mt-8 md:mt-10">
@@ -152,7 +181,7 @@ const Index = () => {
                 <img src="https://images.unsplash.com/photo-1584622650111-993a426fbf0a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80" alt="Elegant washroom fixture" className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full object-center" />
                 <img src="https://images.unsplash.com/photo-1507652313519-d4e9174996dd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80" alt="Modern bath design" className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full" />
                 <img src="https://images.unsplash.com/photo-1600566752355-35792bedcfea?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80" alt="Contemporary shower" className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full" />
-                <img src="https://unsplash.com/photos/a-bathroom-with-a-sink-and-a-mirror-gIFmQSCPzaU&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80" alt="Luxury washroom design" className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full" />
+                <img src="https://images.unsplash.com/photo-1633321088355-d0f81134ca3b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80" alt="Luxury washroom design" className="rounded-xl h-48 sm:h-56 md:h-64 object-cover w-full" />
               </div>
             </div>
           </div>
@@ -180,6 +209,8 @@ const Index = () => {
       </section>
       
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default Index;
