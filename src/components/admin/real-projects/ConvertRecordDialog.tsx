@@ -157,14 +157,14 @@ const ConvertRecordDialog: React.FC<ConvertRecordDialogProps> = ({
                 </div>
                 
                 <Select
-                  value={recordTypeFilter || ""}
-                  onValueChange={(value) => setRecordTypeFilter(value || undefined)}
+                  value={recordTypeFilter || "all"}
+                  onValueChange={(value) => setRecordTypeFilter(value === "all" ? undefined : value)}
                 >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="All record types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All record types</SelectItem>
+                    <SelectItem value="all">All record types</SelectItem>
                     <SelectItem value="lead">Leads only</SelectItem>
                     <SelectItem value="estimate">Estimates only</SelectItem>
                   </SelectContent>
