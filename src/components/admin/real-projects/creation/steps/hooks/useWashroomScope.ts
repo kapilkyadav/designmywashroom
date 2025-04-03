@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { RealProjectService } from '@/services/RealProjectService';
+import { VendorRateCardService, VendorItem } from '@/services/VendorRateCardService';
 import { WashroomWithAreas } from '../../types';
 
 // Define a type for the service items
@@ -10,17 +10,31 @@ export interface ServiceItem {
   name: string;
   category: string;
   description?: string;
+  scope_of_work?: string;
+  category_id?: string;
+  measuring_unit?: string;
 }
 
 export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
   const [activeTab, setActiveTab] = useState<string>(initialWashrooms[0]?.name || '');
   const [washroomsWithScope, setWashroomsWithScope] = useState<WashroomWithAreas[]>(initialWashrooms);
 
-  // Fetch all execution services
-  const { data: services = [], isLoading } = useQuery({
-    queryKey: ['execution-services'],
-    queryFn: () => RealProjectService.getExecutionServices(),
+  // Fetch all vendor items
+  const { data: vendorItems = [], isLoading } = useQuery({
+    queryKey: ['vendor-items'],
+    queryFn: () => VendorRateCardService.getItems(),
   });
+
+  // Transform vendor items to service items format
+  const services: ServiceItem[] = vendorItems.map((item: VendorItem) => ({
+    id: item.id,
+    name: item.scope_of_work,
+    category: item.category?.name || 'Uncategorized',
+    description: item.scope_of_work,
+    scope_of_work: item.scope_of_work,
+    measuring_unit: item.measuring_unit,
+    category_id: item.category_id
+  }));
 
   // Group services by category
   const servicesByCategory = services.reduce((acc: Record<string, ServiceItem[]>, service) => {

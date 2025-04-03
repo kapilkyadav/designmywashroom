@@ -3,21 +3,16 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { BaseService } from './BaseService';
 import { Washroom } from './types';
+import { VendorRateCardService } from '@/services/VendorRateCardService';
 
 export class CostingService extends BaseService {
   /**
-   * Get execution services for projects
+   * Get vendor items for projects scope of work
    */
   static async getExecutionServices(): Promise<any[]> {
     try {
-      const { data, error } = await supabase
-        .from('execution_services')
-        .select('*')
-        .order('category', { ascending: true });
-      
-      if (error) throw error;
-      
-      return data || [];
+      // Now fetching from vendor items instead of execution_services
+      return VendorRateCardService.getItems();
     } catch (error: any) {
       return this.handleError(error, 'Failed to fetch services');
     }
@@ -69,7 +64,8 @@ export class CostingService extends BaseService {
         totalArea += area;
         
         // Calculate tiling cost if tiling service is selected
-        if (washroom.services && washroom.services['tiling']) {
+        if (washroom.services && Object.entries(washroom.services).some(([id, selected]) => 
+          selected && id.includes('tiling'))) {
           const washroomTilingCost = area * combinedTilingRate;
           totalTilingCost += washroomTilingCost;
         }

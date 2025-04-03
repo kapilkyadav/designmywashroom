@@ -26,37 +26,37 @@ const ServiceCategory: React.FC<ServiceCategoryProps> = ({
   washroomServices
 }) => {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center space-x-2">
+    <div className="mb-4">
+      <div className="flex items-center space-x-2 mb-2">
         <Checkbox 
-          id={`select-all-${washroomIndex}-${category}`}
+          id={`category-${washroomIndex}-${category}`}
           checked={areAllSelected}
-          onCheckedChange={(checked) => 
-            onSelectAllInCategory(washroomIndex, category, checked === true)
-          }
-          className="data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground"
-          data-state={areSomeSelected ? "indeterminate" : undefined}
+          indeterminate={!areAllSelected && areSomeSelected}
+          onCheckedChange={(checked) => onSelectAllInCategory(washroomIndex, category, !!checked)}
         />
         <Label 
-          htmlFor={`select-all-${washroomIndex}-${category}`}
-          className="font-semibold text-lg"
+          htmlFor={`category-${washroomIndex}-${category}`}
+          className="font-medium"
         >
           {category}
         </Label>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 pl-6">
-        {services.map((service) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-6">
+        {services.map(service => (
           <div key={service.id} className="flex items-center space-x-2">
             <Checkbox 
               id={`service-${washroomIndex}-${service.id}`}
-              checked={washroomServices?.[service.id] === true}
+              checked={washroomServices[service.id] || false}
               onCheckedChange={(checked) => 
-                onServiceChange(washroomIndex, service.id, checked === true)
+                onServiceChange(washroomIndex, service.id, !!checked)
               }
             />
-            <Label htmlFor={`service-${washroomIndex}-${service.id}`}>
-              {service.name}
+            <Label 
+              htmlFor={`service-${washroomIndex}-${service.id}`}
+              className="text-sm"
+            >
+              {service.scope_of_work || service.name} {service.measuring_unit ? `(${service.measuring_unit})` : ''}
             </Label>
           </div>
         ))}

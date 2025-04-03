@@ -34,7 +34,7 @@ const WashroomScopeContent: React.FC<WashroomScopeContentProps> = ({
       <CardContent className="space-y-6">
         {Object.keys(servicesByCategory).length === 0 ? (
           <p className="text-muted-foreground italic">
-            No services available. Please add execution services in the admin panel.
+            No services available. Please add vendor items in the Vendor Rate Card section.
           </p>
         ) : (
           Object.entries(servicesByCategory).map(([category, categoryServices]) => (
