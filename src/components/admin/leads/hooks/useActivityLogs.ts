@@ -1,5 +1,7 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { LeadService, LeadActivityLog } from '@/services/leads';
+import { ActivityLogService } from '@/services/leads/ActivityLogService';
+import { LeadActivityLog } from '@/services/leads';
 
 export const useActivityLogs = (leadId: string, isOpen: boolean) => {
   const [activityLogs, setActivityLogs] = useState<LeadActivityLog[]>([]);
@@ -45,7 +47,8 @@ export const useActivityLogs = (leadId: string, isOpen: boolean) => {
     
     setIsLoading(true);
     try {
-      const logs = await LeadService.getActivityLogs(leadId);
+      // Use the correct method name from ActivityLogService
+      const logs = await ActivityLogService.getLeadActivityLogs(leadId);
       if (isMounted.current) {
         setActivityLogs(logs);
       }

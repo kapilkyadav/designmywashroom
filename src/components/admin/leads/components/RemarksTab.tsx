@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { LeadRemark, LeadService } from '@/services/LeadService';
+import { LeadRemark } from '@/services/leads/types';
+import { LeadRemarksService } from '@/services/leads/LeadRemarksService';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -38,7 +39,8 @@ const RemarksTab: React.FC<RemarksTabProps> = ({
     
     setIsSubmitting(true);
     try {
-      const result = await LeadService.addRemark(leadId, newRemark);
+      // Use LeadRemarksService directly
+      const result = await LeadRemarksService.addRemark(leadId, newRemark);
       
       if (result) {
         // Pass the new remark back to the parent component

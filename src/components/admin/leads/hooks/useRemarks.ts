@@ -1,5 +1,7 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { LeadService, LeadRemark } from '@/services/leads';
+import { LeadRemarksService } from '@/services/leads/LeadRemarksService';
 
 export const useRemarks = (leadId: string, isOpen: boolean) => {
   const [remarks, setRemarks] = useState<LeadRemark[]>([]);
@@ -53,7 +55,8 @@ export const useRemarks = (leadId: string, isOpen: boolean) => {
     
     setIsLoading(true);
     try {
-      const remarkData = await LeadService.getRemarks(leadId);
+      // Use the correct method from LeadRemarksService
+      const remarkData = await LeadRemarksService.getRemarks(leadId);
       if (isMounted.current) {
         setRemarks(remarkData);
       }
@@ -73,7 +76,8 @@ export const useRemarks = (leadId: string, isOpen: boolean) => {
     if (!leadId) return false;
     
     try {
-      const success = await LeadService.addRemark(leadId, remark);
+      // Use the correct method from LeadRemarksService
+      const success = await LeadRemarksService.addRemark(leadId, remark);
       if (success && isMounted.current) {
         // Refresh remarks list
         fetchRemarks();
