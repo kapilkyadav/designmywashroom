@@ -1,14 +1,13 @@
 
 import { useState } from 'react';
-import { RealProjectService } from '@/services/RealProjectService';
-import { ConvertibleRecord } from '@/services/real-projects/types';
+import { RealProjectService, ConvertibleRecord } from '@/services/RealProjectService';
 import { ProjectInfoValues, WashroomWithAreas } from '../types';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 export function useProjectWizard(
-  onComplete: (project: any | null) => void, 
-  onCancel: () => void,
-  recordToConvert?: ConvertibleRecord
+  recordToConvert?: ConvertibleRecord,
+  onComplete: (project: any | null) => void,
+  onCancel: () => void
 ) {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,12 +69,12 @@ export function useProjectWizard(
       // Convert from lead or estimate if needed
       if (recordToConvert) {
         if (recordToConvert.record_type === 'lead') {
-          result = await RealProjectService.convertLeadToProject(
+          result = await RealProjectService.convertLeadToRealProject(
             recordToConvert.record_id,
             projectData
           );
         } else {
-          result = await RealProjectService.convertEstimateToProject(
+          result = await RealProjectService.convertEstimateToRealProject(
             recordToConvert.record_id,
             projectData
           );
@@ -105,7 +104,8 @@ export function useProjectWizard(
         
         await Promise.all(washroomPromises);
         
-        toast.success("Project created successfully", {
+        toast({
+          title: "Project created successfully",
           description: `Project ${result.project.project_id} has been created with ${washrooms.length} washroom(s)`,
         });
         
@@ -115,8 +115,10 @@ export function useProjectWizard(
       }
     } catch (error: any) {
       console.error("Error creating project:", error);
-      toast.error("Error creating project", {
+      toast({
+        title: "Error creating project",
         description: error.message || "An unexpected error occurred",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);

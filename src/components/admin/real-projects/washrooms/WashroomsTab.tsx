@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { RealProject, Washroom } from '@/services/RealProjectService';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     if (project.washrooms && project.washrooms.length > 0) {
       setWashrooms(project.washrooms);
     } else {
-      const defaultWashroom: Partial<Washroom> = {
+      const defaultWashroom: Washroom = {
         id: `temp-${Date.now()}`,
         name: "Washroom 1",
         length: project.length || 0,
@@ -34,12 +35,12 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
         area: (project.length || 0) * (project.width || 0),
         services: {}
       };
-      setWashrooms([defaultWashroom as Washroom]);
+      setWashrooms([defaultWashroom]);
     }
   }, [project]);
   
   const addWashroom = () => {
-    const newWashroom: Partial<Washroom> = {
+    const newWashroom: Washroom = {
       id: `temp-${Date.now()}`,
       name: `Washroom ${washrooms.length + 1}`,
       length: 0,
@@ -49,7 +50,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
       services: {}
     };
     
-    setWashrooms([...washrooms, newWashroom as Washroom]);
+    setWashrooms([...washrooms, newWashroom]);
   };
   
   const removeWashroom = (index: number) => {

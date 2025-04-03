@@ -27,19 +27,25 @@ const RateCardDialog: React.FC<RateCardDialogProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: Partial<VendorRateCard>) => {
     try {
       setIsSubmitting(true);
       
-      // Use saveRateCard for both create and update operations
-      await VendorRateCardService.saveRateCard(values);
-      
-      toast({
-        title: rateCard ? "Rate card updated" : "Rate card created",
-        description: rateCard 
-          ? "The rate card has been updated successfully." 
-          : "The new rate card has been created successfully.",
-      });
+      if (rateCard) {
+        // Update existing rate card
+        await VendorRateCardService.updateRateCard(rateCard.id, values);
+        toast({
+          title: "Rate card updated",
+          description: "The rate card has been updated successfully.",
+        });
+      } else {
+        // Create new rate card
+        await VendorRateCardService.createRateCard(values);
+        toast({
+          title: "Rate card created",
+          description: "The new rate card has been created successfully.",
+        });
+      }
       
       onSave();
       onClose();

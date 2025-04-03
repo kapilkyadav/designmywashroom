@@ -1,17 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
-import { toast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
-import { ConvertibleRecord } from '@/services/real-projects/types';
-import { RealProjectService } from '@/services/RealProjectService';
-import RecordsList from './RecordsList';
+import ProjectCreateWizard from '@/components/admin/real-projects/creation/ProjectCreateWizard';
+import { ConvertibleRecord } from '@/services/RealProjectService';
+import RecordsListView from './RecordsListView';
 
 interface ConvertDialogContainerProps {
   open: boolean;
@@ -19,123 +17,86 @@ interface ConvertDialogContainerProps {
   onProjectCreated: () => void;
 }
 
-const ConvertDialogContainer: React.FC<ConvertDialogContainerProps> = ({
-  open,
+const ConvertDialogContainer: React.FC<ConvertDialogContainerProps> = ({ 
+  open, 
   onOpenChange,
-  onProjectCreated,
+  onProjectCreated
 }) => {
-  const [records, setRecords] = useState<ConvertibleRecord[]>([]);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<string>('all');
   const [selectedRecord, setSelectedRecord] = useState<ConvertibleRecord | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isConverting, setIsConverting] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
 
-  // Fetch records when the dialog opens
-  useEffect(() => {
-    const fetchRecords = async () => {
-      if (!open) return;
-      
-      setIsLoading(true);
-      try {
-        const fetchedRecords = await RealProjectService.getConvertibleRecords();
-        setRecords(fetchedRecords);
-      } catch (error: any) {
-        console.error("Error fetching records:", error);
-        toast({
-          title: "Error",
-          description: error.message || "Failed to fetch records.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Create an empty convertible record for direct project creation
+  const emptyRecord: ConvertibleRecord = {
+    record_type: "direct",
+    record_id: "",
+    client_name: "",
+    client_email: "",
+    client_mobile: "",
+    client_location: "",
+    created_date: new Date().toISOString(),
+    status: "In Progress",
+    real_project_id: null
+  };
 
-    fetchRecords();
-  }, [open]);
-
+  // Handle record selection
   const handleSelectRecord = (record: ConvertibleRecord) => {
     setSelectedRecord(record);
+    setShowWizard(true);
   };
 
+  // Handle create new project directly
   const handleCreateDirect = () => {
-    // Go to project creation without a record to convert
-    onOpenChange(false);
-    onProjectCreated();
+    setSelectedRecord(emptyRecord);
+    setShowWizard(true);
   };
 
-  const handleCancel = () => {
+  // This will be called when the project creation is completed
+  const handleProjectCreated = () => {
+    onProjectCreated();
     onOpenChange(false);
+  };
+
+  // If the user cancels the conversion
+  const handleCancel = () => {
+    if (showWizard) {
+      setShowWizard(false);
+      setSelectedRecord(null);
+    } else {
+      onOpenChange(false);
+    }
+  };
+
+  // Reset state when dialog closes
+  const handleOpenChange = (open: boolean) => {
+    onOpenChange(open);
+    if (!open) {
+      setSelectedRecord(null);
+      setShowWizard(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) {
-        // Reset state when closing the dialog
-        setSearchTerm('');
-        setActiveTab('all');
-        setSelectedRecord(null);
-      }
-      onOpenChange(isOpen);
-    }}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Convert Record to Project</DialogTitle>
+          <DialogTitle>
+            {showWizard ? 'Create New Project' : 'Select Record to Convert'}
+          </DialogTitle>
           <DialogDescription>
-            Select a lead or project estimate to convert to a real project.
+            {showWizard 
+              ? 'Fill in the details to create a new project' 
+              : 'Select a lead or estimate to convert, or create a new project directly'}
           </DialogDescription>
         </DialogHeader>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2">Loading records...</span>
-          </div>
-        ) : selectedRecord ? (
-          <div className="space-y-4">
-            <div className="border rounded-md p-4 bg-muted/30">
-              <h4 className="text-sm font-medium mb-2">Selected Record</h4>
-              <p className="text-sm">Client Name: {selectedRecord.client_name}</p>
-              <p className="text-sm">Client Email: {selectedRecord.client_email || 'N/A'}</p>
-              <p className="text-sm">Client Mobile: {selectedRecord.client_mobile}</p>
-              <p className="text-sm">Type: {selectedRecord.record_type.replace('_', ' ')}</p>
-              <p className="text-sm">Created Date: {new Date(selectedRecord.created_date).toLocaleDateString()}</p>
-              
-              <div className="flex justify-end mt-4 space-x-2">
-                <button
-                  className="px-3 py-1 bg-secondary text-secondary-foreground rounded-md text-sm"
-                  onClick={() => setSelectedRecord(null)}
-                >
-                  Back to List
-                </button>
-                <button
-                  className="px-3 py-1 bg-primary text-primary-foreground rounded-md text-sm"
-                  onClick={() => {
-                    onOpenChange(false);
-                    onProjectCreated();
-                  }}
-                  disabled={isConverting}
-                >
-                  {isConverting ? (
-                    <>
-                      <Loader2 className="inline mr-2 h-4 w-4 animate-spin" />
-                      Converting...
-                    </>
-                  ) : (
-                    "Convert to Project"
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
+        {showWizard && selectedRecord ? (
+          <WizardView 
+            recordToConvert={selectedRecord}
+            onComplete={handleProjectCreated}
+            onCancel={handleCancel}
+          />
         ) : (
-          <RecordsList
-            records={records}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
+          <RecordsListView
             onSelectRecord={handleSelectRecord}
             onCreateDirect={handleCreateDirect}
             onCancel={handleCancel}
@@ -143,6 +104,21 @@ const ConvertDialogContainer: React.FC<ConvertDialogContainerProps> = ({
         )}
       </DialogContent>
     </Dialog>
+  );
+};
+
+// Wizard view component
+const WizardView: React.FC<{
+  recordToConvert: ConvertibleRecord;
+  onComplete: () => void;
+  onCancel: () => void;
+}> = ({ recordToConvert, onComplete, onCancel }) => {
+  return (
+    <ProjectCreateWizard 
+      recordToConvert={recordToConvert}
+      onComplete={onComplete}
+      onCancel={onCancel}
+    />
   );
 };
 

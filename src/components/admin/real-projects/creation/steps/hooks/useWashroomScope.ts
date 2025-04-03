@@ -25,22 +25,11 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
     queryFn: () => VendorRateCardService.getItems(),
   });
 
-  // Fetch all vendor categories for proper mapping
-  const { data: vendorCategories = [] } = useQuery({
-    queryKey: ['vendor-categories'],
-    queryFn: () => VendorRateCardService.getCategories(),
-  });
-
-  // Create a mapping of category IDs to names
-  const categoryMap = Object.fromEntries(
-    vendorCategories.map((cat: any) => [cat.id, cat.name])
-  );
-
   // Transform vendor items to service items format
   const services: ServiceItem[] = vendorItems.map((item: VendorItem) => ({
     id: item.id,
     name: item.scope_of_work,
-    category: categoryMap[item.category_id] || 'Uncategorized',
+    category: item.category?.name || 'Uncategorized',
     description: item.scope_of_work,
     scope_of_work: item.scope_of_work,
     measuring_unit: item.measuring_unit,

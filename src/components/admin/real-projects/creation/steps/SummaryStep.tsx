@@ -3,18 +3,13 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ProjectInfoValues, WashroomWithAreas } from '../types';
 import { Badge } from '@/components/ui/badge';
+import { HomeIcon, User, Phone, Mail, MapPin, Building, Loader, Ruler, Package } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { BrandService } from '@/services/BrandService';
 import { ProductService } from '@/services/ProductService';
 import { Product } from '@/lib/supabase';
 import { VendorRateCardService } from '@/services/VendorRateCardService';
-
-// Import the extracted components
-import ClientInformation from './components/ClientInformation';
-import ProjectDetails from './components/ProjectDetails';
-import WashroomList from './components/WashroomList';
-import ProductList from './components/ProductList';
-import SummaryFooter from './components/SummaryFooter';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface SummaryStepProps {
   projectInfo: ProjectInfoValues;
@@ -107,38 +102,174 @@ const SummaryStep: React.FC<SummaryStepProps> = ({ projectInfo, washrooms }) => 
       <Card>
         <CardContent className="pt-6">
           <div className="space-y-4">
-            {/* Client Information Section */}
-            <ClientInformation clientInfo={projectInfo} />
+            <div>
+              <h4 className="text-sm font-semibold text-muted-foreground mb-2">Client Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{projectInfo.client_name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span>{projectInfo.client_mobile}</span>
+                </div>
+                {projectInfo.client_email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span>{projectInfo.client_email}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span>{projectInfo.client_location}</span>
+                </div>
+              </div>
+            </div>
             
             <Separator />
             
-            {/* Project Details Section */}
-            <ProjectDetails projectInfo={projectInfo} brandName={brandName} />
+            <div>
+              <h4 className="text-sm font-semibold text-muted-foreground mb-2">Project Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                  <HomeIcon className="h-4 w-4 text-muted-foreground" />
+                  <span>Project Type: <span className="font-medium">{projectInfo.project_type}</span></span>
+                </div>
+                {brandName && (
+                  <div className="flex items-center gap-2">
+                    <Building className="h-4 w-4 text-muted-foreground" />
+                    <span>Brand: <span className="font-medium">{brandName}</span></span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 col-span-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span>Address: <span className="font-medium">{projectInfo.address}</span></span>
+                </div>
+                {projectInfo.floor_number && (
+                  <div className="flex items-center gap-2">
+                    <Building className="h-4 w-4 text-muted-foreground" />
+                    <span>Floor: <span className="font-medium">{projectInfo.floor_number}</span></span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Loader className="h-4 w-4 text-muted-foreground" />
+                  <span>Service Lift: <span className="font-medium">{projectInfo.service_lift_available ? 'Available' : 'Not Available'}</span></span>
+                </div>
+              </div>
+            </div>
             
             <Separator />
             
-            {/* Washrooms List Section */}
-            <WashroomList washrooms={washrooms} serviceNames={serviceNames} />
+            <div>
+              <div className="flex justify-between mb-2">
+                <h4 className="text-sm font-semibold text-muted-foreground">Washrooms</h4>
+                <Badge variant="secondary">{washrooms.length} washroom(s)</Badge>
+              </div>
+              
+              <div className="space-y-4">
+                {washrooms.map((washroom, index) => (
+                  <div key={index} className="border rounded-md p-3">
+                    <h5 className="font-semibold mb-2">{washroom.name}</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                      <div>
+                        <span className="text-xs text-muted-foreground block">Dimensions</span>
+                        <div className="flex items-center gap-1">
+                          <Ruler className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm">
+                            {washroom.length}' × {washroom.width}' × {washroom.height}'
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground block">Floor Area</span>
+                        <span className="text-sm">{washroom.floorArea.toFixed(2)} sq. ft.</span>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground block">Wall Area</span>
+                        <span className="text-sm">{washroom.wallArea.toFixed(2)} sq. ft.</span>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <span className="text-xs text-muted-foreground block mb-1">Services Selected</span>
+                      <div className="flex flex-wrap gap-1">
+                        {washroom.services && Object.keys(washroom.services).filter(key => washroom.services[key]).length > 0 ? (
+                          Object.entries(washroom.services)
+                            .filter(([_, isSelected]) => isSelected)
+                            .map(([serviceId]) => (
+                              <Badge key={serviceId} variant="outline" className="text-xs">
+                                {serviceNames[serviceId] || serviceId}
+                              </Badge>
+                            ))
+                        ) : (
+                          <span className="text-xs italic text-muted-foreground">No services selected</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
             
             {projectInfo.selected_brand && (
               <>
                 <Separator />
                 
-                {/* Products List Section */}
-                <ProductList 
-                  brandName={brandName} 
-                  products={products} 
-                  loading={loading} 
-                />
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <div className="flex items-center gap-1">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                      <h4 className="text-sm font-semibold text-muted-foreground">{brandName} Products</h4>
+                    </div>
+                    <Badge variant="secondary">{products.length} product(s)</Badge>
+                  </div>
+                  
+                  <div className="overflow-auto max-h-64 border rounded-md">
+                    <Table>
+                      <TableHeader className="bg-muted">
+                        <TableRow>
+                          <TableHead className="text-xs">Name</TableHead>
+                          <TableHead className="text-xs">Category</TableHead>
+                          <TableHead className="text-xs text-right">MRP</TableHead>
+                          <TableHead className="text-xs text-right">YDS Offer Price</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="divide-y">
+                        {products.length > 0 ? (
+                          products.slice(0, 10).map((product) => (
+                            <TableRow key={product.id} className="hover:bg-muted/50">
+                              <TableCell className="text-sm py-2">{product.name}</TableCell>
+                              <TableCell className="text-sm py-2">{product.category || '-'}</TableCell>
+                              <TableCell className="text-sm py-2 text-right">₹{product.mrp.toLocaleString('en-IN')}</TableCell>
+                              <TableCell className="text-sm py-2 text-right">₹{product.client_price.toLocaleString('en-IN')}</TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                              {loading ? "Loading products..." : "No products available for this brand"}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                    {products.length > 10 && (
+                      <div className="p-2 text-center text-xs text-muted-foreground">
+                        Showing 10 of {products.length} products
+                      </div>
+                    )}
+                  </div>
+                </div>
               </>
             )}
           </div>
           
-          {/* Summary Footer */}
-          <SummaryFooter 
-            washroomCount={washrooms.length} 
-            serviceCount={countSelectedServices()} 
-          />
+          <div className="mt-6 bg-muted p-3 rounded-md">
+            <p className="text-sm text-muted-foreground">
+              You are about to create a new project with {washrooms.length} washroom(s) and {countSelectedServices()} service(s).
+              Click "Create Project" to continue.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

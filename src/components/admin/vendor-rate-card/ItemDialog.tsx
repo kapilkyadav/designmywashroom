@@ -27,34 +27,20 @@ const ItemDialog: React.FC<ItemDialogProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (values: { 
-    category_id: string; 
-    scope_of_work: string;
-    sl_no?: string;
-    item_code?: string; 
-    measuring_unit?: string;
-  }) => {
+  const handleSubmit = async (values: Partial<VendorItem>) => {
     try {
       setIsSubmitting(true);
       
-      // Ensure required fields are present
-      const itemData = {
-        ...values,
-        sl_no: values.sl_no || '',
-        item_code: values.item_code || '',
-        measuring_unit: values.measuring_unit || '',
-      };
-      
       if (item) {
         // Update existing item
-        await VendorRateCardService.updateItem(item.id, itemData);
+        await VendorRateCardService.updateItem(item.id, values);
         toast({
           title: "Item updated",
           description: "The item has been updated successfully.",
         });
       } else {
         // Create new item
-        await VendorRateCardService.createItem(itemData);
+        await VendorRateCardService.createItem(values);
         toast({
           title: "Item created",
           description: "The new item has been created successfully.",

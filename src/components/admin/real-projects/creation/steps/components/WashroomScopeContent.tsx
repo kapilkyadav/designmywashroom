@@ -41,10 +41,10 @@ const WashroomScopeContent: React.FC<WashroomScopeContentProps> = ({
             <ServiceCategory 
               key={category}
               category={category}
-              services={categoryServices}
+              services={categoryServices as ServiceItem[]}
               washroomIndex={washroomIndex}
-              handleServiceChange={handleServiceChange}
-              handleSelectAllInCategory={handleSelectAllInCategory}
+              onServiceChange={handleServiceChange}
+              onSelectAllInCategory={handleSelectAllInCategory}
               areAllSelected={areAllServicesInCategorySelected(washroomIndex, category)}
               areSomeSelected={areSomeServicesInCategorySelected(washroomIndex, category)}
               washroomServices={washroom.services || {}}

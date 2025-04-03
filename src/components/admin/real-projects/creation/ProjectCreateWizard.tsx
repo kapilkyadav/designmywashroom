@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { RealProject, ConvertibleRecord } from '@/services/real-projects/types';
+import { RealProject, ConvertibleRecord } from '@/services/RealProjectService';
 
 import ProjectInfoStep from './steps/ProjectInfoStep';
 import WashroomsStep from './steps/WashroomsStep';
@@ -35,7 +35,7 @@ const ProjectCreateWizard: React.FC<ProjectCreateWizardProps> = ({
     handleSubmitProject,
     goToPreviousStep,
     handleCancel
-  } = useProjectWizard(onComplete, onCancel, recordToConvert);
+  } = useProjectWizard(recordToConvert, onComplete, onCancel);
   
   const projectInfoForm = useProjectInfoForm(recordToConvert);
   

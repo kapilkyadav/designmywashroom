@@ -77,7 +77,7 @@ export class EstimateStorage {
         project_type: calculatorState.projectType || 'new-construction',
         length: calculatorState.dimensions.length || 0,
         width: calculatorState.dimensions.width || 0,
-        height: 8, // Changed from 9 to 8 feet
+        height: 9, // Fixed height
         selected_fixtures: calculatorState.fixtures || {},
         selected_brand: calculatorState.selectedBrand || '',
         timeline: calculatorState.timeline || 'standard',

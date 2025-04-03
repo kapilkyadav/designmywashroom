@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { VendorCategory, VendorItem, VendorRateCard, VendorRateCardService } from '@/services/VendorRateCardService';
@@ -23,6 +24,7 @@ const AdminVendorRateCard = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('categories');
   
+  // Dialog states
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<VendorCategory | undefined>(undefined);
   
@@ -32,6 +34,7 @@ const AdminVendorRateCard = () => {
   const [rateCardDialogOpen, setRateCardDialogOpen] = useState(false);
   const [selectedRateCard, setSelectedRateCard] = useState<VendorRateCard | undefined>(undefined);
   
+  // Delete confirmation dialog states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteDialogConfig, setDeleteDialogConfig] = useState({
     title: '',
@@ -39,6 +42,7 @@ const AdminVendorRateCard = () => {
     onConfirm: () => {},
   });
 
+  // Query categories, items, and rate cards
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
     queryKey: ['vendor-categories'],
     queryFn: () => VendorRateCardService.getCategories(),
@@ -54,12 +58,14 @@ const AdminVendorRateCard = () => {
     queryFn: () => VendorRateCardService.getRateCards(),
   });
 
+  // Refresh data after actions
   const refreshData = () => {
     queryClient.invalidateQueries({ queryKey: ['vendor-categories'] });
     queryClient.invalidateQueries({ queryKey: ['vendor-items'] });
     queryClient.invalidateQueries({ queryKey: ['vendor-rate-cards'] });
   };
 
+  // Category handlers
   const openAddCategory = () => {
     setSelectedCategory(undefined);
     setCategoryDialogOpen(true);
@@ -96,6 +102,7 @@ const AdminVendorRateCard = () => {
     setDeleteDialogOpen(true);
   };
 
+  // Item handlers
   const openAddItem = () => {
     setSelectedItem(undefined);
     setItemDialogOpen(true);
@@ -132,6 +139,7 @@ const AdminVendorRateCard = () => {
     setDeleteDialogOpen(true);
   };
 
+  // Rate card handlers
   const openAddRateCard = () => {
     setSelectedRateCard(undefined);
     setRateCardDialogOpen(true);
@@ -168,24 +176,6 @@ const AdminVendorRateCard = () => {
       },
     });
     setDeleteDialogOpen(true);
-  };
-
-  const itemCategoryName = (item: VendorItem) => {
-    const category = categories.find(cat => cat.id === item.category_id);
-    return category?.name || 'Uncategorized';
-  };
-
-  const itemName = (rateCard: VendorRateCard) => {
-    const item = items.find(i => i.id === rateCard.item_id);
-    return item?.scope_of_work || 'Unknown Item';
-  };
-
-  const getCategoryForRateCard = (rateCard: VendorRateCard) => {
-    const item = items.find(i => i.id === rateCard.item_id);
-    if (!item) return 'Unknown';
-    
-    const category = categories.find(c => c.id === item.category_id);
-    return category?.name || 'Unknown Category';
   };
 
   return (
@@ -300,7 +290,9 @@ const AdminVendorRateCard = () => {
                         <TableCell>{item.sl_no}</TableCell>
                         <TableCell>{item.item_code}</TableCell>
                         <TableCell>
-                          {itemCategoryName(item)}
+                          {item.category?.name || 
+                            categories.find(c => c.id === item.category_id)?.name || 
+                            'Unknown'}
                         </TableCell>
                         <TableCell>{item.scope_of_work}</TableCell>
                         <TableCell>{item.measuring_unit}</TableCell>
@@ -362,26 +354,37 @@ const AdminVendorRateCard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rateCards.map((rateCard) => (
-                      <TableRow key={rateCard.id}>
-                        <TableCell>{itemName(rateCard)}</TableCell>
-                        <TableCell>{getCategoryForRateCard(rateCard)}</TableCell>
-                        <TableCell>{rateCard.vendor_rate1 ? `₹${rateCard.vendor_rate1}` : '-'}</TableCell>
-                        <TableCell>{rateCard.vendor_rate2 ? `₹${rateCard.vendor_rate2}` : '-'}</TableCell>
-                        <TableCell>{rateCard.vendor_rate3 ? `₹${rateCard.vendor_rate3}` : '-'}</TableCell>
-                        <TableCell>{`₹${rateCard.client_rate}`}</TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button variant="ghost" size="icon" onClick={() => openEditRateCard(rateCard)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => openDeleteRateCard(rateCard)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {rateCards.map((rateCard) => {
+                      const item = items.find(i => i.id === rateCard.item_id) || 
+                                  rateCard.item || 
+                                  { scope_of_work: 'Unknown', category_id: '' };
+                      
+                      const categoryId = 'category' in item ? item.category?.id : item.category_id;
+                      const categoryName = 'category' in item && item.category ? 
+                          item.category.name : 
+                          categories.find(c => c.id === categoryId)?.name || 'Unknown';
+                      
+                      return (
+                        <TableRow key={rateCard.id}>
+                          <TableCell>{item.scope_of_work}</TableCell>
+                          <TableCell>{categoryName}</TableCell>
+                          <TableCell>{rateCard.vendor_rate1 ? `₹${rateCard.vendor_rate1}` : '-'}</TableCell>
+                          <TableCell>{rateCard.vendor_rate2 ? `₹${rateCard.vendor_rate2}` : '-'}</TableCell>
+                          <TableCell>{rateCard.vendor_rate3 ? `₹${rateCard.vendor_rate3}` : '-'}</TableCell>
+                          <TableCell>{`₹${rateCard.client_rate}`}</TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button variant="ghost" size="icon" onClick={() => openEditRateCard(rateCard)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => openDeleteRateCard(rateCard)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
@@ -390,6 +393,7 @@ const AdminVendorRateCard = () => {
         </TabsContent>
       </Tabs>
       
+      {/* Dialogs */}
       <CategoryDialog
         isOpen={categoryDialogOpen}
         onClose={() => setCategoryDialogOpen(false)}

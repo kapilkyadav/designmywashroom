@@ -24,9 +24,8 @@ export class RealProjectService {
   
   // Conversion Service Methods
   static getConvertibleRecords = ConversionService.getConvertibleRecords;
-  static convertLeadToProject = ConversionService.convertLeadToProject;
-  static convertEstimateToProject = ConversionService.convertEstimateToProject;
-  static convertToProject = ConversionService.convertToProject;
+  static convertLeadToRealProject = ConversionService.convertLeadToRealProject;
+  static convertEstimateToRealProject = ConversionService.convertEstimateToRealProject;
   
   // Quotation Service Methods
   static generateQuotation = QuotationService.generateQuotation;
@@ -39,9 +38,7 @@ export class RealProjectService {
   static calculateProjectCosts = CostingService.calculateProjectCosts;
   
   // Helper Methods
-  static extendRealProject(project: RealProject): RealProject {
-    return BaseService.extendRealProject(project);
-  }
+  static extendRealProject = BaseService.extendRealProject;
 }
 
 // Add the RealProjectService class to the BaseService to resolve circular dependency

@@ -25,20 +25,20 @@ const CategoryDialog: React.FC<CategoryDialogProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (values: { name: string; description?: string }) => {
+  const handleSubmit = async (values: Partial<VendorCategory>) => {
     try {
       setIsSubmitting(true);
       
       if (category) {
         // Update existing category
-        await VendorRateCardService.updateCategory(category.id, values as Required<Pick<VendorCategory, 'name'>> & Partial<VendorCategory>);
+        await VendorRateCardService.updateCategory(category.id, values);
         toast({
           title: "Category updated",
           description: "The category has been updated successfully.",
         });
       } else {
         // Create new category
-        await VendorRateCardService.createCategory(values as Required<Pick<VendorCategory, 'name'>> & Partial<VendorCategory>);
+        await VendorRateCardService.createCategory(values);
         toast({
           title: "Category created",
           description: "The new category has been created successfully.",

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
-import { ConvertibleRecord } from '@/services/real-projects/types';
+import { ConvertibleRecord } from '@/services/RealProjectService';
 
 interface RecordsListProps {
   records: ConvertibleRecord[];
@@ -112,7 +112,7 @@ const RecordsList: React.FC<RecordsListProps> = ({
                       </TableCell>
                       <TableCell>{record.client_location || "N/A"}</TableCell>
                       <TableCell>
-                        <span className="capitalize">{record.record_type.replace('_', ' ')}</span>
+                        <span className="capitalize">{record.record_type}</span>
                       </TableCell>
                       <TableCell>
                         {format(new Date(record.created_date), 'MMM dd, yyyy')}
