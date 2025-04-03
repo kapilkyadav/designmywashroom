@@ -2,8 +2,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Mail, Phone, MapPin } from 'lucide-react';
+
 const Footer = () => {
-  return <footer className="bg-primary text-primary-foreground pt-16 pb-8">
+  return (
+    <footer className="bg-primary text-primary-foreground pt-16 pb-8">
       <div className="container mx-auto px-6 md:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* Company Info */}
@@ -44,14 +46,16 @@ const Footer = () => {
                 <div className="mt-1 mr-3 text-primary-foreground/80">
                   <MapPin size={18} />
                 </div>
-                <span className="text-primary-foreground/80">3rd Floor, Orchid Center, Sector - 53, Gurgaon, Gurugram, Haryana, 122002 Near IILM Institute</span>
+                <span className="text-primary-foreground/80">
+                  123 Design Street, Mumbai, Maharashtra 400001, India
+                </span>
               </li>
               <li className="flex items-center">
                 <div className="mr-3 text-primary-foreground/80">
                   <Phone size={18} />
                 </div>
-                <a href="tel:+919211202666" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
-                  +91 9211202666
+                <a href="tel:+919876543210" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+                  +91 98765 43210
                 </a>
               </li>
               <li className="flex items-center">
@@ -77,31 +81,41 @@ const Footer = () => {
           </div>
         </div>
       </div>
-    </footer>;
+    </footer>
+  );
 };
+
 interface FooterLinkProps {
   to: string;
   label: string;
 }
-const FooterLink = ({
-  to,
-  label
-}: FooterLinkProps) => <li>
-    <Link to={to} className="text-primary-foreground/80 hover:text-primary-foreground transition-colors duration-300 flex items-center">
+
+const FooterLink = ({ to, label }: FooterLinkProps) => (
+  <li>
+    <Link 
+      to={to} 
+      className="text-primary-foreground/80 hover:text-primary-foreground transition-colors duration-300 flex items-center"
+    >
       <ChevronRight size={16} className="mr-1" />
       <span>{label}</span>
     </Link>
-  </li>;
+  </li>
+);
+
 interface SocialIconProps {
   href: string;
   children: React.ReactNode;
   'aria-label': string;
 }
-const SocialIcon = ({
-  href,
-  children,
-  ...props
-}: SocialIconProps) => <a href={href} className="h-9 w-9 rounded-full bg-primary-foreground/10 hover:bg-primary-foreground/20 flex items-center justify-center transition-colors duration-300" {...props}>
+
+const SocialIcon = ({ href, children, ...props }: SocialIconProps) => (
+  <a 
+    href={href}
+    className="h-9 w-9 rounded-full bg-primary-foreground/10 hover:bg-primary-foreground/20 flex items-center justify-center transition-colors duration-300"
+    {...props}
+  >
     {children}
-  </a>;
+  </a>
+);
+
 export default Footer;
