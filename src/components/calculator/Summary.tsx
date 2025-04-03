@@ -75,7 +75,7 @@ const Summary = () => {
   
   // Calculate areas based on dimensions
   const floorArea = length * width;
-  const wallHeight = 9; // Fixed at 9 feet
+  const wallHeight = 8; // Fixed at 8 feet
   const wallArea = 2 * (length + width) * wallHeight;
 
   console.log("Summary calculated areas:", { length, width, floorArea, wallArea });
