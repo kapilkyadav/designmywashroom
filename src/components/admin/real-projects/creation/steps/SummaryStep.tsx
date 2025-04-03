@@ -1,10 +1,14 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ProjectInfoValues, WashroomWithAreas } from '../types';
 import { Badge } from '@/components/ui/badge';
-import { HomeIcon, User, Phone, Mail, MapPin, Building, Loader, Ruler } from 'lucide-react';
+import { HomeIcon, User, Phone, Mail, MapPin, Building, Loader, Ruler, Package } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { BrandService } from '@/services/BrandService';
+import { ProductService } from '@/services/ProductService';
+import { Product } from '@/lib/supabase';
+import { VendorRateCardService } from '@/services/VendorRateCardService';
 
 interface SummaryStepProps {
   projectInfo: ProjectInfoValues;
@@ -12,6 +16,70 @@ interface SummaryStepProps {
 }
 
 const SummaryStep: React.FC<SummaryStepProps> = ({ projectInfo, washrooms }) => {
+  const [brandName, setBrandName] = useState<string>("");
+  const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  // Fetch brand name and products for the selected brand
+  useEffect(() => {
+    const fetchBrandData = async () => {
+      setLoading(true);
+      try {
+        if (projectInfo.selected_brand) {
+          // Get brand name
+          const brand = await BrandService.getBrandById(projectInfo.selected_brand);
+          setBrandName(brand.name);
+          
+          // Get products for this brand
+          const brandProducts = await ProductService.getProductsByBrandId(projectInfo.selected_brand);
+          setProducts(brandProducts);
+        }
+      } catch (error) {
+        console.error('Error fetching brand data:', error);
+      }
+      setLoading(false);
+    };
+
+    fetchBrandData();
+  }, [projectInfo.selected_brand]);
+  
+  // Fetch service names for all service IDs across all washrooms
+  useEffect(() => {
+    const fetchServiceNames = async () => {
+      try {
+        // Collect all unique service IDs from all washrooms
+        const serviceIds = new Set<string>();
+        washrooms.forEach(washroom => {
+          if (washroom.services) {
+            Object.entries(washroom.services)
+              .filter(([_, isSelected]) => isSelected)
+              .forEach(([serviceId]) => {
+                serviceIds.add(serviceId);
+              });
+          }
+        });
+        
+        if (serviceIds.size === 0) return;
+        
+        // Fetch vendor items for these IDs
+        const items = await VendorRateCardService.getItemsByIds(Array.from(serviceIds));
+        
+        // Create a mapping of ID to service name
+        const namesMap: Record<string, string> = {};
+        items.forEach(item => {
+          namesMap[item.id] = item.scope_of_work;
+        });
+        
+        setServiceNames(namesMap);
+      } catch (error) {
+        console.error('Error fetching service names:', error);
+      }
+    };
+    
+    fetchServiceNames();
+  }, [washrooms]);
+
   // Count total selected services across all washrooms
   const countSelectedServices = () => {
     let count = 0;
@@ -66,10 +134,10 @@ const SummaryStep: React.FC<SummaryStepProps> = ({ projectInfo, washrooms }) => 
                   <HomeIcon className="h-4 w-4 text-muted-foreground" />
                   <span>Project Type: <span className="font-medium">{projectInfo.project_type}</span></span>
                 </div>
-                {projectInfo.selected_brand && (
+                {brandName && (
                   <div className="flex items-center gap-2">
                     <Building className="h-4 w-4 text-muted-foreground" />
-                    <span>Brand: <span className="font-medium">{projectInfo.selected_brand}</span></span>
+                    <span>Brand: <span className="font-medium">{brandName}</span></span>
                   </div>
                 )}
                 <div className="flex items-center gap-2 col-span-2">
@@ -129,7 +197,7 @@ const SummaryStep: React.FC<SummaryStepProps> = ({ projectInfo, washrooms }) => 
                             .filter(([_, isSelected]) => isSelected)
                             .map(([serviceId]) => (
                               <Badge key={serviceId} variant="outline" className="text-xs">
-                                {serviceId}
+                                {serviceNames[serviceId] || serviceId}
                               </Badge>
                             ))
                         ) : (
@@ -141,6 +209,55 @@ const SummaryStep: React.FC<SummaryStepProps> = ({ projectInfo, washrooms }) => 
                 ))}
               </div>
             </div>
+            
+            {projectInfo.selected_brand && products.length > 0 && (
+              <>
+                <Separator />
+                
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <div className="flex items-center gap-1">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                      <h4 className="text-sm font-semibold text-muted-foreground">Selected Brand Products</h4>
+                    </div>
+                    <Badge variant="secondary">{products.length} product(s)</Badge>
+                  </div>
+                  
+                  <div className="overflow-auto max-h-64 border rounded-md">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="py-2 px-3 text-left">Name</th>
+                          <th className="py-2 px-3 text-left">Category</th>
+                          <th className="py-2 px-3 text-right">MRP</th>
+                          <th className="py-2 px-3 text-right">Client Price</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {products.slice(0, 10).map((product) => (
+                          <tr key={product.id} className="hover:bg-muted/50">
+                            <td className="py-2 px-3">{product.name}</td>
+                            <td className="py-2 px-3">{product.category || '-'}</td>
+                            <td className="py-2 px-3 text-right">₹{product.mrp.toLocaleString('en-IN')}</td>
+                            <td className="py-2 px-3 text-right">₹{product.client_price.toLocaleString('en-IN')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {products.length > 10 && (
+                      <div className="p-2 text-center text-xs text-muted-foreground">
+                        Showing 10 of {products.length} products
+                      </div>
+                    )}
+                    {products.length === 0 && (
+                      <div className="p-4 text-center text-muted-foreground">
+                        {loading ? "Loading products..." : "No products available for this brand"}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           
           <div className="mt-6 bg-muted p-3 rounded-md">

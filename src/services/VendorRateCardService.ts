@@ -1,10 +1,12 @@
 
+// Add the getItemsByIds method to the VendorRateCardService
+
 import { supabase } from '@/lib/supabase';
 
 export interface VendorCategory {
   id: string;
   name: string;
-  description: string | null;
+  description?: string;
   created_at: string;
   updated_at: string;
 }
@@ -18,59 +20,138 @@ export interface VendorItem {
   measuring_unit: string;
   created_at: string;
   updated_at: string;
-  category?: VendorCategory;
 }
 
 export interface VendorRateCard {
   id: string;
   item_id: string;
-  vendor_rate1: number | null;
-  vendor_rate2: number | null;
-  vendor_rate3: number | null;
+  vendor_rate1?: number;
+  vendor_rate2?: number;
+  vendor_rate3?: number;
   client_rate: number;
-  currency: string | null;
-  effective_date: string | null;
-  notes: string | null;
+  currency?: string;
+  notes?: string;
+  effective_date?: string;
   created_at: string;
   updated_at: string;
-  item?: VendorItem;
 }
 
-export class VendorRateCardService {
-  // Categories
-  static async getCategories(): Promise<VendorCategory[]> {
+export const VendorRateCardService = {
+  // Get all categories
+  async getCategories(): Promise<VendorCategory[]> {
     const { data, error } = await supabase
       .from('vendor_categories')
       .select('*')
       .order('name');
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching vendor categories:', error);
+      throw error;
+    }
+    
     return data || [];
-  }
+  },
 
-  static async getCategory(id: string): Promise<VendorCategory> {
+  // Get all items
+  async getItems(): Promise<VendorItem[]> {
     const { data, error } = await supabase
-      .from('vendor_categories')
+      .from('vendor_items')
       .select('*')
-      .eq('id', id)
+      .order('sl_no');
+    
+    if (error) {
+      console.error('Error fetching vendor items:', error);
+      throw error;
+    }
+    
+    return data || [];
+  },
+
+  // Get items by category ID
+  async getItemsByCategoryId(categoryId: string): Promise<VendorItem[]> {
+    const { data, error } = await supabase
+      .from('vendor_items')
+      .select('*')
+      .eq('category_id', categoryId)
+      .order('sl_no');
+    
+    if (error) {
+      console.error('Error fetching vendor items by category:', error);
+      throw error;
+    }
+    
+    return data || [];
+  },
+  
+  // Get items by IDs (new method)
+  async getItemsByIds(itemIds: string[]): Promise<VendorItem[]> {
+    if (!itemIds.length) return [];
+    
+    const { data, error } = await supabase
+      .from('vendor_items')
+      .select('*')
+      .in('id', itemIds);
+    
+    if (error) {
+      console.error('Error fetching vendor items by IDs:', error);
+      throw error;
+    }
+    
+    return data || [];
+  },
+
+  // Get all rate cards
+  async getRateCards(): Promise<VendorRateCard[]> {
+    const { data, error } = await supabase
+      .from('vendor_rate_cards')
+      .select('*');
+    
+    if (error) {
+      console.error('Error fetching vendor rate cards:', error);
+      throw error;
+    }
+    
+    return data || [];
+  },
+
+  // Get rate card by item ID
+  async getRateCardByItemId(itemId: string): Promise<VendorRateCard | null> {
+    const { data, error } = await supabase
+      .from('vendor_rate_cards')
+      .select('*')
+      .eq('item_id', itemId)
       .single();
     
-    if (error) throw error;
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rate card found for this item
+        return null;
+      }
+      console.error('Error fetching vendor rate card:', error);
+      throw error;
+    }
+    
     return data;
-  }
+  },
 
-  static async createCategory(category: Partial<VendorCategory>): Promise<VendorCategory> {
+  // Create a category
+  async createCategory(category: Omit<VendorCategory, 'id' | 'created_at' | 'updated_at'>): Promise<VendorCategory> {
     const { data, error } = await supabase
       .from('vendor_categories')
-      .insert([category])
+      .insert(category)
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating vendor category:', error);
+      throw error;
+    }
+    
     return data;
-  }
+  },
 
-  static async updateCategory(id: string, category: Partial<VendorCategory>): Promise<VendorCategory> {
+  // Update a category
+  async updateCategory(id: string, category: Partial<VendorCategory>): Promise<VendorCategory> {
     const { data, error } = await supabase
       .from('vendor_categories')
       .update(category)
@@ -78,58 +159,45 @@ export class VendorRateCardService {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating vendor category:', error);
+      throw error;
+    }
+    
     return data;
-  }
+  },
 
-  static async deleteCategory(id: string): Promise<void> {
+  // Delete a category
+  async deleteCategory(id: string): Promise<void> {
     const { error } = await supabase
       .from('vendor_categories')
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
-  }
-
-  // Items
-  static async getItems(categoryId?: string): Promise<VendorItem[]> {
-    let query = supabase
-      .from('vendor_items')
-      .select('*, category:vendor_categories(*)');
-    
-    if (categoryId) {
-      query = query.eq('category_id', categoryId);
+    if (error) {
+      console.error('Error deleting vendor category:', error);
+      throw error;
     }
-    
-    const { data, error } = await query.order('sl_no');
-    
-    if (error) throw error;
-    return data || [];
-  }
+  },
 
-  static async getItem(id: string): Promise<VendorItem> {
+  // Create an item
+  async createItem(item: Omit<VendorItem, 'id' | 'created_at' | 'updated_at'>): Promise<VendorItem> {
     const { data, error } = await supabase
       .from('vendor_items')
-      .select('*, category:vendor_categories(*)')
-      .eq('id', id)
-      .single();
-    
-    if (error) throw error;
-    return data;
-  }
-
-  static async createItem(item: Partial<VendorItem>): Promise<VendorItem> {
-    const { data, error } = await supabase
-      .from('vendor_items')
-      .insert([item])
+      .insert(item)
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating vendor item:', error);
+      throw error;
+    }
+    
     return data;
-  }
+  },
 
-  static async updateItem(id: string, item: Partial<VendorItem>): Promise<VendorItem> {
+  // Update an item
+  async updateItem(id: string, item: Partial<VendorItem>): Promise<VendorItem> {
     const { data, error } = await supabase
       .from('vendor_items')
       .update(item)
@@ -137,75 +205,74 @@ export class VendorRateCardService {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating vendor item:', error);
+      throw error;
+    }
+    
     return data;
-  }
+  },
 
-  static async deleteItem(id: string): Promise<void> {
+  // Delete an item
+  async deleteItem(id: string): Promise<void> {
     const { error } = await supabase
       .from('vendor_items')
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
-  }
-
-  // Rate Cards
-  static async getRateCards(itemId?: string): Promise<VendorRateCard[]> {
-    let query = supabase
-      .from('vendor_rate_cards')
-      .select('*, item:vendor_items(*, category:vendor_categories(*))');
-    
-    if (itemId) {
-      query = query.eq('item_id', itemId);
+    if (error) {
+      console.error('Error deleting vendor item:', error);
+      throw error;
     }
-    
-    const { data, error } = await query.order('created_at');
-    
-    if (error) throw error;
-    return data || [];
-  }
+  },
 
-  static async getRateCard(id: string): Promise<VendorRateCard> {
-    const { data, error } = await supabase
-      .from('vendor_rate_cards')
-      .select('*, item:vendor_items(*, category:vendor_categories(*))')
-      .eq('id', id)
-      .single();
+  // Create or update a rate card
+  async saveRateCard(rateCard: Omit<VendorRateCard, 'id' | 'created_at' | 'updated_at'>): Promise<VendorRateCard> {
+    // Check if a rate card exists for this item
+    const existingRateCard = await this.getRateCardByItemId(rateCard.item_id);
     
-    if (error) throw error;
-    return data;
-  }
+    if (existingRateCard) {
+      // Update existing rate card
+      const { data, error } = await supabase
+        .from('vendor_rate_cards')
+        .update(rateCard)
+        .eq('id', existingRateCard.id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating vendor rate card:', error);
+        throw error;
+      }
+      
+      return data;
+    } else {
+      // Create new rate card
+      const { data, error } = await supabase
+        .from('vendor_rate_cards')
+        .insert(rateCard)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating vendor rate card:', error);
+        throw error;
+      }
+      
+      return data;
+    }
+  },
 
-  static async createRateCard(rateCard: Partial<VendorRateCard>): Promise<VendorRateCard> {
-    const { data, error } = await supabase
-      .from('vendor_rate_cards')
-      .insert([rateCard])
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  }
-
-  static async updateRateCard(id: string, rateCard: Partial<VendorRateCard>): Promise<VendorRateCard> {
-    const { data, error } = await supabase
-      .from('vendor_rate_cards')
-      .update(rateCard)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  }
-
-  static async deleteRateCard(id: string): Promise<void> {
+  // Delete a rate card
+  async deleteRateCard(id: string): Promise<void> {
     const { error } = await supabase
       .from('vendor_rate_cards')
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error deleting vendor rate card:', error);
+      throw error;
+    }
   }
-}
+};
