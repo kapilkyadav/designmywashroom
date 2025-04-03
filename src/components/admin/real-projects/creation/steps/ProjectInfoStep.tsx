@@ -166,7 +166,7 @@ const ProjectInfoStep: React.FC<ProjectInfoStepProps> = ({ form, onSubmit }) => 
               <FormItem>
                 <FormLabel>Preferred Brand</FormLabel>
                 <Select
-                  value={field.value || ""}
+                  value={field.value || "none"}
                   onValueChange={field.onChange}
                 >
                   <FormControl>
@@ -175,7 +175,7 @@ const ProjectInfoStep: React.FC<ProjectInfoStepProps> = ({ form, onSubmit }) => 
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">None Selected</SelectItem>
+                    <SelectItem value="none">None Selected</SelectItem>
                     {brands.map((brand: Brand) => (
                       <SelectItem key={brand.id} value={brand.id}>
                         {brand.name}

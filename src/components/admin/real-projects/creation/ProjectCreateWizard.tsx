@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +11,7 @@ import ProjectInfoStep from './steps/ProjectInfoStep';
 import WashroomsStep from './steps/WashroomsStep';
 import WashroomScopeStep from './steps/WashroomScopeStep';
 import SummaryStep from './steps/SummaryStep';
+import { useNavigate } from 'react-router-dom';
 
 interface ProjectCreateWizardProps {
   recordToConvert?: ConvertibleRecord;
@@ -19,18 +19,17 @@ interface ProjectCreateWizardProps {
   onCancel: () => void;
 }
 
-// Define all the steps in the wizard
 type WizardStep = 'project-info' | 'washrooms' | 'washroom-scope' | 'summary';
 
 // Project info step schema
 const projectInfoSchema = z.object({
-  client_name: z.string().min(2, "Client name is required"),
+  client_name: z.string().min(1, "Client name is required"),
   client_email: z.string().email().optional().or(z.literal('')),
-  client_mobile: z.string().min(10, "Valid mobile number required"),
-  client_location: z.string().min(3, "Location is required"),
-  address: z.string().min(5, "Full address is required"),
+  client_mobile: z.string().min(1, "Mobile number is required"),
+  client_location: z.string().min(1, "Location is required"),
+  address: z.string().min(1, "Address is required"),
   floor_number: z.string().optional(),
-  service_lift_available: z.boolean().optional(),
+  service_lift_available: z.boolean().default(false),
   project_type: z.string().min(1, "Project type is required"),
   selected_brand: z.string().optional(),
 });
@@ -55,13 +54,13 @@ const ProjectCreateWizard: React.FC<ProjectCreateWizardProps> = ({
   onComplete, 
   onCancel 
 }) => {
-  // Current step in the wizard
-  const [currentStep, setCurrentStep] = useState<WizardStep>('project-info');
+  const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
   
   // Store all project data across steps
   const [projectInfo, setProjectInfo] = useState<ProjectInfoValues | null>(null);
   const [washrooms, setWashrooms] = useState<WashroomWithAreas[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Form for the project info step
   const projectInfoForm = useForm<ProjectInfoValues>({
@@ -75,26 +74,26 @@ const ProjectCreateWizard: React.FC<ProjectCreateWizardProps> = ({
       floor_number: '',
       service_lift_available: false,
       project_type: 'Not Specified',
-      selected_brand: '',
+      selected_brand: 'none',
     }
   });
   
   // Handle project info submission
   const handleProjectInfoSubmit = (data: ProjectInfoValues) => {
     setProjectInfo(data);
-    setCurrentStep('washrooms');
+    setStep(2);
   };
   
   // Handle washrooms step submission
   const handleWashroomsSubmit = (washroomData: WashroomWithAreas[]) => {
     setWashrooms(washroomData);
-    setCurrentStep('washroom-scope');
+    setStep(3);
   };
   
   // Handle washroom scope selection
   const handleScopeSubmit = (updatedWashrooms: WashroomWithAreas[]) => {
     setWashrooms(updatedWashrooms);
-    setCurrentStep('summary');
+    setStep(4);
   };
   
   // Handle final submission of the entire project
@@ -178,12 +177,12 @@ const ProjectCreateWizard: React.FC<ProjectCreateWizardProps> = ({
   
   // Navigate back to previous step
   const goToPreviousStep = () => {
-    if (currentStep === 'washrooms') {
-      setCurrentStep('project-info');
-    } else if (currentStep === 'washroom-scope') {
-      setCurrentStep('washrooms');
-    } else if (currentStep === 'summary') {
-      setCurrentStep('washroom-scope');
+    if (step === 2) {
+      setStep(1);
+    } else if (step === 3) {
+      setStep(2);
+    } else if (step === 4) {
+      setStep(3);
     }
   };
   
@@ -204,35 +203,33 @@ const ProjectCreateWizard: React.FC<ProjectCreateWizardProps> = ({
               : "Create New Project"}
           </CardTitle>
           <CardDescription>
-            Step {currentStep === 'project-info' ? '1' : 
-                 currentStep === 'washrooms' ? '2' : 
-                 currentStep === 'washroom-scope' ? '3' : '4'} of 4
+            Step {step} of 4
           </CardDescription>
         </CardHeader>
         
         <CardContent>
-          {currentStep === 'project-info' && (
+          {step === 1 && (
             <ProjectInfoStep 
               form={projectInfoForm} 
               onSubmit={handleProjectInfoSubmit} 
             />
           )}
           
-          {currentStep === 'washrooms' && projectInfo && (
+          {step === 2 && projectInfo && (
             <WashroomsStep 
               initialWashrooms={washrooms}
               onSubmit={handleWashroomsSubmit} 
             />
           )}
           
-          {currentStep === 'washroom-scope' && (
+          {step === 3 && (
             <WashroomScopeStep 
               washrooms={washrooms}
               onSubmit={handleScopeSubmit} 
             />
           )}
           
-          {currentStep === 'summary' && projectInfo && (
+          {step === 4 && projectInfo && (
             <SummaryStep 
               projectInfo={projectInfo}
               washrooms={washrooms}
@@ -241,7 +238,7 @@ const ProjectCreateWizard: React.FC<ProjectCreateWizardProps> = ({
         </CardContent>
         
         <CardFooter className="flex justify-between">
-          {currentStep !== 'project-info' ? (
+          {step !== 1 ? (
             <Button
               type="button"
               variant="outline"
@@ -260,7 +257,7 @@ const ProjectCreateWizard: React.FC<ProjectCreateWizardProps> = ({
             </Button>
           )}
           
-          {currentStep === 'summary' && (
+          {step === 4 && (
             <Button
               type="button"
               onClick={handleSubmitProject}
