@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { WashroomWithAreas } from '../../ProjectCreateWizard';
+import { WashroomWithAreas } from '../../types';
 import { createDefaultWashroom, recalculateAllWashroomAreas } from '../../utils/washroomUtils';
 
 export function useWashroomManager(initialWashrooms: WashroomWithAreas[]) {

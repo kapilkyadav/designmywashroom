@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { ArrowRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ProjectInfoValues } from '../ProjectCreateWizard';
+import { ProjectInfoValues } from '../types';
 import { BrandService } from '@/services/BrandService';
 import { Brand } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';

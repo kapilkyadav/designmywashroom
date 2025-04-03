@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, ArrowRight } from 'lucide-react';
-import { WashroomWithAreas } from '../ProjectCreateWizard';
+import { WashroomWithAreas } from '../types';
 import { useWashroomManager } from './hooks/useWashroomManager';
 import WashroomCard from './components/WashroomCard';
 

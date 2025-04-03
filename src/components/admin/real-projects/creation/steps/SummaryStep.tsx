@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { ProjectInfoValues, WashroomWithAreas } from '../ProjectCreateWizard';
+import { ProjectInfoValues, WashroomWithAreas } from '../types';
 import { Badge } from '@/components/ui/badge';
 import { HomeIcon, User, Phone, Mail, MapPin, Building, Loader, Ruler } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';

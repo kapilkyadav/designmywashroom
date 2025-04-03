@@ -1,5 +1,4 @@
-
-import { WashroomWithAreas } from '../ProjectCreateWizard';
+import { WashroomWithAreas } from '../types';
 
 /**
  * Creates a default washroom with specified count for naming
