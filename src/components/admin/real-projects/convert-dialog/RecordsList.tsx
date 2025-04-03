@@ -32,10 +32,10 @@ const RecordsList: React.FC<RecordsListProps> = ({
   // Filter records based on search term and active tab
   const filteredRecords = records.filter(record => {
     const matchesSearch = 
-      record.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.client_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.client_mobile?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.client_location?.toLowerCase().includes(searchTerm.toLowerCase());
+      (record.client_name && record.client_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (record.client_email && record.client_email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (record.client_mobile && record.client_mobile.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (record.client_location && record.client_location.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesTab = 
       activeTab === 'all' || 

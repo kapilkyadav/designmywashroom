@@ -30,6 +30,7 @@ const RecordsListView: React.FC<RecordsListViewProps> = ({
     setIsLoading(true);
     try {
       const data = await RealProjectService.getConvertibleRecords();
+      console.log("Fetched records:", data); // Log fetched data for debugging
       setRecords(data);
     } catch (error) {
       console.error("Error fetching convertible records:", error);

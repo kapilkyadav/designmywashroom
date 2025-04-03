@@ -18,7 +18,18 @@ export class ConversionService extends BaseService {
       
       if (error) throw error;
       
-      return data as ConvertibleRecord[];
+      console.log("Fetched convertible records:", data);
+      
+      // Make sure we have the required fields
+      const processedData = data.map((record: any) => ({
+        ...record,
+        client_name: record.client_name || "No Name",
+        client_email: record.client_email || null,
+        client_mobile: record.client_mobile || null,
+        client_location: record.client_location || null
+      }));
+      
+      return processedData as ConvertibleRecord[];
     } catch (error: any) {
       return this.handleError(error, 'Failed to fetch records');
     }
