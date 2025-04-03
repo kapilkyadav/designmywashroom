@@ -86,18 +86,25 @@ const RecordsList: React.FC<RecordsListProps> = ({
                 {filteredRecords.length > 0 ? (
                   filteredRecords.map((record) => (
                     <TableRow key={`${record.record_type}-${record.record_id}`}>
-                      <TableCell className="font-medium">{record.client_name}</TableCell>
+                      <TableCell className="font-medium">{record.client_name || "N/A"}</TableCell>
                       <TableCell>
-                        <div className="text-sm">
+                        <div className="flex flex-col space-y-1">
                           {record.client_email && (
-                            <div className="text-muted-foreground">{record.client_email}</div>
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Email:</span> {record.client_email}
+                            </div>
                           )}
                           {record.client_mobile && (
-                            <div>{record.client_mobile}</div>
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Mobile:</span> {record.client_mobile}
+                            </div>
+                          )}
+                          {!record.client_email && !record.client_mobile && (
+                            <div className="text-sm text-muted-foreground">No contact info</div>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>{record.client_location}</TableCell>
+                      <TableCell>{record.client_location || "N/A"}</TableCell>
                       <TableCell>
                         <span className="capitalize">{record.record_type}</span>
                       </TableCell>
@@ -105,7 +112,7 @@ const RecordsList: React.FC<RecordsListProps> = ({
                         {format(new Date(record.created_date), 'MMM dd, yyyy')}
                       </TableCell>
                       <TableCell>
-                        {record.status}
+                        {record.status || "N/A"}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
