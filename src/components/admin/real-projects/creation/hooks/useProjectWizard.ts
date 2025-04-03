@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
-import { RealProjectService, ConvertibleRecord } from '@/services/real-projects/types';
+import { RealProjectService } from '@/services/RealProjectService';
+import { ConvertibleRecord } from '@/services/real-projects/types';
 import { ProjectInfoValues, WashroomWithAreas } from '../types';
 import { toast } from 'sonner';
 

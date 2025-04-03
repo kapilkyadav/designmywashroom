@@ -33,14 +33,14 @@ const RateCardDialog: React.FC<RateCardDialogProps> = ({
       
       if (rateCard) {
         // Update existing rate card
-        await VendorRateCardService.updateVendorRate(rateCard.id, values);
+        await VendorRateCardService.updateRateCard(rateCard.id, values);
         toast({
           title: "Rate card updated",
           description: "The rate card has been updated successfully.",
         });
       } else {
         // Create new rate card
-        await VendorRateCardService.createVendorRate(values);
+        await VendorRateCardService.createRateCard(values);
         toast({
           title: "Rate card created",
           description: "The new rate card has been created successfully.",

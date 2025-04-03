@@ -28,6 +28,7 @@ export interface RealProject {
   project_estimate_id?: string;
   lead_id?: string;
   washroom_count?: number;
+  washrooms?: Washroom[];
   
   // Methods that will be added during extension
   updateCosts?: (costData: any) => Promise<RealProject>;

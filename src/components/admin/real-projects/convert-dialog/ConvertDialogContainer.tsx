@@ -1,15 +1,19 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
-import ProjectCreateWizard from '@/components/admin/real-projects/creation/ProjectCreateWizard';
-import { ConvertibleRecord } from '@/services/RealProjectService';
-import RecordsListView from './RecordsListView';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { toast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+import { RealProjectService, ConvertibleRecord } from '@/services/RealProjectService';
 
 interface ConvertDialogContainerProps {
   open: boolean;
@@ -17,108 +21,162 @@ interface ConvertDialogContainerProps {
   onProjectCreated: () => void;
 }
 
-const ConvertDialogContainer: React.FC<ConvertDialogContainerProps> = ({ 
-  open, 
+// Update the record type to match the ConvertibleRecord type
+const recordTypes = ['lead', 'project_estimate'] as const;
+type RecordType = typeof recordTypes[number];
+
+const ConvertDialogContainer: React.FC<ConvertDialogContainerProps> = ({
+  open,
   onOpenChange,
-  onProjectCreated
+  onProjectCreated,
 }) => {
-  const [selectedRecord, setSelectedRecord] = useState<ConvertibleRecord | null>(null);
-  const [showWizard, setShowWizard] = useState(false);
+  const [recordType, setRecordType] = useState<RecordType>('lead');
+  const [recordId, setRecordId] = useState<string>('');
+  const [record, setRecord] = useState<ConvertibleRecord | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
 
-  // Create an empty convertible record for direct project creation
-  const emptyRecord: ConvertibleRecord = {
-    record_type: "direct",
-    record_id: "",
-    client_name: "",
-    client_email: "",
-    client_mobile: "",
-    client_location: "",
-    created_date: new Date().toISOString(),
-    status: "In Progress",
-    real_project_id: null
-  };
+  useEffect(() => {
+    const fetchRecord = async () => {
+      if (!recordId) {
+        setRecord(null);
+        return;
+      }
 
-  // Handle record selection
-  const handleSelectRecord = (record: ConvertibleRecord) => {
-    setSelectedRecord(record);
-    setShowWizard(true);
-  };
+      setIsFetching(true);
+      try {
+        const records = await RealProjectService.getConvertibleRecords({
+          record_type: recordType,
+          record_id: recordId,
+        });
 
-  // Handle create new project directly
-  const handleCreateDirect = () => {
-    setSelectedRecord(emptyRecord);
-    setShowWizard(true);
-  };
+        if (records && records.length > 0) {
+          setRecord(records[0]);
+        } else {
+          setRecord(null);
+          toast({
+            title: "No record found",
+            description: "No matching record found for the provided ID.",
+            variant: "destructive",
+          });
+        }
+      } catch (error: any) {
+        console.error("Error fetching record:", error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to fetch record.",
+          variant: "destructive",
+        });
+        setRecord(null);
+      } finally {
+        setIsFetching(false);
+      }
+    };
 
-  // This will be called when the project creation is completed
-  const handleProjectCreated = () => {
-    onProjectCreated();
-    onOpenChange(false);
-  };
+    fetchRecord();
+  }, [recordType, recordId]);
 
-  // If the user cancels the conversion
-  const handleCancel = () => {
-    if (showWizard) {
-      setShowWizard(false);
-      setSelectedRecord(null);
-    } else {
+  const handleConvert = async () => {
+    if (!record) return;
+
+    setIsConverting(true);
+    try {
+      // No direct conversion needed, just pass the record to the creation page
+      toast({
+        title: "Ready to convert",
+        description: "You will be redirected to the project creation page.",
+      });
       onOpenChange(false);
-    }
-  };
-
-  // Reset state when dialog closes
-  const handleOpenChange = (open: boolean) => {
-    onOpenChange(open);
-    if (!open) {
-      setSelectedRecord(null);
-      setShowWizard(false);
+      onProjectCreated(); // Notify parent to redirect
+    } catch (error: any) {
+      console.error("Error converting record:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to convert record.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConverting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>
-            {showWizard ? 'Create New Project' : 'Select Record to Convert'}
-          </DialogTitle>
+          <DialogTitle>Convert Record to Project</DialogTitle>
           <DialogDescription>
-            {showWizard 
-              ? 'Fill in the details to create a new project' 
-              : 'Select a lead or estimate to convert, or create a new project directly'}
+            Select the record type and enter the ID to convert.
           </DialogDescription>
         </DialogHeader>
 
-        {showWizard && selectedRecord ? (
-          <WizardView 
-            recordToConvert={selectedRecord}
-            onComplete={handleProjectCreated}
-            onCancel={handleCancel}
-          />
-        ) : (
-          <RecordsListView
-            onSelectRecord={handleSelectRecord}
-            onCreateDirect={handleCreateDirect}
-            onCancel={handleCancel}
-          />
-        )}
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="recordType" className="text-right">
+              Record Type
+            </Label>
+            <RadioGroup defaultValue={recordType} className="col-span-3" onValueChange={(value) => setRecordType(value as RecordType)}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="lead" id="lead" />
+                <Label htmlFor="lead">Lead</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="project_estimate" id="project_estimate" />
+                <Label htmlFor="project_estimate">Project Estimate</Label>
+              </div>
+            </RadioGroup>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="recordId" className="text-right">
+              Record ID
+            </Label>
+            <Input
+              type="text"
+              id="recordId"
+              value={recordId}
+              onChange={(e) => setRecordId(e.target.value)}
+              className="col-span-3"
+            />
+          </div>
+          {isFetching && (
+            <div className="flex items-center justify-center">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Fetching Record...
+            </div>
+          )}
+          {record && (
+            <div className="border rounded-md p-4">
+              <h4 className="text-sm font-medium">Record Preview</h4>
+              <p className="text-sm">Client Name: {record.client_name}</p>
+              <p className="text-sm">Client Email: {record.client_email || 'N/A'}</p>
+              <p className="text-sm">Client Mobile: {record.client_mobile}</p>
+              <p className="text-sm">Created Date: {new Date(record.created_date).toLocaleDateString()}</p>
+              {record.status && <p className="text-sm">Status: {record.status}</p>}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="secondary" onClick={() => {
+            onOpenChange(false);
+            setRecordType('lead');
+            setRecordId('');
+            setRecord(null);
+          }}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={handleConvert} disabled={!record || isConverting}>
+            {isConverting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Converting...
+              </>
+            ) : (
+              "Convert to Project"
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-};
-
-// Wizard view component
-const WizardView: React.FC<{
-  recordToConvert: ConvertibleRecord;
-  onComplete: () => void;
-  onCancel: () => void;
-}> = ({ recordToConvert, onComplete, onCancel }) => {
-  return (
-    <ProjectCreateWizard 
-      recordToConvert={recordToConvert}
-      onComplete={onComplete}
-      onCancel={onCancel}
-    />
   );
 };
 

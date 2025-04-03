@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { VendorCategory, VendorItem, VendorRateCard, VendorRateCardService } from '@/services/VendorRateCardService';
@@ -178,6 +177,16 @@ const AdminVendorRateCard = () => {
     setDeleteDialogOpen(true);
   };
 
+  const itemCategoryName = (item: VendorItem) => {
+    const category = categories.find(cat => cat.id === item.category_id);
+    return category?.name || 'Uncategorized';
+  };
+
+  const itemName = (rateCard: VendorRateCard) => {
+    const item = items.find(i => i.id === rateCard.item_id);
+    return item?.scope_of_work || 'Unknown Item';
+  };
+
   return (
     <>
       <div className="flex justify-between items-center mb-6">
@@ -290,9 +299,7 @@ const AdminVendorRateCard = () => {
                         <TableCell>{item.sl_no}</TableCell>
                         <TableCell>{item.item_code}</TableCell>
                         <TableCell>
-                          {item.category?.name || 
-                            categories.find(c => c.id === item.category_id)?.name || 
-                            'Unknown'}
+                          {itemCategoryName(item)}
                         </TableCell>
                         <TableCell>{item.scope_of_work}</TableCell>
                         <TableCell>{item.measuring_unit}</TableCell>
@@ -366,7 +373,7 @@ const AdminVendorRateCard = () => {
                       
                       return (
                         <TableRow key={rateCard.id}>
-                          <TableCell>{item.scope_of_work}</TableCell>
+                          <TableCell>{itemName(rateCard)}</TableCell>
                           <TableCell>{categoryName}</TableCell>
                           <TableCell>{rateCard.vendor_rate1 ? `₹${rateCard.vendor_rate1}` : '-'}</TableCell>
                           <TableCell>{rateCard.vendor_rate2 ? `₹${rateCard.vendor_rate2}` : '-'}</TableCell>

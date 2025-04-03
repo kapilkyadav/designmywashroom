@@ -31,14 +31,14 @@ const CategoryDialog: React.FC<CategoryDialogProps> = ({
       
       if (category) {
         // Update existing category
-        await VendorRateCardService.updateCategory(category.id, values);
+        await VendorRateCardService.updateCategory(category.id, values as Required<Pick<VendorCategory, 'name'>> & Partial<VendorCategory>);
         toast({
           title: "Category updated",
           description: "The category has been updated successfully.",
         });
       } else {
         // Create new category
-        await VendorRateCardService.createCategory(values);
+        await VendorRateCardService.createCategory(values as Required<Pick<VendorCategory, 'name'>> & Partial<VendorCategory>);
         toast({
           title: "Category created",
           description: "The new category has been created successfully.",
