@@ -87,32 +87,43 @@ export function useProjectWizard(
         result = await RealProjectService.createRealProject(projectData);
       }
       
-      if (result.success && result.project) {
+      if (result && result.success && result.project) {
         // Create all washrooms with their scope of work
-        const washroomPromises = washrooms.map(washroom => {
-          const washroomData = {
-            project_id: result.project!.id,
-            name: washroom.name,
-            length: washroom.length,
-            width: washroom.width,
-            height: washroom.height,
-            area: washroom.floorArea,
-            wall_area: washroom.wallArea,
-            ceiling_area: washroom.ceilingArea,
-            services: washroom.services || {}
-          };
+        try {
+          const washroomPromises = washrooms.map(washroom => {
+            const washroomData = {
+              project_id: result.project!.id,
+              name: washroom.name,
+              length: washroom.length,
+              width: washroom.width,
+              height: washroom.height,
+              area: washroom.floorArea,
+              wall_area: washroom.wallArea,
+              ceiling_area: washroom.ceilingArea,
+              services: washroom.services || {}
+            };
+            
+            return RealProjectService.addWashroomToProject(result.project!.id, washroomData);
+          });
           
-          return RealProjectService.addWashroomToProject(result.project!.id, washroomData);
-        });
-        
-        await Promise.all(washroomPromises);
-        
-        toast({
-          title: "Project created successfully",
-          description: `Project ${result.project.project_id} has been created with ${washrooms.length} washroom(s)`,
-        });
-        
-        onComplete(result.project);
+          await Promise.all(washroomPromises);
+          
+          toast({
+            title: "Project created successfully",
+            description: `Project ${result.project.project_id} has been created with ${washrooms.length} washroom(s)`,
+          });
+          
+          onComplete(result.project);
+        } catch (error: any) {
+          console.error("Error creating washrooms:", error);
+          toast({
+            title: "Error adding washrooms",
+            description: error.message || "Failed to add washrooms to project",
+            variant: "destructive",
+          });
+          // Still complete with the created project
+          onComplete(result.project);
+        }
       } else {
         throw new Error("Failed to create project");
       }

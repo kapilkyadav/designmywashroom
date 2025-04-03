@@ -13,7 +13,7 @@ export class BaseService {
   /**
    * Handle errors consistently across all real project services
    */
-  protected static handleError(error: any, title: string): never {
+  static handleError(error: any, title: string): never {
     console.error(`Error: ${title}`, error);
     toast({
       title,
