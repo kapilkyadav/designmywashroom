@@ -38,8 +38,10 @@ export class RealProjectService {
   static getTilingRates = CostingService.getTilingRates;
   static calculateProjectCosts = CostingService.calculateProjectCosts;
   
-  // Helper Methods
-  static extendRealProject = BaseService.extendRealProject;
+  // Make BaseService.extendRealProject public through our service interface
+  static extendRealProject(project: RealProject): RealProject {
+    return BaseService.extendRealProject(project);
+  }
 }
 
 // Update the BaseService RealProjectService reference to resolve circular dependency

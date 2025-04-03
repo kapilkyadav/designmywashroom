@@ -40,7 +40,7 @@ const RateCardDialog: React.FC<RateCardDialogProps> = ({
         });
       } else {
         // Create new rate card
-        await VendorRateCardService.createRateCard(values);
+        await VendorRateCardService.createRateCard(values as any); // Using 'as any' since we've validated the form
         toast({
           title: "Rate card created",
           description: "The new rate card has been created successfully.",

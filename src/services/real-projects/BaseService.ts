@@ -25,8 +25,9 @@ export class BaseService {
 
   /**
    * Add prototype methods to RealProject objects
+   * Made public to allow access from RealProjectService
    */
-  protected static extendRealProject(project: RealProject): RealProject {
+  public static extendRealProject(project: RealProject): RealProject {
     return {
       ...project,
       updateCosts: async (costData) => {

@@ -20,6 +20,10 @@ export interface VendorItem {
   measuring_unit: string;
   created_at: string;
   updated_at: string;
+  category?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface VendorRateCard {
@@ -34,6 +38,7 @@ export interface VendorRateCard {
   effective_date?: string;
   created_at: string;
   updated_at: string;
+  item?: VendorItem;
 }
 
 export const VendorRateCardService = {
@@ -56,7 +61,7 @@ export const VendorRateCardService = {
   async getItems(): Promise<VendorItem[]> {
     const { data, error } = await supabase
       .from('vendor_items')
-      .select('*')
+      .select('*, category:category_id(id, name)')
       .order('sl_no');
     
     if (error) {
@@ -71,7 +76,7 @@ export const VendorRateCardService = {
   async getItemsByCategoryId(categoryId: string): Promise<VendorItem[]> {
     const { data, error } = await supabase
       .from('vendor_items')
-      .select('*')
+      .select('*, category:category_id(id, name)')
       .eq('category_id', categoryId)
       .order('sl_no');
     
@@ -89,7 +94,7 @@ export const VendorRateCardService = {
     
     const { data, error } = await supabase
       .from('vendor_items')
-      .select('*')
+      .select('*, category:category_id(id, name)')
       .in('id', itemIds);
     
     if (error) {
@@ -104,7 +109,7 @@ export const VendorRateCardService = {
   async getRateCards(): Promise<VendorRateCard[]> {
     const { data, error } = await supabase
       .from('vendor_rate_cards')
-      .select('*');
+      .select('*, item:item_id(*, category:category_id(id, name))');
     
     if (error) {
       console.error('Error fetching vendor rate cards:', error);
@@ -118,7 +123,7 @@ export const VendorRateCardService = {
   async getRateCardByItemId(itemId: string): Promise<VendorRateCard | null> {
     const { data, error } = await supabase
       .from('vendor_rate_cards')
-      .select('*')
+      .select('*, item:item_id(*, category:category_id(id, name))')
       .eq('item_id', itemId)
       .single();
     
@@ -135,7 +140,7 @@ export const VendorRateCardService = {
   },
 
   // Create a category
-  async createCategory(category: Omit<VendorCategory, 'id' | 'created_at' | 'updated_at'>): Promise<VendorCategory> {
+  async createCategory(category: { name: string, description?: string }): Promise<VendorCategory> {
     const { data, error } = await supabase
       .from('vendor_categories')
       .insert(category)
@@ -181,7 +186,13 @@ export const VendorRateCardService = {
   },
 
   // Create an item
-  async createItem(item: Omit<VendorItem, 'id' | 'created_at' | 'updated_at'>): Promise<VendorItem> {
+  async createItem(item: { 
+    category_id: string; 
+    sl_no: string; 
+    item_code: string; 
+    scope_of_work: string; 
+    measuring_unit: string 
+  }): Promise<VendorItem> {
     const { data, error } = await supabase
       .from('vendor_items')
       .insert(item)
@@ -226,6 +237,47 @@ export const VendorRateCardService = {
     }
   },
 
+  // Create a rate card
+  async createRateCard(rateCard: { 
+    item_id: string; 
+    vendor_rate1?: number; 
+    vendor_rate2?: number; 
+    vendor_rate3?: number; 
+    client_rate: number; 
+    currency?: string; 
+    notes?: string 
+  }): Promise<VendorRateCard> {
+    const { data, error } = await supabase
+      .from('vendor_rate_cards')
+      .insert(rateCard)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating vendor rate card:', error);
+      throw error;
+    }
+    
+    return data;
+  },
+
+  // Update a rate card
+  async updateRateCard(id: string, rateCard: Partial<VendorRateCard>): Promise<VendorRateCard> {
+    const { data, error } = await supabase
+      .from('vendor_rate_cards')
+      .update(rateCard)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating vendor rate card:', error);
+      throw error;
+    }
+    
+    return data;
+  },
+
   // Create or update a rate card
   async saveRateCard(rateCard: Omit<VendorRateCard, 'id' | 'created_at' | 'updated_at'>): Promise<VendorRateCard> {
     // Check if a rate card exists for this item
@@ -248,18 +300,7 @@ export const VendorRateCardService = {
       return data;
     } else {
       // Create new rate card
-      const { data, error } = await supabase
-        .from('vendor_rate_cards')
-        .insert(rateCard)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error creating vendor rate card:', error);
-        throw error;
-      }
-      
-      return data;
+      return this.createRateCard(rateCard);
     }
   },
 

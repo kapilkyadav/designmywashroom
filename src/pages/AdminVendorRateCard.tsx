@@ -355,14 +355,18 @@ const AdminVendorRateCard = () => {
                   </TableHeader>
                   <TableBody>
                     {rateCards.map((rateCard) => {
-                      const item = items.find(i => i.id === rateCard.item_id) || 
-                                  rateCard.item || 
-                                  { scope_of_work: 'Unknown', category_id: '' };
+                      // Find the item either from the relation or from the items array
+                      const itemInfo = rateCard.item || items.find(i => i.id === rateCard.item_id);
+                      const item = itemInfo || { scope_of_work: 'Unknown', category_id: '' };
                       
-                      const categoryId = 'category' in item ? item.category?.id : item.category_id;
-                      const categoryName = 'category' in item && item.category ? 
-                          item.category.name : 
-                          categories.find(c => c.id === categoryId)?.name || 'Unknown';
+                      // Find the category name
+                      let categoryName = 'Unknown';
+                      if (item && 'category' in item && item.category) {
+                        categoryName = item.category.name;
+                      } else if (item.category_id) {
+                        const category = categories.find(c => c.id === item.category_id);
+                        if (category) categoryName = category.name;
+                      }
                       
                       return (
                         <TableRow key={rateCard.id}>

@@ -27,7 +27,13 @@ const ItemDialog: React.FC<ItemDialogProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (values: Partial<VendorItem>) => {
+  const handleSubmit = async (values: { 
+    category_id: string; 
+    sl_no: string; 
+    item_code: string; 
+    scope_of_work: string; 
+    measuring_unit: string 
+  }) => {
     try {
       setIsSubmitting(true);
       
