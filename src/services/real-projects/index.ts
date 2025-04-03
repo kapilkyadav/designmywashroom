@@ -1,0 +1,46 @@
+
+import { ProjectService } from './ProjectService';
+import { ConversionService } from './ConversionService';
+import { WashroomService } from './WashroomService';
+import { QuotationService } from './QuotationService';
+import { CostingService } from './CostingService';
+import { RealProject, RealProjectFilter, ConvertibleRecord, ProjectQuotation, Washroom } from './types';
+import { BaseService } from './BaseService';
+
+export * from './types';
+
+// Create a unified service by combining all the specialized services
+export class RealProjectService {
+  // Project Service Methods
+  static getRealProjects = ProjectService.getRealProjects;
+  static getRealProject = ProjectService.getRealProject;
+  static updateRealProject = ProjectService.updateRealProject;
+  static deleteRealProject = ProjectService.deleteRealProject;
+  static createRealProject = ProjectService.createRealProject;
+  
+  // Washroom Service Methods
+  static addWashroomToProject = WashroomService.addWashroomToProject;
+  static getProjectWashrooms = WashroomService.getProjectWashrooms;
+  
+  // Conversion Service Methods
+  static getConvertibleRecords = ConversionService.getConvertibleRecords;
+  static convertLeadToRealProject = ConversionService.convertLeadToRealProject;
+  static convertEstimateToRealProject = ConversionService.convertEstimateToRealProject;
+  
+  // Quotation Service Methods
+  static generateQuotation = QuotationService.generateQuotation;
+  static getProjectQuotations = QuotationService.getProjectQuotations;
+  static getQuotation = QuotationService.getQuotation;
+  
+  // Costing Service Methods
+  static getExecutionServices = CostingService.getExecutionServices;
+  static getTilingRates = CostingService.getTilingRates;
+  static calculateProjectCosts = CostingService.calculateProjectCosts;
+  
+  // Helper Methods
+  static extendRealProject = BaseService.extendRealProject;
+}
+
+// Add the RealProjectService class to the BaseService to resolve circular dependency
+import { BaseService as BaseServiceType } from './BaseService';
+(BaseService as any).RealProjectService = RealProjectService;
