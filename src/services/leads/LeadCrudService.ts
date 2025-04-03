@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { Lead, LeadFilter } from './types';
@@ -132,6 +131,36 @@ export const LeadCrudService = {
       console.error('Error deleting lead:', error);
       toast({
         title: "Failed to delete lead",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  },
+
+  async markLeadAsConverted(id: string, projectId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ 
+          status: 'Converted',
+          remarks: `Converted to Project ${projectId} on ${new Date().toLocaleDateString()}`
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      await ActivityLogService.addActivityLog(
+        id, 
+        'Lead Converted', 
+        `Converted to Project ${projectId}`
+      );
+      
+      return true;
+    } catch (error: any) {
+      console.error('Error marking lead as converted:', error);
+      toast({
+        title: "Failed to mark lead as converted",
         description: error.message,
         variant: "destructive",
       });

@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { LeadCrudService } from './leads/LeadCrudService';
 
 // Real Project Types
 export interface RealProject {
@@ -387,6 +388,9 @@ export const RealProjectService = {
           .from('project_washrooms')
           .insert(washroom);
       }
+      
+      // Mark the lead as converted
+      await LeadCrudService.markLeadAsConverted(leadId, newProject.project_id);
       
       toast({
         title: "Lead converted",

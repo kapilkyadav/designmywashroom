@@ -89,7 +89,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
               </TableRow>
             ) : (
               leads.map((lead) => (
-                <TableRow key={lead.id}>
+                <TableRow key={lead.id} className={lead.status === 'Converted' ? 'bg-muted/30' : ''}>
                   <TableCell className="font-medium">
                     {lead.lead_date ? format(new Date(lead.lead_date), 'dd/MM/yyyy') : '—'}
                   </TableCell>
@@ -129,6 +129,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                       lead={lead}
                       onDelete={confirmDelete}
                       onViewDetails={viewLeadDetails}
+                      onRefresh={onRefresh}
                     />
                   </TableCell>
                 </TableRow>
