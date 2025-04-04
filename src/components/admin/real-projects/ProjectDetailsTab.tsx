@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -13,6 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import ProjectAddressInfo from './ProjectAddressInfo';
+import { BrandService } from '@/services/BrandService';
 
 interface ProjectDetailsTabProps {
   project: RealProject;
@@ -40,6 +41,26 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const ProjectDetailsTab: React.FC<ProjectDetailsTabProps> = ({ project, onUpdate }) => {
+  const [brands, setBrands] = useState<{ id: string, name: string }[]>([]);
+  const [loadingBrands, setLoadingBrands] = useState(true);
+
+  // Fetch available brands
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        setLoadingBrands(true);
+        const brandsData = await BrandService.getAllBrands();
+        setBrands(brandsData.map(brand => ({ id: brand.id, name: brand.name })));
+      } catch (error) {
+        console.error('Error fetching brands:', error);
+      } finally {
+        setLoadingBrands(false);
+      }
+    };
+
+    fetchBrands();
+  }, []);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -94,6 +115,11 @@ const ProjectDetailsTab: React.FC<ProjectDetailsTabProps> = ({ project, onUpdate
     { label: 'Completed', value: 'Completed' },
     { label: 'Cancelled', value: 'Cancelled' },
   ];
+
+  const findBrandName = (brandId: string) => {
+    const brand = brands.find(b => b.id === brandId);
+    return brand ? brand.name : brandId;
+  };
 
   return (
     <Form {...form}>
@@ -200,9 +226,29 @@ const ProjectDetailsTab: React.FC<ProjectDetailsTabProps> = ({ project, onUpdate
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Selected Brand</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
+                      <Select 
+                        value={field.value} 
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select brand">
+                              {field.value ? (loadingBrands ? 'Loading...' : findBrandName(field.value)) : 'Select brand'}
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {loadingBrands ? (
+                            <SelectItem value="">Loading brands...</SelectItem>
+                          ) : (
+                            brands.map(brand => (
+                              <SelectItem key={brand.id} value={brand.id}>
+                                {brand.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
