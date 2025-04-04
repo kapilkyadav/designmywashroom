@@ -390,38 +390,47 @@ export type Database = {
       project_washrooms: {
         Row: {
           area: number | null
+          ceiling_area: number | null
           created_at: string
           height: number
           id: string
           length: number
           name: string
           project_id: string
+          service_details: Json | null
           services: Json | null
           updated_at: string
+          wall_area: number | null
           width: number
         }
         Insert: {
           area?: number | null
+          ceiling_area?: number | null
           created_at?: string
           height?: number
           id?: string
           length: number
           name: string
           project_id: string
+          service_details?: Json | null
           services?: Json | null
           updated_at?: string
+          wall_area?: number | null
           width: number
         }
         Update: {
           area?: number | null
+          ceiling_area?: number | null
           created_at?: string
           height?: number
           id?: string
           length?: number
           name?: string
           project_id?: string
+          service_details?: Json | null
           services?: Json | null
           updated_at?: string
+          wall_area?: number | null
           width?: number
         }
         Relationships: [

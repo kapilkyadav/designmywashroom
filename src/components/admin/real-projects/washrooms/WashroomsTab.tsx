@@ -72,7 +72,10 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
         height: project.height || 9,
         area: (project.length || 0) * (project.width || 0),
         selected_brand: project.selected_brand || '',
-        services: {}
+        services: {},
+        wall_area: 0,
+        ceiling_area: 0,
+        service_details: {}
       };
       setWashrooms([defaultWashroom]);
     }
@@ -86,8 +89,11 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
       width: 0,
       height: 9,
       area: 0,
+      wall_area: 0,
+      ceiling_area: 0,
       selected_brand: project.selected_brand || '',
-      services: {}
+      services: {},
+      service_details: {}
     };
     
     setWashrooms([...washrooms, newWashroom]);
@@ -125,6 +131,24 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
       updatedWashrooms[index].area = 
         Number(updatedWashrooms[index].length) * 
         Number(updatedWashrooms[index].width);
+      
+      // Update ceiling area to match floor area if not manually set
+      if (!updatedWashrooms[index].ceiling_area || updatedWashrooms[index].ceiling_area === 0) {
+        updatedWashrooms[index].ceiling_area = updatedWashrooms[index].area;
+      }
+      
+      // Calculate wall area if dimensions are available
+      if (updatedWashrooms[index].length > 0 && updatedWashrooms[index].width > 0 && updatedWashrooms[index].height > 0) {
+        // Perimeter × height = wall area
+        const perimeter = 2 * (Number(updatedWashrooms[index].length) + Number(updatedWashrooms[index].width));
+        updatedWashrooms[index].wall_area = perimeter * Number(updatedWashrooms[index].height);
+      }
+    }
+    
+    // Update wall area if height changes
+    if (field === 'height' && updatedWashrooms[index].length > 0 && updatedWashrooms[index].width > 0) {
+      const perimeter = 2 * (Number(updatedWashrooms[index].length) + Number(updatedWashrooms[index].width));
+      updatedWashrooms[index].wall_area = perimeter * Number(updatedWashrooms[index].height);
     }
     
     setWashrooms(updatedWashrooms);
@@ -137,6 +161,37 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     }
     
     updatedWashrooms[index].services[serviceKey] = checked;
+    
+    // Initialize service_details for this service if it doesn't exist
+    if (checked) {
+      if (!updatedWashrooms[index].service_details) {
+        updatedWashrooms[index].service_details = {};
+      }
+      
+      if (!updatedWashrooms[index].service_details[serviceKey]) {
+        updatedWashrooms[index].service_details[serviceKey] = {
+          quantity: 1,
+          area: 0
+        };
+      }
+    }
+    
+    setWashrooms(updatedWashrooms);
+  };
+  
+  const updateServiceDetail = (washroomIndex: number, serviceId: string, field: keyof ServiceDetail, value: any) => {
+    const updatedWashrooms = [...washrooms];
+    
+    if (!updatedWashrooms[washroomIndex].service_details) {
+      updatedWashrooms[washroomIndex].service_details = {};
+    }
+    
+    if (!updatedWashrooms[washroomIndex].service_details[serviceId]) {
+      updatedWashrooms[washroomIndex].service_details[serviceId] = {};
+    }
+    
+    updatedWashrooms[washroomIndex].service_details[serviceId][field] = value;
+    
     setWashrooms(updatedWashrooms);
   };
   
@@ -264,12 +319,42 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Area (sq ft)</Label>
+                  <Label>Floor Area (sq ft)</Label>
                   <Input
                     value={washroom.area.toFixed(2)}
                     disabled
                     className="bg-muted"
                   />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor={`washroom-wall-area-${index}`}>Wall Area (sq ft)</Label>
+                  <Input
+                    id={`washroom-wall-area-${index}`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={washroom.wall_area || 0}
+                    onChange={(e) => updateWashroomField(index, 'wall_area', parseFloat(e.target.value) || 0)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Auto-calculated: perimeter × height
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor={`washroom-ceiling-area-${index}`}>Ceiling Area (sq ft)</Label>
+                  <Input
+                    id={`washroom-ceiling-area-${index}`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={washroom.ceiling_area || 0}
+                    onChange={(e) => updateWashroomField(index, 'ceiling_area', parseFloat(e.target.value) || 0)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Default: same as floor area
+                  </p>
                 </div>
               </div>
               

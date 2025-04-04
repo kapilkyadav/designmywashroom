@@ -19,6 +19,7 @@ export class WashroomService extends BaseService {
         wall_area: washroom.wall_area || washroom.wallArea,
         ceiling_area: washroom.ceiling_area || washroom.ceilingArea,
         services: washroom.services || {},
+        service_details: washroom.service_details || {},
         selected_brand: washroom.selected_brand
       };
 
@@ -81,7 +82,10 @@ export class WashroomService extends BaseService {
           length: washroom.length,
           width: washroom.width,
           height: washroom.height,
+          wall_area: washroom.wall_area || washroom.wallArea,
+          ceiling_area: washroom.ceiling_area || washroom.ceilingArea,
           services: washroom.services || {},
+          service_details: washroom.service_details || {},
           selected_brand: washroom.selected_brand
         };
         
