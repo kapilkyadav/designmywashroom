@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { Helmet } from 'react-helmet';
 import {
   Form,
   FormControl,
@@ -17,6 +18,7 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from '@/hooks/use-toast';
 
 // Pre-define the schema outside component to prevent recreation on each render
 const formSchema = z.object({
@@ -113,8 +115,17 @@ const AdminLogin = () => {
     try {
       await login(values.email, values.password);
       // Login is handled by the auth provider which will update isAuthenticated
-    } catch (error) {
+      toast({
+        title: "Login successful",
+        description: "Welcome to the admin dashboard",
+      });
+    } catch (error: any) {
       console.error("Login error:", error);
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid credentials",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -135,6 +146,9 @@ const AdminLogin = () => {
     // Show login form
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Helmet>
+          <title>Admin Login | Washroom Designer</title>
+        </Helmet>
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>

@@ -4,6 +4,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { Helmet } from 'react-helmet';
 
 const Admin = () => {
   const { isAuthenticated, isLoading } = useAdminAuth();
@@ -25,6 +26,9 @@ const Admin = () => {
 
   return (
     <div className="flex h-screen bg-background text-foreground">
+      <Helmet>
+        <title>Admin Dashboard | Washroom Designer</title>
+      </Helmet>
       <AdminSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminHeader />

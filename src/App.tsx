@@ -52,7 +52,7 @@ function App() {
               <Route path="/" element={<Index />} />
               <Route path="/calculator" element={<Calculator />} />
 
-              {/* Admin login route - now inside the AdminAuthProvider */}
+              {/* Admin login route */}
               <Route path="/admin/login" element={<AdminLogin />} />
 
               {/* Admin routes */}
