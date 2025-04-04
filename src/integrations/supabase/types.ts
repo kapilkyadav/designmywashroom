@@ -397,6 +397,7 @@ export type Database = {
           length: number
           name: string
           project_id: string
+          selected_brand: string | null
           service_details: Json | null
           services: Json | null
           updated_at: string
@@ -412,6 +413,7 @@ export type Database = {
           length: number
           name: string
           project_id: string
+          selected_brand?: string | null
           service_details?: Json | null
           services?: Json | null
           updated_at?: string
@@ -427,6 +429,7 @@ export type Database = {
           length?: number
           name?: string
           project_id?: string
+          selected_brand?: string | null
           service_details?: Json | null
           services?: Json | null
           updated_at?: string
