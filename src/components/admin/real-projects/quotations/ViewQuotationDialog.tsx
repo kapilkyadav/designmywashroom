@@ -35,6 +35,7 @@ const ViewQuotationDialog: React.FC<ViewQuotationDialogProps> = ({
           </Button>
           <Button 
             onClick={() => html && onDownload(html, `quotation-${projectId}.pdf`)}
+            disabled={!html}
           >
             <FileText className="mr-2 h-4 w-4" />
             Download as PDF
@@ -42,11 +43,17 @@ const ViewQuotationDialog: React.FC<ViewQuotationDialogProps> = ({
         </div>
         
         <div className="border rounded-md p-4 bg-white text-black">
-          <iframe 
-            srcDoc={html || ''}
-            style={{ width: '100%', height: '60vh', border: 'none' }}
-            title="Quotation Preview"
-          />
+          {html ? (
+            <iframe 
+              srcDoc={html}
+              style={{ width: '100%', height: '60vh', border: 'none' }}
+              title="Quotation Preview"
+            />
+          ) : (
+            <div className="text-center py-10 text-gray-500">
+              No HTML content available to preview
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

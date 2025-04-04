@@ -77,22 +77,16 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     }
   };
   
-  const downloadAsPdf = async (quotationId: string) => {
+  const downloadPdf = async (html: string, filename: string) => {
     try {
-      const quotation = await RealProjectService.getQuotation(quotationId);
-      
-      if (!quotation || !quotation.quotation_html) {
-        throw new Error('Quotation not found');
-      }
-      
       // Create a blob from the HTML content
-      const blob = new Blob([quotation.quotation_html], { type: 'text/html' });
+      const blob = new Blob([html], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       
       // Create a link to download
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Quotation_${quotation.quotation_number}.html`;
+      link.download = filename || 'quotation.html';
       document.body.appendChild(link);
       link.click();
       
@@ -126,6 +120,6 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     setQuotationTerms,
     handleGenerateQuotation,
     viewQuotation,
-    downloadAsPdf
+    downloadAsPdf: downloadPdf
   };
 };

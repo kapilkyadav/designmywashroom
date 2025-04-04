@@ -32,6 +32,24 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
   const [items, setItems] = useState<{ name: string; description: string; amount: number; }[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   
+  // Helper function to safely format currency values
+  const formatCurrency = (amount: any): string => {
+    // Check if amount exists and is a number
+    if (amount === undefined || amount === null) {
+      return '₹0';
+    }
+    
+    // Make sure it's a number before calling toLocaleString
+    const numericAmount = typeof amount === 'number' ? amount : parseFloat(amount);
+    
+    // Handle NaN case
+    if (isNaN(numericAmount)) {
+      return '₹0';
+    }
+    
+    return `₹${numericAmount.toLocaleString('en-IN')}`;
+  };
+  
   useEffect(() => {
     const initializeQuotation = async () => {
       setIsCalculating(true);
@@ -249,7 +267,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
                 {/* Total amount */}
                 <div className="flex justify-end items-center mt-4 space-x-2 font-medium">
                   <div>Total Amount:</div>
-                  <div>₹{totalAmount.toLocaleString('en-IN')}</div>
+                  <div>{formatCurrency(totalAmount)}</div>
                 </div>
               </div>
               
