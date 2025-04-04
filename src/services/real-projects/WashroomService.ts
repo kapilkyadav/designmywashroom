@@ -10,7 +10,7 @@ export class WashroomService extends BaseService {
   static async addWashroomToProject(projectId: string, washroom: NewWashroom): Promise<Washroom> {
     try {
       // Calculate areas if not provided
-      const calculatedWashroom = this.calculateWashroomAreas(washroom);
+      const calculatedWashroom = WashroomService.calculateWashroomAreas(washroom);
       
       // Prepare washroom data
       const washroomData = {
@@ -79,7 +79,7 @@ export class WashroomService extends BaseService {
         const washroomId = washroom.id.startsWith('temp-') ? washroom.id.substring(5) : washroom.id;
         
         // Calculate areas if needed
-        const calculatedWashroom = this.calculateWashroomAreas(washroom);
+        const calculatedWashroom = WashroomService.calculateWashroomAreas(washroom);
         
         // Prepare washroom data for update
         const washroomData = {
