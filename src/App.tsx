@@ -45,53 +45,52 @@ function App() {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <Router>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Index />} />
-            <Route path="/calculator" element={<Calculator />} />
+        <AdminAuthProvider>
+          <Router>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Index />} />
+              <Route path="/calculator" element={<Calculator />} />
 
-            {/* Admin routes */}
-            <Route path="/admin/login" element={<AdminLogin />} />
+              {/* Admin login route - now inside the AdminAuthProvider */}
+              <Route path="/admin/login" element={<AdminLogin />} />
 
-            <Route path="/admin" element={
-              <AdminAuthProvider>
-                <Admin />
-              </AdminAuthProvider>
-            }>
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="brands" element={<AdminBrands />} />
-              <Route path="brands/add" element={<AdminBrandAdd />} />
-              <Route path="products" element={<AdminProducts />} />
-              <Route path="fixtures" element={<AdminFixtures />} />
-              <Route path="execution-services" element={<AdminExecutionServices />} />
-              
-              <Route path="projects" element={<AdminProjects />} />
-              <Route path="projects/:id/edit" element={<AdminProjectEdit />} />
-              <Route path="projects/:id" element={<AdminProjectDetail />} />
-              {/* Add the new route that matches the URL structure being used */}
-              <Route path="projects/detail/:id" element={<AdminProjectDetail />} />
-              
-              {/* Real Projects routes */}
-              <Route path="real-projects" element={<AdminRealProjects />} />
-              <Route path="real-projects/:id" element={<AdminRealProjectDetail />} />
-              
-              {/* Vendor Rate Card route */}
-              <Route path="vendor-rate-card" element={<AdminVendorRateCard />} />
+              {/* Admin routes */}
+              <Route path="/admin" element={<Admin />}>
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="brands" element={<AdminBrands />} />
+                <Route path="brands/add" element={<AdminBrandAdd />} />
+                <Route path="products" element={<AdminProducts />} />
+                <Route path="fixtures" element={<AdminFixtures />} />
+                <Route path="execution-services" element={<AdminExecutionServices />} />
+                
+                <Route path="projects" element={<AdminProjects />} />
+                <Route path="projects/:id/edit" element={<AdminProjectEdit />} />
+                <Route path="projects/:id" element={<AdminProjectDetail />} />
+                {/* Add the new route that matches the URL structure being used */}
+                <Route path="projects/detail/:id" element={<AdminProjectDetail />} />
+                
+                {/* Real Projects routes */}
+                <Route path="real-projects" element={<AdminRealProjects />} />
+                <Route path="real-projects/:id" element={<AdminRealProjectDetail />} />
+                
+                {/* Vendor Rate Card route */}
+                <Route path="vendor-rate-card" element={<AdminVendorRateCard />} />
 
-              {/* Washroom Designer route */}
-              <Route path="washroom-designer" element={<AdminWashroomDesigner />} />
-              
-              <Route path="settings" element={<AdminSettings />} />
-              <Route path="leads" element={<AdminLeads />} />
-            </Route>
+                {/* Washroom Designer route */}
+                <Route path="washroom-designer" element={<AdminWashroomDesigner />} />
+                
+                <Route path="settings" element={<AdminSettings />} />
+                <Route path="leads" element={<AdminLeads />} />
+              </Route>
 
-            {/* Not Found */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              {/* Not Found */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
 
-          <Toaster />
-        </Router>
+            <Toaster />
+          </Router>
+        </AdminAuthProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );
