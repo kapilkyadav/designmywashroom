@@ -72,7 +72,7 @@ const RealProjectsTable: React.FC<RealProjectsTableProps> = ({
   };
   
   const formatCurrency = (amount: number | null) => {
-    if (amount === null) return '—';
+    if (amount === null || amount === undefined) return '—';
     return `₹${amount.toLocaleString('en-IN')}`;
   };
 

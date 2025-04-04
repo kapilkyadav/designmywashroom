@@ -19,6 +19,20 @@ const CostTable: React.FC<CostTableProps> = ({
   description,
   onRemoveItem
 }) => {
+  // Safe formatting function
+  const formatNumber = (amount: number | null | undefined): string => {
+    if (amount === null || amount === undefined) return '0';
+    return amount.toLocaleString('en-IN');
+  };
+  
+  // Calculate total safely
+  const calculateTotal = () => {
+    return items.reduce((sum, item) => {
+      const amount = typeof item.amount === 'number' ? item.amount : 0;
+      return sum + amount;
+    }, 0);
+  };
+  
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
@@ -27,7 +41,7 @@ const CostTable: React.FC<CostTableProps> = ({
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
         <Badge variant="outline" className="text-sm">
-          Total: ₹{items.reduce((sum, item) => sum + item.amount, 0).toLocaleString('en-IN')}
+          Total: ₹{formatNumber(calculateTotal())}
         </Badge>
       </div>
       
@@ -58,7 +72,7 @@ const CostTable: React.FC<CostTableProps> = ({
                     {item.description || '—'}
                   </TableCell>
                   <TableCell className="text-right">
-                    ₹{item.amount.toLocaleString('en-IN')}
+                    ₹{formatNumber(item.amount)}
                   </TableCell>
                   <TableCell>
                     <Button

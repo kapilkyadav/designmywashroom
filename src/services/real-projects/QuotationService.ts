@@ -156,13 +156,18 @@ export class QuotationService extends BaseService {
                 </tr>
               </thead>
               <tbody>
-                ${washrooms.map(washroom => `
-                  <tr>
-                    <td>${washroom.name}</td>
-                    <td>${washroom.length}' × ${washroom.width}' × ${washroom.height}'</td>
-                    <td>${washroom.length * washroom.width} sq ft</td>
-                  </tr>
-                `).join('')}
+                ${washrooms.map(washroom => {
+                  const length = washroom.length || 0;
+                  const width = washroom.width || 0;
+                  const height = washroom.height || 0;
+                  return `
+                    <tr>
+                      <td>${washroom.name || 'Washroom'}</td>
+                      <td>${length}' × ${width}' × ${height}'</td>
+                      <td>${(length * width) || 0} sq ft</td>
+                    </tr>
+                  `;
+                }).join('')}
               </tbody>
             </table>
           </div>
