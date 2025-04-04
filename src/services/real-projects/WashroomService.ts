@@ -9,18 +9,21 @@ export class WashroomService extends BaseService {
    */
   static async addWashroomToProject(projectId: string, washroom: Omit<Washroom, 'id' | 'created_at'>): Promise<Washroom> {
     try {
-      // Prepare washroom data, excluding the 'area' field which is generated in the database
+      // Calculate areas if not provided
+      const calculatedWashroom = this.calculateWashroomAreas(washroom);
+      
+      // Prepare washroom data
       const washroomData = {
         project_id: projectId,
-        name: washroom.name,
-        length: washroom.length,
-        width: washroom.width,
-        height: washroom.height,
-        wall_area: washroom.wall_area || washroom.wallArea,
-        ceiling_area: washroom.ceiling_area || washroom.ceilingArea,
-        services: washroom.services || {},
-        service_details: washroom.service_details || {},
-        selected_brand: washroom.selected_brand
+        name: calculatedWashroom.name,
+        length: calculatedWashroom.length,
+        width: calculatedWashroom.width,
+        height: calculatedWashroom.height,
+        wall_area: calculatedWashroom.wall_area || calculatedWashroom.wallArea,
+        ceiling_area: calculatedWashroom.ceiling_area || calculatedWashroom.ceilingArea,
+        services: calculatedWashroom.services || {},
+        service_details: calculatedWashroom.service_details || {},
+        selected_brand: calculatedWashroom.selected_brand
       };
 
       const { data, error } = await supabase
@@ -75,18 +78,21 @@ export class WashroomService extends BaseService {
         // Remove temp- prefix from IDs if present
         const washroomId = washroom.id.startsWith('temp-') ? washroom.id.substring(5) : washroom.id;
         
-        // Prepare washroom data for update, excluding the 'area' field
+        // Calculate areas if needed
+        const calculatedWashroom = this.calculateWashroomAreas(washroom);
+        
+        // Prepare washroom data for update
         const washroomData = {
           project_id: projectId,
-          name: washroom.name,
-          length: washroom.length,
-          width: washroom.width,
-          height: washroom.height,
-          wall_area: washroom.wall_area || washroom.wallArea,
-          ceiling_area: washroom.ceiling_area || washroom.ceilingArea,
-          services: washroom.services || {},
-          service_details: washroom.service_details || {},
-          selected_brand: washroom.selected_brand
+          name: calculatedWashroom.name,
+          length: calculatedWashroom.length,
+          width: calculatedWashroom.width,
+          height: calculatedWashroom.height,
+          wall_area: calculatedWashroom.wall_area || calculatedWashroom.wallArea,
+          ceiling_area: calculatedWashroom.ceiling_area || calculatedWashroom.ceilingArea,
+          services: calculatedWashroom.services || {},
+          service_details: calculatedWashroom.service_details || {},
+          selected_brand: calculatedWashroom.selected_brand
         };
         
         // If it exists in DB, update it
@@ -123,5 +129,31 @@ export class WashroomService extends BaseService {
     } catch (error: any) {
       return BaseService.handleError(error, 'Failed to update washrooms');
     }
+  }
+
+  /**
+   * Helper method to calculate washroom areas
+   */
+  static calculateWashroomAreas(washroom: Washroom): Washroom {
+    // Calculate floor area
+    const floorArea = washroom.length * washroom.width;
+    
+    // Calculate wall area if not manually set or dimensions changed
+    let wallArea = washroom.wall_area || 0;
+    if (washroom.length > 0 && washroom.width > 0 && washroom.height > 0) {
+      // Perimeter × height = wall area
+      const perimeter = 2 * (Number(washroom.length) + Number(washroom.width));
+      wallArea = perimeter * Number(washroom.height);
+    }
+    
+    // Set ceiling area to match floor area if not manually set
+    const ceilingArea = washroom.ceiling_area || floorArea;
+    
+    return {
+      ...washroom,
+      area: floorArea,
+      wall_area: wallArea,
+      ceiling_area: ceilingArea
+    };
   }
 }

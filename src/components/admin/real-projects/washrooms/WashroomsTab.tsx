@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { RealProject, Washroom } from '@/services/RealProjectService';
+import { RealProject, Washroom, ServiceDetail } from '@/services/RealProjectService';
 import { RealProjectService } from '@/services/real-projects';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -57,11 +57,14 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
   useEffect(() => {
     // Initialize with project washrooms or create a default one
     if (project.washrooms && project.washrooms.length > 0) {
-      // Make sure each washroom has a selected_brand field
-      const updatedWashrooms = project.washrooms.map(washroom => ({
-        ...washroom,
-        selected_brand: washroom.selected_brand || project.selected_brand || ''
-      }));
+      // Make sure each washroom has a selected_brand field and calculated areas
+      const updatedWashrooms = project.washrooms.map(washroom => {
+        const calculatedWashroom = calculateWashroomAreas({
+          ...washroom,
+          selected_brand: washroom.selected_brand || project.selected_brand || ''
+        });
+        return calculatedWashroom;
+      });
       setWashrooms(updatedWashrooms);
     } else {
       const defaultWashroom: Washroom = {
@@ -71,15 +74,43 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
         width: project.width || 0,
         height: project.height || 9,
         area: (project.length || 0) * (project.width || 0),
+        wall_area: calculateWallArea(project.length || 0, project.width || 0, project.height || 9),
+        ceiling_area: (project.length || 0) * (project.width || 0),
         selected_brand: project.selected_brand || '',
         services: {},
-        wall_area: 0,
-        ceiling_area: 0,
         service_details: {}
       };
       setWashrooms([defaultWashroom]);
     }
   }, [project]);
+  
+  // Helper function to calculate wall area
+  const calculateWallArea = (length: number, width: number, height: number): number => {
+    // Perimeter × height = wall area
+    const perimeter = 2 * (Number(length) + Number(width));
+    return perimeter * Number(height);
+  };
+  
+  // Helper function to calculate all washroom areas
+  const calculateWashroomAreas = (washroom: Washroom): Washroom => {
+    const floorArea = Number(washroom.length) * Number(washroom.width);
+    
+    // Calculate wall area if not manually set or dimensions changed
+    let wallArea = washroom.wall_area || 0;
+    if (washroom.length > 0 && washroom.width > 0 && washroom.height > 0) {
+      wallArea = calculateWallArea(washroom.length, washroom.width, washroom.height);
+    }
+    
+    // Set ceiling area to match floor area if not manually set
+    const ceilingArea = washroom.ceiling_area || floorArea;
+    
+    return {
+      ...washroom,
+      area: floorArea,
+      wall_area: wallArea,
+      ceiling_area: ceilingArea
+    };
+  };
   
   const addWashroom = () => {
     const newWashroom: Washroom = {
@@ -126,29 +157,9 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     const updatedWashrooms = [...washrooms];
     (updatedWashrooms[index][field] as any) = value;
     
-    // Recalculate area if dimensions change
-    if (field === 'length' || field === 'width') {
-      updatedWashrooms[index].area = 
-        Number(updatedWashrooms[index].length) * 
-        Number(updatedWashrooms[index].width);
-      
-      // Update ceiling area to match floor area if not manually set
-      if (!updatedWashrooms[index].ceiling_area || updatedWashrooms[index].ceiling_area === 0) {
-        updatedWashrooms[index].ceiling_area = updatedWashrooms[index].area;
-      }
-      
-      // Calculate wall area if dimensions are available
-      if (updatedWashrooms[index].length > 0 && updatedWashrooms[index].width > 0 && updatedWashrooms[index].height > 0) {
-        // Perimeter × height = wall area
-        const perimeter = 2 * (Number(updatedWashrooms[index].length) + Number(updatedWashrooms[index].width));
-        updatedWashrooms[index].wall_area = perimeter * Number(updatedWashrooms[index].height);
-      }
-    }
-    
-    // Update wall area if height changes
-    if (field === 'height' && updatedWashrooms[index].length > 0 && updatedWashrooms[index].width > 0) {
-      const perimeter = 2 * (Number(updatedWashrooms[index].length) + Number(updatedWashrooms[index].width));
-      updatedWashrooms[index].wall_area = perimeter * Number(updatedWashrooms[index].height);
+    // Recalculate areas if needed
+    if (field === 'length' || field === 'width' || field === 'height') {
+      updatedWashrooms[index] = calculateWashroomAreas(updatedWashrooms[index]);
     }
     
     setWashrooms(updatedWashrooms);
