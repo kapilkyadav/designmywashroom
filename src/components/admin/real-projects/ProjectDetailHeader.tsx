@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { RealProject } from '@/services/RealProjectService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import {
   Building
 } from 'lucide-react';
 import ProjectAddressInfo from './ProjectAddressInfo';
+import { BrandService } from '@/services/BrandService';
 
 interface ProjectDetailHeaderProps {
   project: RealProject;
@@ -25,6 +26,25 @@ const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({
   project, 
   onDeleteClick 
 }) => {
+  const [brandName, setBrandName] = useState<string>("");
+
+  // Fetch brand name when component loads
+  useEffect(() => {
+    const fetchBrandName = async () => {
+      if (project.selected_brand) {
+        try {
+          const brand = await BrandService.getBrandById(project.selected_brand);
+          setBrandName(brand.name);
+        } catch (error) {
+          console.error('Error fetching brand name:', error);
+          setBrandName("Unknown Brand");
+        }
+      }
+    };
+
+    fetchBrandName();
+  }, [project.selected_brand]);
+
   // Status badge color based on status
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -48,6 +68,9 @@ const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({
   
   // Extract address info
   const address = project.project_details?.address;
+  
+  // Calculate washroom count
+  const washroomCount = project.washrooms?.length || 0;
   
   return (
     <div className="space-y-6">
@@ -120,14 +143,14 @@ const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({
               {project.selected_brand && (
                 <div className="flex items-center gap-2">
                   <FileEdit className="h-4 w-4 text-muted-foreground" />
-                  <span>Brand: {project.selected_brand}</span>
+                  <span>Brand: {brandName || "Loading..."}</span>
                 </div>
               )}
               
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span>
-                  {project.washrooms?.length || 'No'} Washroom{(project.washrooms?.length || 0) !== 1 ? 's' : ''}
+                  {washroomCount} Washroom{washroomCount !== 1 ? 's' : ''}
                 </span>
               </div>
             </div>
