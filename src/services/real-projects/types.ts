@@ -91,6 +91,7 @@ export interface ServiceDetail {
   height?: number;
   area?: number;
   notes?: string;
+  [key: string]: any; // Add index signature to allow more dynamic properties
 }
 
 // Cost related interfaces

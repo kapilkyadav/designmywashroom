@@ -143,7 +143,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
   
   const updateWashroomField = (index: number, field: keyof Washroom, value: any) => {
     const updatedWashrooms = [...washrooms];
-    (updatedWashrooms[index] as any)[field] = value;
+    (updatedWashrooms[index] as Record<string, any>)[field] = value;
     
     if (field === 'length' || field === 'width' || field === 'height') {
       updatedWashrooms[index] = calculateWashroomAreas(updatedWashrooms[index]);
@@ -187,7 +187,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
       updatedWashrooms[washroomIndex].service_details![serviceId] = {};
     }
     
-    updatedWashrooms[washroomIndex].service_details![serviceId][field] = value;
+    (updatedWashrooms[washroomIndex].service_details![serviceId] as Record<string, any>)[field] = value;
     
     setWashrooms(updatedWashrooms);
   };
