@@ -185,7 +185,7 @@ export class CostingService extends BaseService {
         
         // Get product costs for this washroom's brand
         if (washroom.selected_brand) {
-          washroomProductCost = await this.getProductCostsByBrand(washroom.selected_brand);
+          washroomProductCost = await CostingService.getProductCostsByBrand(washroom.selected_brand);
           productCostsTotal += washroomProductCost;
         }
         

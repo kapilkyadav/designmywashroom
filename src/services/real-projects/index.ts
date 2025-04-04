@@ -39,6 +39,8 @@ export class RealProjectService {
   static getExecutionServices = CostingService.getExecutionServices;
   static getTilingRates = CostingService.getTilingRates;
   static calculateProjectCosts = CostingService.calculateProjectCosts;
+  static getProductCostsByBrand = CostingService.getProductCostsByBrand;
+  static getVendorItemRate = CostingService.getVendorItemRate;
   
   // Make BaseService.extendRealProject public through our service interface
   static extendRealProject(project: RealProject): RealProject {
