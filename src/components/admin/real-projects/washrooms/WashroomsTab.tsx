@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { RealProject, Washroom, ServiceDetail } from '@/services/RealProjectService';
+import { RealProject, Washroom, ServiceDetail } from '@/services/real-projects';
 import { RealProjectService } from '@/services/real-projects';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,6 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
   const [isUpdating, setIsUpdating] = useState(false);
   const [brands, setBrands] = useState<any[]>([]);
 
-  // Fetch all brands
   const { data: brandsData = [] } = useQuery({
     queryKey: ['brands'],
     queryFn: () => BrandService.getAllBrands(),
@@ -38,13 +36,11 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     }
   }, [brandsData]);
 
-  // Fetch all vendor items to use for services
   const { data: vendorItems = [] } = useQuery({
     queryKey: ['vendor-items'],
     queryFn: () => VendorRateCardService.getItems(),
   });
 
-  // Group vendor items by category
   const servicesByCategory: Record<string, any[]> = {};
   vendorItems.forEach(service => {
     const category = service.category?.name || "Uncategorized";
@@ -55,9 +51,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
   });
   
   useEffect(() => {
-    // Initialize with project washrooms or create a default one
     if (project.washrooms && project.washrooms.length > 0) {
-      // Make sure each washroom has a selected_brand field and calculated areas
       const updatedWashrooms = project.washrooms.map(washroom => {
         const calculatedWashroom = calculateWashroomAreas({
           ...washroom,
@@ -84,24 +78,19 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     }
   }, [project]);
   
-  // Helper function to calculate wall area
   const calculateWallArea = (length: number, width: number, height: number): number => {
-    // Perimeter × height = wall area
     const perimeter = 2 * (Number(length) + Number(width));
     return perimeter * Number(height);
   };
   
-  // Helper function to calculate all washroom areas
   const calculateWashroomAreas = (washroom: Washroom): Washroom => {
     const floorArea = Number(washroom.length) * Number(washroom.width);
     
-    // Calculate wall area if not manually set or dimensions changed
     let wallArea = washroom.wall_area || 0;
     if (washroom.length > 0 && washroom.width > 0 && washroom.height > 0) {
       wallArea = calculateWallArea(washroom.length, washroom.width, washroom.height);
     }
     
-    // Set ceiling area to match floor area if not manually set
     const ceilingArea = washroom.ceiling_area || floorArea;
     
     return {
@@ -143,7 +132,6 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     const updatedWashrooms = [...washrooms];
     updatedWashrooms.splice(index, 1);
     
-    // Rename washrooms to maintain sequential numbering
     updatedWashrooms.forEach((washroom, idx) => {
       if (washroom.name.startsWith("Washroom ")) {
         washroom.name = `Washroom ${idx + 1}`;
@@ -155,9 +143,8 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
   
   const updateWashroomField = (index: number, field: keyof Washroom, value: any) => {
     const updatedWashrooms = [...washrooms];
-    (updatedWashrooms[index][field] as any) = value;
+    (updatedWashrooms[index] as any)[field] = value;
     
-    // Recalculate areas if needed
     if (field === 'length' || field === 'width' || field === 'height') {
       updatedWashrooms[index] = calculateWashroomAreas(updatedWashrooms[index]);
     }
@@ -171,16 +158,15 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
       updatedWashrooms[index].services = {};
     }
     
-    updatedWashrooms[index].services[serviceKey] = checked;
+    updatedWashrooms[index].services![serviceKey] = checked;
     
-    // Initialize service_details for this service if it doesn't exist
     if (checked) {
       if (!updatedWashrooms[index].service_details) {
         updatedWashrooms[index].service_details = {};
       }
       
-      if (!updatedWashrooms[index].service_details[serviceKey]) {
-        updatedWashrooms[index].service_details[serviceKey] = {
+      if (!updatedWashrooms[index].service_details![serviceKey]) {
+        updatedWashrooms[index].service_details![serviceKey] = {
           quantity: 1,
           area: 0
         };
@@ -197,11 +183,11 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
       updatedWashrooms[washroomIndex].service_details = {};
     }
     
-    if (!updatedWashrooms[washroomIndex].service_details[serviceId]) {
-      updatedWashrooms[washroomIndex].service_details[serviceId] = {};
+    if (!updatedWashrooms[washroomIndex].service_details![serviceId]) {
+      updatedWashrooms[washroomIndex].service_details![serviceId] = {};
     }
     
-    updatedWashrooms[washroomIndex].service_details[serviceId][field] = value;
+    updatedWashrooms[washroomIndex].service_details![serviceId][field] = value;
     
     setWashrooms(updatedWashrooms);
   };
@@ -210,14 +196,12 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     setIsUpdating(true);
     
     try {
-      // Validate washrooms
       for (const washroom of washrooms) {
         if (!washroom.name || washroom.length <= 0 || washroom.width <= 0) {
           throw new Error("All washrooms must have a name and valid dimensions");
         }
       }
       
-      // Use the RealProjectService to update washrooms
       const success = await RealProjectService.updateProjectWashrooms(project.id, washrooms);
       
       if (success) {

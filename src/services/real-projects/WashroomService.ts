@@ -1,13 +1,13 @@
 
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './BaseService';
-import { Washroom } from './types';
+import { Washroom, NewWashroom } from './types';
 
 export class WashroomService extends BaseService {
   /**
    * Add a washroom to a project
    */
-  static async addWashroomToProject(projectId: string, washroom: Omit<Washroom, 'id' | 'created_at'>): Promise<Washroom> {
+  static async addWashroomToProject(projectId: string, washroom: NewWashroom): Promise<Washroom> {
     try {
       // Calculate areas if not provided
       const calculatedWashroom = this.calculateWashroomAreas(washroom);
@@ -134,7 +134,7 @@ export class WashroomService extends BaseService {
   /**
    * Helper method to calculate washroom areas
    */
-  static calculateWashroomAreas(washroom: Washroom): Washroom {
+  static calculateWashroomAreas<T extends Pick<Washroom, 'length' | 'width' | 'height' | 'wall_area' | 'ceiling_area' | 'wallArea' | 'ceilingArea'>>(washroom: T): T & { area: number, wall_area: number, ceiling_area: number } {
     // Calculate floor area
     const floorArea = washroom.length * washroom.width;
     

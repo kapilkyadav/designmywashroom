@@ -73,9 +73,14 @@ export interface Washroom {
   ceiling_area?: number;
   ceilingArea?: number; // For compatibility with form data
   services?: Record<string, boolean>;
-  selected_brand?: string; // New field for brand selection per washroom
-  service_details?: Record<string, ServiceDetail>; // New field for service-specific details
+  selected_brand?: string; // Field for brand selection per washroom
+  service_details?: Record<string, ServiceDetail>; // Field for service-specific details
   created_at?: string;
+}
+
+// For adding a new washroom where ID is not yet available
+export interface NewWashroom extends Omit<Washroom, 'id' | 'created_at'> {
+  id?: string;
 }
 
 // Service detail information
