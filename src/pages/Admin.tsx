@@ -21,6 +21,7 @@ const Admin = () => {
 
   // If not authenticated, redirect to admin login with the current location as the return URL
   if (!isAuthenticated) {
+    console.log('Not authenticated, redirecting to login with return URL:', location.pathname);
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 

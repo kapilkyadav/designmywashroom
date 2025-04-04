@@ -119,6 +119,7 @@ const AdminLogin = () => {
         title: "Login successful",
         description: "Welcome to the admin dashboard",
       });
+      // Redirect will happen automatically when isAuthenticated changes
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
@@ -131,43 +132,39 @@ const AdminLogin = () => {
     }
   };
 
-  // Compute the component state once using useMemo to avoid recalculation
-  const renderContent = useMemo(() => {
-    // If already authenticated, redirect to the redirect path
-    if (isAuthenticated) {
-      return <Navigate to={from} replace />;
-    }
+  // If already authenticated, redirect to the from path
+  if (isAuthenticated) {
+    console.log("User is authenticated, redirecting to:", from);
+    return <Navigate to={from} replace />;
+  }
 
-    // Show loading state while checking authentication
-    if (isLoading && !isSubmitting) {
-      return <LoadingIndicator />;
-    }
+  // Show loading state while checking authentication
+  if (isLoading && !isSubmitting) {
+    return <LoadingIndicator />;
+  }
 
-    // Show login form
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Helmet>
-          <title>Admin Login | Washroom Designer</title>
-        </Helmet>
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
-            <CardDescription>
-              Enter your credentials to access the admin dashboard
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <LoginForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
-          </CardContent>
-          <CardFooter className="text-center text-sm text-muted-foreground">
-            <p className="w-full">This area is restricted to administrators only.</p>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }, [isAuthenticated, isLoading, isSubmitting, handleSubmit, from]);
-
-  return renderContent;
+  // Show login form
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Helmet>
+        <title>Admin Login | Washroom Designer</title>
+      </Helmet>
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1 text-center">
+          <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
+          <CardDescription>
+            Enter your credentials to access the admin dashboard
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LoginForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
+        </CardContent>
+        <CardFooter className="text-center text-sm text-muted-foreground">
+          <p className="w-full">This area is restricted to administrators only.</p>
+        </CardFooter>
+      </Card>
+    </div>
+  );
 };
 
 export default React.memo(AdminLogin);
