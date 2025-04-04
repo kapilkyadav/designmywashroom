@@ -20,6 +20,24 @@ const QuotationsList: React.FC<QuotationsListProps> = ({
   onViewQuotation,
   onDownloadQuotation
 }) => {
+  // Helper function to safely format currency values
+  const formatCurrency = (amount: any): string => {
+    // Check if amount exists and is a number
+    if (amount === undefined || amount === null) {
+      return '₹0';
+    }
+    
+    // Make sure it's a number before calling toLocaleString
+    const numericAmount = typeof amount === 'number' ? amount : parseFloat(amount);
+    
+    // Handle NaN case
+    if (isNaN(numericAmount)) {
+      return '₹0';
+    }
+    
+    return `₹${numericAmount.toLocaleString('en-IN')}`;
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -54,7 +72,7 @@ const QuotationsList: React.FC<QuotationsListProps> = ({
                   {format(new Date(quotation.created_at), 'dd MMM yyyy')}
                 </TableCell>
                 <TableCell className="text-right">
-                  ₹{quotation.quotation_data.totalAmount.toLocaleString('en-IN')}
+                  {formatCurrency(quotation.quotation_data?.totalAmount)}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-2">

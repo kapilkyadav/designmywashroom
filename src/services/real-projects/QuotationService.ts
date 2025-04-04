@@ -29,8 +29,18 @@ export class QuotationService extends BaseService {
       
       if (washroomsError) throw washroomsError;
       
+      // Ensure quotationData has valid values
+      const sanitizedQuotationData = {
+        ...quotationData,
+        totalAmount: parseFloat(quotationData.totalAmount) || 0,
+        items: (quotationData.items || []).map((item: any) => ({
+          ...item,
+          amount: parseFloat(item.amount) || 0
+        }))
+      };
+      
       // Generate HTML for the quotation with washroom details
-      const quotationHtml = this.generateQuotationHtml(project, quotationData, washrooms || []);
+      const quotationHtml = this.generateQuotationHtml(project, sanitizedQuotationData, washrooms || []);
       
       // Create a quotation number
       const quotationNumber = `QUO-${project.project_id}-${format(new Date(), 'yyyyMMdd')}`;
@@ -43,7 +53,7 @@ export class QuotationService extends BaseService {
       const quotationToSave = {
         project_id: projectId,
         quotation_number: quotationNumber,
-        quotation_data: quotationData,
+        quotation_data: sanitizedQuotationData,
         quotation_html: quotationHtml,
         created_by: userId || null
       };
@@ -61,7 +71,7 @@ export class QuotationService extends BaseService {
         .from('real_projects')
         .update({
           quotation_generated_at: new Date().toISOString(),
-          final_quotation_amount: quotationData.totalAmount || project.final_quotation_amount
+          final_quotation_amount: sanitizedQuotationData.totalAmount || project.final_quotation_amount
         })
         .eq('id', projectId);
       
@@ -80,6 +90,13 @@ export class QuotationService extends BaseService {
    * Helper function to generate HTML for quotation
    */
   static generateQuotationHtml(project: RealProject, quotationData: Record<string, any>, washrooms: Washroom[]): string {
+    // Format value with safe number handling
+    const formatAmount = (value: any): string => {
+      if (value === undefined || value === null) return '0';
+      const numValue = typeof value === 'number' ? value : parseFloat(value);
+      return isNaN(numValue) ? '0' : numValue.toLocaleString('en-IN');
+    };
+    
     // Create a basic HTML template for the quotation
     return `
       <!DOCTYPE html>
@@ -160,18 +177,18 @@ export class QuotationService extends BaseService {
               </tr>
             </thead>
             <tbody>
-              ${quotationData.items?.map((item: any) => `
+              ${(quotationData.items || []).map((item: any) => `
                 <tr>
-                  <td>${item.name}</td>
-                  <td>${item.description}</td>
-                  <td>₹${item.amount.toLocaleString('en-IN')}</td>
+                  <td>${item.name || ''}</td>
+                  <td>${item.description || ''}</td>
+                  <td>₹${formatAmount(item.amount)}</td>
                 </tr>
-              `).join('') || ''}
+              `).join('')}
             </tbody>
           </table>
           
           <div class="total">
-            <p>Total Amount: ₹${(quotationData.totalAmount || 0).toLocaleString('en-IN')}</p>
+            <p>Total Amount: ₹${formatAmount(quotationData.totalAmount)}</p>
           </div>
           
           <div class="terms">
