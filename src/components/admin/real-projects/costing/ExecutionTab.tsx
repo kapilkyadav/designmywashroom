@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Loader2, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ExecutionTabProps {
   project: RealProject;
@@ -25,6 +26,8 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [costSummary, setCostSummary] = useState<Record<string, any>>({});
   const [serviceRates, setServiceRates] = useState<Record<string, number>>({});
+  const [serviceMeasurements, setServiceMeasurements] = useState<Record<string, string>>({});
+  const [activeWashroomTab, setActiveWashroomTab] = useState<string>('all');
   
   // Fetch execution services
   const { data: services, isLoading: isLoadingServices } = useQuery({
@@ -48,6 +51,11 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
     if (ratesData) {
       setTilingRates(ratesData);
     }
+    
+    // Set initial active washroom tab
+    if (project.washrooms && project.washrooms.length > 0) {
+      setActiveWashroomTab('all');
+    }
   }, [project, ratesData]);
   
   // Calculate costs when washrooms, execution costs, or services change
@@ -64,7 +72,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
         
         setCostSummary(calculatedCosts);
         
-        // If we have service rates, update execution costs
+        // If we have service rates and measurements, update our state
         if (calculatedCosts.service_rates) {
           setServiceRates(calculatedCosts.service_rates);
           
@@ -77,6 +85,10 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
           });
           
           setExecutionCosts(updatedCosts);
+        }
+        
+        if (calculatedCosts.service_measurements) {
+          setServiceMeasurements(calculatedCosts.service_measurements);
         }
       } catch (error) {
         console.error("Error calculating costs:", error);
@@ -141,6 +153,34 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
       servicesByCategory[categoryName].push(service);
     });
   }
+  
+  // Filter services by selected washroom
+  const filteredServices = (selectedWashroomId: string) => {
+    if (selectedWashroomId === 'all') {
+      return services || [];
+    } else {
+      const selectedWashroom = project.washrooms?.find(w => w.id === selectedWashroomId);
+      if (!selectedWashroom || !selectedWashroom.services) return [];
+      
+      return services?.filter(service => selectedWashroom.services?.[service.id]) || [];
+    }
+  };
+  
+  // Group filtered services by category for a specific washroom
+  const filteredServicesByCategory = (selectedWashroomId: string) => {
+    const filtered = filteredServices(selectedWashroomId);
+    const result: Record<string, any[]> = {};
+    
+    filtered.forEach(service => {
+      const categoryName = service.category?.name || "Uncategorized";
+      if (!result[categoryName]) {
+        result[categoryName] = [];
+      }
+      result[categoryName].push(service);
+    });
+    
+    return result;
+  };
   
   return (
     <div className="space-y-6">
@@ -209,9 +249,9 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
                 </TableCell>
               </TableRow>
               <TableRow>
-                <TableCell className="font-medium">Tiling Work</TableCell>
+                <TableCell className="font-medium">Product Costs</TableCell>
                 <TableCell className="text-right">
-                  ₹{costSummary.tiling_cost?.toLocaleString('en-IN') || 0}
+                  ₹{costSummary.product_costs_total?.toLocaleString('en-IN') || 0}
                 </TableCell>
               </TableRow>
               <TableRow className="font-semibold">
@@ -225,52 +265,204 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
         </CardContent>
       </Card>
       
-      {/* Execution services pricing */}
-      {Object.entries(servicesByCategory).map(([category, categoryServices]) => (
-        <Card key={category} className="overflow-hidden">
+      {/* Washroom specific costs */}
+      {project.washrooms && project.washrooms.length > 0 && costSummary.washroom_costs && (
+        <Card>
           <CardContent className="p-0">
             <div className="bg-secondary px-4 py-3">
-              <h4 className="font-medium">{category} Services</h4>
+              <h4 className="font-medium">Washroom Cost Details</h4>
             </div>
             <Separator />
             
-            <div className="p-4">
-              <div className="grid grid-cols-1 gap-4">
-                {categoryServices.map(service => {
-                  // Get suggested rate from vendor rate card if available
-                  const suggestedRate = serviceRates[service.id] || 0;
-                  const currentRate = executionCosts[service.id] || suggestedRate;
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Washroom</TableHead>
+                  <TableHead className="text-right">Execution Services</TableHead>
+                  <TableHead className="text-right">Product Costs</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {project.washrooms.map(washroom => {
+                  const washroomCost = costSummary.washroom_costs?.[washroom.id] || {
+                    executionServices: 0,
+                    productCosts: 0,
+                    totalCost: 0
+                  };
                   
                   return (
-                    <div key={service.id} className="grid grid-cols-3 gap-4 items-center">
-                      <div className="col-span-2">
-                        <Label htmlFor={`service-cost-${service.id}`}>{service.scope_of_work}</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {suggestedRate > 0 && `Suggested rate: ₹${suggestedRate}`}
-                        </p>
-                      </div>
-                      <div>
-                        <div className="flex items-center">
-                          <span className="mr-2 text-muted-foreground">₹</span>
-                          <Input
-                            id={`service-cost-${service.id}`}
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={currentRate || ''}
-                            onChange={(e) => handleCostChange(service.id, parseFloat(e.target.value) || 0)}
-                            className="text-right"
-                          />
+                    <TableRow key={washroom.id}>
+                      <TableCell>
+                        <span className="font-medium">{washroom.name}</span>
+                        <div className="text-xs text-muted-foreground">
+                          {washroom.selected_brand && `Brand: ${washroom.selected_brand}`}
                         </div>
-                      </div>
-                    </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ₹{washroomCost.executionServices?.toLocaleString('en-IN') || 0}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ₹{washroomCost.productCosts?.toLocaleString('en-IN') || 0}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ₹{washroomCost.totalCost?.toLocaleString('en-IN') || 0}
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </div>
-            </div>
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
-      ))}
+      )}
+      
+      {/* Execution services pricing */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="bg-secondary px-4 py-3">
+            <h4 className="font-medium">Execution Services Pricing</h4>
+            <p className="text-sm text-muted-foreground mt-1">
+              Edit service rates for cost calculation
+            </p>
+          </div>
+          <Separator />
+          
+          <div className="p-4">
+            {project.washrooms && project.washrooms.length > 0 && (
+              <Tabs value={activeWashroomTab} onValueChange={setActiveWashroomTab}>
+                <TabsList className="mb-4">
+                  <TabsTrigger value="all">All Services</TabsTrigger>
+                  {project.washrooms.map(washroom => (
+                    <TabsTrigger key={washroom.id} value={washroom.id}>{washroom.name}</TabsTrigger>
+                  ))}
+                </TabsList>
+                
+                <TabsContent value="all">
+                  {Object.entries(servicesByCategory).map(([category, categoryServices]) => (
+                    <div key={category} className="mt-4">
+                      <h5 className="font-medium text-sm mb-2">{category} Services</h5>
+                      
+                      <div className="space-y-3">
+                        {categoryServices.map(service => {
+                          // Get suggested rate from vendor rate card if available
+                          const suggestedRate = serviceRates[service.id] || 0;
+                          const currentRate = executionCosts[service.id] || suggestedRate;
+                          const measurementUnit = service.measuring_unit || '';
+                          
+                          return (
+                            <div key={service.id} className="grid grid-cols-3 gap-4 items-center">
+                              <div className="col-span-2">
+                                <Label htmlFor={`service-cost-${service.id}`}>{service.scope_of_work}</Label>
+                                <p className="text-sm text-muted-foreground">
+                                  {measurementUnit && `Unit: ${measurementUnit}`}
+                                  {suggestedRate > 0 && ` • Suggested rate: ₹${suggestedRate}`}
+                                </p>
+                              </div>
+                              <div>
+                                <div className="flex items-center">
+                                  <span className="mr-2 text-muted-foreground">₹</span>
+                                  <Input
+                                    id={`service-cost-${service.id}`}
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={currentRate || ''}
+                                    onChange={(e) => handleCostChange(service.id, parseFloat(e.target.value) || 0)}
+                                    className="text-right"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </TabsContent>
+                
+                {project.washrooms.map(washroom => {
+                  const filteredCategoryServices = filteredServicesByCategory(washroom.id);
+                  
+                  return (
+                    <TabsContent key={washroom.id} value={washroom.id}>
+                      <div className="mb-4">
+                        <h5 className="text-lg font-medium">{washroom.name}</h5>
+                        <p className="text-sm text-muted-foreground">
+                          {washroom.length} × {washroom.width} ft ({washroom.area.toFixed(2)} sq ft)
+                          {washroom.selected_brand && ` • Brand: ${washroom.selected_brand}`}
+                        </p>
+                      </div>
+                      
+                      {Object.keys(filteredCategoryServices).length > 0 ? (
+                        Object.entries(filteredCategoryServices).map(([category, categoryServices]) => (
+                          <div key={category} className="mt-4">
+                            <h5 className="font-medium text-sm mb-2">{category} Services</h5>
+                            
+                            <div className="space-y-3">
+                              {categoryServices.map(service => {
+                                // Get suggested rate from vendor rate card if available
+                                const suggestedRate = serviceRates[service.id] || 0;
+                                const currentRate = executionCosts[service.id] || suggestedRate;
+                                const measurementUnit = service.measuring_unit || '';
+                                
+                                // Calculate estimated cost based on measurement unit and dimensions
+                                let estimatedCost = currentRate;
+                                const measurementLower = measurementUnit.toLowerCase();
+                                if (measurementLower.includes('sqft') || measurementLower.includes('sft') || 
+                                    measurementLower.includes('sq ft') || measurementLower.includes('square')) {
+                                  estimatedCost = currentRate * washroom.area;
+                                }
+                                
+                                return (
+                                  <div key={service.id} className="grid grid-cols-4 gap-4 items-center">
+                                    <div className="col-span-2">
+                                      <Label htmlFor={`service-cost-${service.id}`}>{service.scope_of_work}</Label>
+                                      <p className="text-sm text-muted-foreground">
+                                        {measurementUnit && `Unit: ${measurementUnit}`}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center">
+                                        <span className="mr-2 text-muted-foreground">₹</span>
+                                        <Input
+                                          id={`service-cost-${service.id}`}
+                                          type="number"
+                                          min="0"
+                                          step="1"
+                                          value={currentRate || ''}
+                                          onChange={(e) => handleCostChange(service.id, parseFloat(e.target.value) || 0)}
+                                          className="text-right"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <p>
+                                        ₹{estimatedCost.toLocaleString('en-IN')}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Estimated cost
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-6 text-center text-muted-foreground">
+                          No services selected for this washroom
+                        </div>
+                      )}
+                    </TabsContent>
+                  );
+                })}
+              </Tabs>
+            )}
+          </div>
+        </CardContent>
+      </Card>
       
       <div className="flex justify-end">
         <Button 

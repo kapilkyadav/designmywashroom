@@ -9,9 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { VendorRateCardService } from '@/services/VendorRateCardService';
+import { BrandService } from '@/services/BrandService';
 
 interface WashroomsTabProps {
   project: RealProject;
@@ -22,6 +24,19 @@ interface WashroomsTabProps {
 const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate }) => {
   const [washrooms, setWashrooms] = useState<Washroom[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [brands, setBrands] = useState<any[]>([]);
+
+  // Fetch all brands
+  const { data: brandsData = [] } = useQuery({
+    queryKey: ['brands'],
+    queryFn: () => BrandService.getAllBrands(),
+  });
+
+  useEffect(() => {
+    if (brandsData.length > 0) {
+      setBrands(brandsData);
+    }
+  }, [brandsData]);
 
   // Fetch all vendor items to use for services
   const { data: vendorItems = [] } = useQuery({
@@ -42,7 +57,12 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
   useEffect(() => {
     // Initialize with project washrooms or create a default one
     if (project.washrooms && project.washrooms.length > 0) {
-      setWashrooms(project.washrooms);
+      // Make sure each washroom has a selected_brand field
+      const updatedWashrooms = project.washrooms.map(washroom => ({
+        ...washroom,
+        selected_brand: washroom.selected_brand || project.selected_brand || ''
+      }));
+      setWashrooms(updatedWashrooms);
     } else {
       const defaultWashroom: Washroom = {
         id: `temp-${Date.now()}`,
@@ -51,6 +71,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
         width: project.width || 0,
         height: project.height || 9,
         area: (project.length || 0) * (project.width || 0),
+        selected_brand: project.selected_brand || '',
         services: {}
       };
       setWashrooms([defaultWashroom]);
@@ -65,6 +86,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
       width: 0,
       height: 9,
       area: 0,
+      selected_brand: project.selected_brand || '',
       services: {}
     };
     
@@ -188,7 +210,22 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                   />
                 </div>
                 
-                <div></div> {/* Spacer */}
+                <div className="space-y-2">
+                  <Label htmlFor={`washroom-brand-${index}`}>Preferred Brand</Label>
+                  <Select
+                    value={washroom.selected_brand || ''}
+                    onValueChange={(value) => updateWashroomField(index, 'selected_brand', value)}
+                  >
+                    <SelectTrigger id={`washroom-brand-${index}`}>
+                      <SelectValue placeholder="Select brand" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {brands.map((brand) => (
+                        <SelectItem key={brand.id} value={brand.name}>{brand.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor={`washroom-length-${index}`}>Length (ft)</Label>
@@ -238,7 +275,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
               
               {Object.keys(servicesByCategory).length > 0 && (
                 <div className="mt-6">
-                  <h5 className="font-medium mb-3">Services</h5>
+                  <h5 className="font-medium mb-3">Execution Services</h5>
                   <div className="space-y-4">
                     {Object.entries(servicesByCategory).map(([category, categoryServices]) => (
                       <div key={category} className="border p-3 rounded-md">
@@ -255,6 +292,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                               />
                               <Label htmlFor={`service-${washroom.id}-${service.id}`}>
                                 {service.scope_of_work || service.name || "Unnamed Service"}
+                                {service.measuring_unit && <span className="text-xs text-muted-foreground ml-1">({service.measuring_unit})</span>}
                               </Label>
                             </div>
                           ))}
