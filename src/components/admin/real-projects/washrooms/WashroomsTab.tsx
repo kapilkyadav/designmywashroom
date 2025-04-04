@@ -1,5 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
-import { RealProject, Washroom, WashroomService } from '@/services/RealProjectService';
+import { RealProject, Washroom } from '@/services/RealProjectService';
+import { RealProjectService } from '@/services/real-projects';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { VendorRateCardService } from '@/services/VendorRateCardService';
 
 interface WashroomsTabProps {
   project: RealProject;
@@ -18,6 +22,22 @@ interface WashroomsTabProps {
 const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate }) => {
   const [washrooms, setWashrooms] = useState<Washroom[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Fetch all vendor items to use for services
+  const { data: vendorItems = [] } = useQuery({
+    queryKey: ['vendor-items'],
+    queryFn: () => VendorRateCardService.getItems(),
+  });
+
+  // Group vendor items by category
+  const servicesByCategory: Record<string, any[]> = {};
+  vendorItems.forEach(service => {
+    const category = service.category?.name || "Uncategorized";
+    if (!servicesByCategory[category]) {
+      servicesByCategory[category] = [];
+    }
+    servicesByCategory[category].push(service);
+  });
   
   useEffect(() => {
     // Initialize with project washrooms or create a default one
@@ -109,8 +129,8 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
         }
       }
       
-      // Use the WashroomService to update washrooms
-      const success = await WashroomService.updateProjectWashrooms(project.id, washrooms);
+      // Use the RealProjectService to update washrooms
+      const success = await RealProjectService.updateProjectWashrooms(project.id, washrooms);
       
       if (success) {
         toast({
@@ -130,15 +150,6 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
       setIsUpdating(false);
     }
   };
-  
-  // Group services by category
-  const servicesByCategory: Record<string, any[]> = {};
-  services.forEach(service => {
-    if (!servicesByCategory[service.category]) {
-      servicesByCategory[service.category] = [];
-    }
-    servicesByCategory[service.category].push(service);
-  });
   
   return (
     <div className="space-y-6">
@@ -225,7 +236,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                 </div>
               </div>
               
-              {services.length > 0 && (
+              {Object.keys(servicesByCategory).length > 0 && (
                 <div className="mt-6">
                   <h5 className="font-medium mb-3">Services</h5>
                   <div className="space-y-4">
@@ -243,7 +254,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                                 }
                               />
                               <Label htmlFor={`service-${washroom.id}-${service.id}`}>
-                                {service.name}
+                                {service.scope_of_work || service.name || "Unnamed Service"}
                               </Label>
                             </div>
                           ))}
