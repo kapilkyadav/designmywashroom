@@ -1,14 +1,13 @@
 
 import React from 'react';
 import WashroomLayoutDesigner from '@/components/admin/washroom-designer/WashroomLayoutDesigner';
-import { Helmet } from 'react-helmet';
 
 const AdminWashroomDesigner = () => {
   return (
     <div>
-      <Helmet>
+      <div className="mb-4">
         <title>Washroom Layout Designer | Admin</title>
-      </Helmet>
+      </div>
       <WashroomLayoutDesigner />
     </div>
   );
