@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import {
   Form,
@@ -100,6 +100,11 @@ LoadingIndicator.displayName = 'LoadingIndicator';
 const AdminLogin = () => {
   const { isAuthenticated, isLoading, login } = useAdminAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Get the redirect path from location state or default to dashboard
+  const from = location.state?.from?.pathname || "/admin/dashboard";
 
   const handleSubmit = async (values: FormValues) => {
     if (isSubmitting) return; // Prevent double submission
@@ -107,6 +112,9 @@ const AdminLogin = () => {
     setIsSubmitting(true);
     try {
       await login(values.email, values.password);
+      // Login is handled by the auth provider which will update isAuthenticated
+    } catch (error) {
+      console.error("Login error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -114,9 +122,9 @@ const AdminLogin = () => {
 
   // Compute the component state once using useMemo to avoid recalculation
   const renderContent = useMemo(() => {
-    // If already authenticated, redirect to admin dashboard
+    // If already authenticated, redirect to the redirect path
     if (isAuthenticated) {
-      return <Navigate to="/admin/dashboard" />;
+      return <Navigate to={from} replace />;
     }
 
     // Show loading state while checking authentication
@@ -143,7 +151,7 @@ const AdminLogin = () => {
         </Card>
       </div>
     );
-  }, [isAuthenticated, isLoading, isSubmitting, handleSubmit]);
+  }, [isAuthenticated, isLoading, isSubmitting, handleSubmit, from]);
 
   return renderContent;
 };

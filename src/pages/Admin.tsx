@@ -1,12 +1,13 @@
 
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 
 const Admin = () => {
   const { isAuthenticated, isLoading } = useAdminAuth();
+  const location = useLocation();
 
   // If authentication is still loading, show a loading state
   if (isLoading) {
@@ -17,9 +18,9 @@ const Admin = () => {
     );
   }
 
-  // If not authenticated, redirect to admin login
+  // If not authenticated, redirect to admin login with the current location as the return URL
   if (!isAuthenticated) {
-    return <Navigate to="/admin/login" replace />;
+    return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 
   return (
