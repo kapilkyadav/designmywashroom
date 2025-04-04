@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './BaseService';
 import { Washroom } from './types';
@@ -8,11 +9,17 @@ export class WashroomService extends BaseService {
    */
   static async addWashroomToProject(projectId: string, washroom: Omit<Washroom, 'id' | 'created_at'>): Promise<Washroom> {
     try {
+      // Prepare washroom data, excluding the 'area' field which is generated in the database
       const washroomData = {
-        ...washroom,
         project_id: projectId,
+        name: washroom.name,
+        length: washroom.length,
+        width: washroom.width,
+        height: washroom.height,
         wall_area: washroom.wall_area || washroom.wallArea,
-        ceiling_area: washroom.ceiling_area || washroom.ceilingArea
+        ceiling_area: washroom.ceiling_area || washroom.ceilingArea,
+        services: washroom.services || {},
+        selected_brand: washroom.selected_brand
       };
 
       const { data, error } = await supabase
@@ -65,21 +72,21 @@ export class WashroomService extends BaseService {
       // Process each washroom
       for (const washroom of washrooms) {
         // Remove temp- prefix from IDs if present
-        const washroomId = washroom.id.startsWith('temp-') ? washroom.id : washroom.id;
+        const washroomId = washroom.id.startsWith('temp-') ? washroom.id.substring(5) : washroom.id;
         
-        // Prepare washroom data for update
+        // Prepare washroom data for update, excluding the 'area' field
         const washroomData = {
           project_id: projectId,
           name: washroom.name,
           length: washroom.length,
           width: washroom.width,
           height: washroom.height,
-          area: washroom.area,
-          services: washroom.services || {}
+          services: washroom.services || {},
+          selected_brand: washroom.selected_brand
         };
         
         // If it exists in DB, update it
-        if (existingIds.has(washroomId) && !washroomId.startsWith('temp-')) {
+        if (existingIds.has(washroomId) && !washroom.id.startsWith('temp-')) {
           const { error } = await supabase
             .from('project_washrooms')
             .update(washroomData)
