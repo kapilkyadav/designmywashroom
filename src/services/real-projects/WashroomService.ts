@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './BaseService';
 import { Washroom } from './types';
@@ -45,6 +44,73 @@ export class WashroomService extends BaseService {
       return data as Washroom[];
     } catch (error: any) {
       return BaseService.handleError(error, 'Failed to fetch washrooms');
+    }
+  }
+  
+  /**
+   * Update washrooms for a project
+   */
+  static async updateProjectWashrooms(projectId: string, washrooms: Washroom[]): Promise<boolean> {
+    try {
+      // First, get existing washrooms to determine which ones to update/delete/insert
+      const { data: existingWashrooms, error: fetchError } = await supabase
+        .from('project_washrooms')
+        .select('id')
+        .eq('project_id', projectId);
+      
+      if (fetchError) throw fetchError;
+      
+      const existingIds = new Set((existingWashrooms || []).map(w => w.id));
+      
+      // Process each washroom
+      for (const washroom of washrooms) {
+        // Remove temp- prefix from IDs if present
+        const washroomId = washroom.id.startsWith('temp-') ? washroom.id : washroom.id;
+        
+        // Prepare washroom data for update
+        const washroomData = {
+          project_id: projectId,
+          name: washroom.name,
+          length: washroom.length,
+          width: washroom.width,
+          height: washroom.height,
+          area: washroom.area,
+          services: washroom.services || {}
+        };
+        
+        // If it exists in DB, update it
+        if (existingIds.has(washroomId) && !washroomId.startsWith('temp-')) {
+          const { error } = await supabase
+            .from('project_washrooms')
+            .update(washroomData)
+            .eq('id', washroomId);
+          
+          if (error) throw error;
+          existingIds.delete(washroomId);
+        } 
+        // Otherwise insert new washroom
+        else {
+          const { error } = await supabase
+            .from('project_washrooms')
+            .insert(washroomData);
+          
+          if (error) throw error;
+        }
+      }
+      
+      // Delete washrooms that are in DB but not in the current list
+      if (existingIds.size > 0) {
+        const { error } = await supabase
+          .from('project_washrooms')
+          .delete()
+          .in('id', Array.from(existingIds));
+        
+        if (error) throw error;
+      }
+      
+      return true;
+    } catch (error: any) {
+      return BaseService.handleError(error, 'Failed to update washrooms');
     }
   }
 }

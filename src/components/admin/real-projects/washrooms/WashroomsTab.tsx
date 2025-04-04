@@ -1,13 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
-import { RealProject, Washroom } from '@/services/RealProjectService';
+import { RealProject, Washroom, WashroomService } from '@/services/RealProjectService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -111,26 +109,21 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
         }
       }
       
-      // Update the project with new washrooms
-      await project.updateCosts({
-        ...project,
-        washrooms,
-        execution_costs: project.execution_costs || {},
-        vendor_rates: project.vendor_rates || {},
-        additional_costs: project.additional_costs || {},
-        final_quotation_amount: project.final_quotation_amount || 0
-      });
+      // Use the WashroomService to update washrooms
+      const success = await WashroomService.updateProjectWashrooms(project.id, washrooms);
       
-      toast({
-        title: "Washrooms updated",
-        description: "Washroom details have been saved successfully.",
-      });
-      
-      onUpdate();
+      if (success) {
+        toast({
+          title: "Washrooms updated",
+          description: "Washroom details have been saved successfully.",
+        });
+        
+        onUpdate();
+      }
     } catch (error: any) {
       toast({
         title: "Failed to save washrooms",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {

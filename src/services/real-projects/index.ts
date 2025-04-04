@@ -21,6 +21,7 @@ export class RealProjectService {
   // Washroom Service Methods
   static addWashroomToProject = WashroomService.addWashroomToProject;
   static getProjectWashrooms = WashroomService.getProjectWashrooms;
+  static updateProjectWashrooms = WashroomService.updateProjectWashrooms;
   
   // Conversion Service Methods
   static getConvertibleRecords = ConversionService.getConvertibleRecords;
