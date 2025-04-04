@@ -22,6 +22,7 @@ import AdminSettings from './pages/AdminSettings';
 import AdminLogin from './pages/AdminLogin';
 import AdminLeads from './pages/AdminLeads';
 import AdminExecutionServices from './pages/AdminExecutionServices';
+import AdminWashroomDesigner from './pages/AdminWashroomDesigner';
 
 // New Real Projects routes
 import AdminRealProjects from './pages/AdminRealProjects';
@@ -77,6 +78,9 @@ function App() {
               
               {/* Vendor Rate Card route */}
               <Route path="vendor-rate-card" element={<AdminVendorRateCard />} />
+
+              {/* Washroom Designer route */}
+              <Route path="washroom-designer" element={<AdminWashroomDesigner />} />
               
               <Route path="settings" element={<AdminSettings />} />
               <Route path="leads" element={<AdminLeads />} />

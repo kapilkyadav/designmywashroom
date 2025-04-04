@@ -6,7 +6,7 @@ import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/hooks/useTheme';
-import { LayoutDashboard, Package, ShowerHead, Settings, LogOut, Sun, Moon, Menu, X, BarChart, ClipboardList, UserRound, Phone, FileCheck, Clipboard, Database } from 'lucide-react';
+import { LayoutDashboard, Package, ShowerHead, Settings, LogOut, Sun, Moon, Menu, X, BarChart, ClipboardList, UserRound, Phone, FileCheck, Clipboard, Database, SquareKanban } from 'lucide-react';
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -75,7 +75,12 @@ const AdminSidebar = () => {
       name: 'Fixtures',
       href: '/admin/fixtures',
       icon: <ShowerHead className="h-5 w-5" />
-    }, 
+    },
+    {
+      name: 'Washroom Designer',
+      href: '/admin/washroom-designer',
+      icon: <SquareKanban className="h-5 w-5" />
+    },
     {
       name: 'Settings',
       href: '/admin/settings',
