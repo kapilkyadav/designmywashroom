@@ -239,7 +239,7 @@ const ProjectDetailsTab: React.FC<ProjectDetailsTabProps> = ({ project, onUpdate
                         </FormControl>
                         <SelectContent>
                           {loadingBrands ? (
-                            <SelectItem value="">Loading brands...</SelectItem>
+                            <SelectItem value="loading">Loading brands...</SelectItem>
                           ) : (
                             brands.map(brand => (
                               <SelectItem key={brand.id} value={brand.id}>
