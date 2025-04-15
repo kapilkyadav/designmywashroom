@@ -43,9 +43,22 @@ const PasswordResetForm: React.FC = () => {
   const onSubmit = async (values: PasswordResetFormValues) => {
     setIsSubmitting(true);
     try {
+      // Get current user's email
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData.session) {
+        throw new Error('Not authenticated');
+      }
+      
+      const userEmail = sessionData.session.user.email;
+      
+      if (!userEmail) {
+        throw new Error('User email not found');
+      }
+
       // Reauthenticate user first
       const { error: authError } = await supabase.auth.signInWithPassword({
-        email: supabase.auth.user()?.email ?? '',
+        email: userEmail,
         password: values.currentPassword
       });
 
