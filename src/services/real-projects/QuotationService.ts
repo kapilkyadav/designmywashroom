@@ -112,69 +112,60 @@ export class QuotationService extends BaseService {
           
           :root {
             --primary-color: #1A1F2C;
+            --secondary-color: #E5DEFF;
             --accent-color: #6E59A5;
-            --border-color: #E5DEFF;
+            --border-color: #e2e8f0;
           }
           
           body {
             font-family: 'Inter', sans-serif;
-            color: #333;
+            color: #1A1F2C;
             line-height: 1.6;
-            background-color: #fff;
             margin: 0;
             padding: 0;
           }
           
           .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 40px;
-            background-color: #fff;
-            box-shadow: 0 0 20px rgba(0,0,0,0.05);
           }
           
           .header {
             text-align: center;
+            padding: 20px 0;
             margin-bottom: 40px;
-            padding: 20px;
             border-bottom: 2px solid var(--border-color);
-            position: relative;
           }
           
-          .logo {
+          .header img {
             max-width: 200px;
             margin-bottom: 20px;
           }
           
           .header h1 {
             color: var(--primary-color);
-            font-size: 28px;
-            margin: 0;
-            font-weight: 600;
+            font-size: 24px;
+            margin: 10px 0;
           }
           
           .header h2 {
             color: var(--accent-color);
-            font-size: 20px;
-            margin: 10px 0;
-            font-weight: 500;
+            font-size: 18px;
+            margin: 5px 0;
           }
           
-          .quotation-info {
-            display: flex;
-            justify-content: space-between;
-            gap: 40px;
+          .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
             margin-bottom: 30px;
+            background: #f8fafc;
             padding: 20px;
-            background-color: #F8F9FC;
             border-radius: 8px;
           }
           
-          .client-info, .project-info {
-            flex: 1;
-          }
-          
-          .info-title {
+          .section-title {
             color: var(--primary-color);
             font-size: 18px;
             font-weight: 600;
@@ -183,69 +174,111 @@ export class QuotationService extends BaseService {
             border-bottom: 2px solid var(--border-color);
           }
           
-          table {
+          .washroom-table {
             width: 100%;
+            margin-bottom: 30px;
             border-collapse: collapse;
-            margin: 20px 0;
-            background-color: #fff;
-            border-radius: 8px;
-            overflow: hidden;
           }
           
-          th {
+          .washroom-table th {
             background-color: var(--primary-color);
-            color: #fff;
-            padding: 12px;
+            color: white;
             text-align: left;
-            font-weight: 500;
-          }
-          
-          td {
             padding: 12px;
-            border-bottom: 1px solid #eee;
           }
           
-          tr:last-child td {
-            border-bottom: none;
+          .washroom-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
           }
           
-          .total {
-            font-weight: 600;
-            text-align: right;
-            margin-top: 20px;
+          .washroom-table tr:nth-child(even) {
+            background-color: #f8fafc;
+          }
+          
+          .items-table {
+            width: 100%;
+            margin-bottom: 30px;
+            border-collapse: collapse;
+          }
+          
+          .items-table th {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: left;
+            padding: 12px;
+          }
+          
+          .items-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+          }
+          
+          .items-table tr:nth-child(even) {
+            background-color: #f8fafc;
+          }
+          
+          .total-section {
+            background-color: #f8fafc;
             padding: 20px;
-            background-color: #F8F9FC;
             border-radius: 8px;
-            color: var(--primary-color);
-            font-size: 18px;
+            margin-bottom: 30px;
           }
           
-          .terms {
-            margin-top: 40px;
-            padding: 20px;
-            background-color: #F8F9FC;
-            border-radius: 8px;
-          }
-          
-          .terms h3 {
-            color: var(--primary-color);
-            margin-top: 0;
-            font-size: 18px;
+          .total-row {
+            display: flex;
+            justify-content: space-between;
             font-weight: 600;
+            font-size: 18px;
+            color: var(--primary-color);
+          }
+          
+          .terms-section {
+            background-color: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
           }
           
           .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid var(--border-color);
             text-align: center;
-            color: #666;
-            font-size: 12px;
+            padding-top: 30px;
+            border-top: 2px solid var(--border-color);
+            color: #64748b;
+            font-size: 14px;
           }
           
           .footer img {
-            max-width: 100px;
-            margin-bottom: 10px;
+            max-width: 120px;
+            margin-bottom: 15px;
+          }
+          
+          .product-list {
+            margin-top: 40px;
+          }
+          
+          .product-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+          }
+          
+          .product-table th {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: left;
+            padding: 12px;
+          }
+          
+          .product-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+          }
+          
+          .product-table img {
+            max-width: 60px;
+            height: auto;
           }
           
           @media print {
@@ -256,11 +289,6 @@ export class QuotationService extends BaseService {
             
             .container {
               max-width: 100%;
-              box-shadow: none;
-            }
-            
-            .header, .quotation-info, table, .total, .terms {
-              break-inside: avoid;
             }
           }
         </style>
@@ -268,14 +296,14 @@ export class QuotationService extends BaseService {
       <body>
         <div class="container">
           <div class="header">
-            <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="YDS Logo" class="logo">
+            <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="Your Dream Space Logo" />
             <h1>Your Dream Space</h1>
-            <h2>Quotation ${project.project_id}</h2>
+            <h2>Quotation #${project.project_id}</h2>
           </div>
           
-          <div class="quotation-info">
+          <div class="info-grid">
             <div class="client-info">
-              <h3 class="info-title">Client Information</h3>
+              <h3 class="section-title">Client Information</h3>
               <p><strong>Name:</strong> ${project.client_name}</p>
               <p><strong>Email:</strong> ${project.client_email || 'N/A'}</p>
               <p><strong>Phone:</strong> ${project.client_mobile}</p>
@@ -283,17 +311,17 @@ export class QuotationService extends BaseService {
             </div>
             
             <div class="project-info">
-              <h3 class="info-title">Project Information</h3>
+              <h3 class="section-title">Project Details</h3>
               <p><strong>Project ID:</strong> ${project.project_id}</p>
-              <p><strong>Date:</strong> ${format(new Date(project.last_updated_at), 'dd/MM/yyyy')}</p>
+              <p><strong>Date:</strong> ${format(new Date(), 'dd/MM/yyyy')}</p>
               <p><strong>Project Type:</strong> ${project.project_type}</p>
               <p><strong>Brand:</strong> ${project.selected_brand || 'N/A'}</p>
             </div>
           </div>
           
-          <div class="washroom-details">
-            <h3 class="info-title">Washroom Details</h3>
-            <table>
+          <div class="washrooms-section">
+            <h3 class="section-title">Washroom Details</h3>
+            <table class="washroom-table">
               <thead>
                 <tr>
                   <th>Washroom</th>
@@ -302,53 +330,53 @@ export class QuotationService extends BaseService {
                 </tr>
               </thead>
               <tbody>
-                ${washrooms.map(washroom => {
-                  const length = washroom.length || 0;
-                  const width = washroom.width || 0;
-                  const height = washroom.height || 0;
-                  return `
-                    <tr>
-                      <td>${washroom.name || 'Washroom'}</td>
-                      <td>${length}' × ${width}' × ${height}'</td>
-                      <td>${(length * width) || 0} sq ft</td>
-                    </tr>
-                  `;
-                }).join('')}
+                ${washrooms.map((washroom) => `
+                  <tr>
+                    <td>${washroom.name || 'Washroom'}</td>
+                    <td>${washroom.length}' × ${washroom.width}' × ${washroom.height}'</td>
+                    <td>${(washroom.length * washroom.width).toFixed(2)} sq ft</td>
+                  </tr>
+                `).join('')}
               </tbody>
             </table>
           </div>
           
-          <h3 class="info-title">Quotation Details</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Description</th>
-                <th>Amount (₹)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${(quotationData.items || []).map((item: any) => `
+          <div class="items-section">
+            <h3 class="section-title">Quotation Items</h3>
+            <table class="items-table">
+              <thead>
                 <tr>
-                  <td>${item.name || ''}</td>
-                  <td>${item.description || ''}</td>
-                  <td>₹${formatAmount(item.amount)}</td>
+                  <th>Item</th>
+                  <th>Description</th>
+                  <th style="text-align: right;">Amount (₹)</th>
                 </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          
-          <div class="total">
-            Total Amount: ₹${formatAmount(quotationData.totalAmount)}
+              </thead>
+              <tbody>
+                ${(quotationData.items || []).map((item: any) => `
+                  <tr>
+                    <td>${item.name || ''}</td>
+                    <td>${item.description || ''}</td>
+                    <td style="text-align: right;">₹${formatAmount(item.amount)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
           </div>
           
-          <div class="terms">
-            <h3>Terms & Conditions</h3>
-            <p>${quotationData.terms || 'Standard terms and conditions apply.'}</p>
+          <div class="total-section">
+            <div class="total-row">
+              <span>Total Amount:</span>
+              <span>₹${formatAmount(quotationData.totalAmount)}</span>
+            </div>
+          </div>
+          
+          <div class="terms-section">
+            <h3 class="section-title">Terms & Conditions</h3>
+            <div>${quotationData.terms || 'Standard terms and conditions apply.'}</div>
           </div>
           
           <div class="footer">
-            <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="YDS Logo" />
+            <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="Your Dream Space Logo" />
             <p>This is a computer-generated quotation and doesn't require a signature.</p>
             <p>Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
           </div>
