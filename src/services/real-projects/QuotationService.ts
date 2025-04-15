@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -33,7 +34,15 @@ export class QuotationService extends BaseService {
       if (washroomsError) throw washroomsError;
       
       // Ensure quotationData has valid values
-      const sanitizedQuotationData = {
+      const sanitizedQuotationData: {
+        totalAmount: number;
+        items: any[];
+        margins: Record<string, number>;
+        gstRate: number;
+        internalPricing: boolean;
+        internalPricingDetails?: Record<string, any>;
+        serviceDetailsMap?: Record<string, any>;
+      } = {
         ...quotationData,
         totalAmount: parseFloat(quotationData.totalAmount) || 0,
         items: (quotationData.items || []).map((item: any) => ({
@@ -44,7 +53,8 @@ export class QuotationService extends BaseService {
         margins: quotationData.margins || {},
         gstRate: quotationData.gstRate || 18, // Default 18% GST
         internalPricing: quotationData.internalPricing || false,
-        internalPricingDetails: quotationData.internalPricingDetails || undefined
+        internalPricingDetails: quotationData.internalPricingDetails || undefined,
+        serviceDetailsMap: quotationData.serviceDetailsMap || {}
       };
       
       // Calculate internal pricing if enabled

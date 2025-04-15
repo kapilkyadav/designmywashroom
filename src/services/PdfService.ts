@@ -1,6 +1,6 @@
 
 import { toast } from '@/hooks/use-toast';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf'; // Changed from 'import jsPDF from 'jspdf'' to 'import { jsPDF } from 'jspdf''
 import html2canvas from 'html2canvas';
 
 export class PdfService {
