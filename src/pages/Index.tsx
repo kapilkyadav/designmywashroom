@@ -41,12 +41,14 @@ const Index = () => {
   ];
 
   const brands = [
-    { name: "Jaquar", logo: "/lovable-uploads/jaquar-logo.png" },
-    { name: "Grohe", logo: "/lovable-uploads/grohe-logo.png" },
-    { name: "Kohler", logo: "/lovable-uploads/kohler-logo.png" },
-    { name: "Cera", logo: "/lovable-uploads/cera-logo.png" },
-    { name: "Kajaria", logo: "/lovable-uploads/kajaria-logo.png" },
-    { name: "Somany", logo: "/lovable-uploads/somany-logo.png" }
+    { name: "Jaquar", logo: "https://ydsindia.co.in/wp-content/uploads/2024/10/Jaguar.png" },
+    { name: "Astral Pipes", logo: "https://ydsindia.co.in/wp-content/uploads/2024/10/ASTRAL-PIPES.png" },
+    { name: "Grohe", logo: "https://ydsindia.co.in/wp-content/uploads/2024/10/GROHE.png" },
+    { name: "Cera", logo: "https://ydsindia.co.in/wp-content/uploads/2024/10/CERA.png" },
+    { name: "Kajaria", logo: "https://ydsindia.co.in/wp-content/uploads/2024/10/Kajaria.png" },
+    { name: "Kohler", logo: "https://ydsindia.co.in/wp-content/uploads/2024/10/KOHLER.png" },
+    { name: "Anchor", logo: "https://ydsindia.co.in/wp-content/uploads/2024/10/Anchor.png" },
+    { name: "Asian Paints", logo: "https://ydsindia.co.in/wp-content/uploads/2024/10/Asian-Paints.png" }
   ];
 
   useEffect(() => {
