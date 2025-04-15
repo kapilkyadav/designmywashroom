@@ -1,9 +1,11 @@
 
 import { toast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export class PdfService {
   /**
-   * Generate PDF from HTML content using browser APIs
+   * Generate PDF from HTML content using jsPDF and html2canvas
    */
   static async generatePdfFromHtml(
     html: string, 
@@ -14,8 +16,9 @@ export class PdfService {
       const iframe = document.createElement('iframe');
       iframe.style.visibility = 'hidden';
       iframe.style.position = 'absolute';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
+      iframe.style.width = '8.27in'; // A4 width
+      iframe.style.height = '11.69in'; // A4 height
+      iframe.style.border = 'none';
       
       document.body.appendChild(iframe);
       
@@ -66,23 +69,87 @@ export class PdfService {
       // Wait for images and resources to load
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Use browser print functionality to save as PDF
-      if (iframe.contentWindow) {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
+      try {
+        // Try generating PDF using jsPDF and html2canvas
+        const contentElement = iframeDoc.body;
+        const canvas = await html2canvas(contentElement, {
+          scale: 2,
+          useCORS: true,
+          logging: false
+        });
+        
+        const contentWidth = canvas.width;
+        const contentHeight = canvas.height;
+        
+        // A4 dimensions in points (72 dpi)
+        const pageWidth = 595.28;
+        const pageHeight = 841.89;
+        
+        // Calculate the number of pages
+        const pagesCount = Math.ceil(contentHeight * (pageWidth / contentWidth) / pageHeight);
+        
+        // Create PDF with A4 size
+        const pdf = new jsPDF('p', 'pt', 'a4');
+        
+        // For each page, add a new PDF page and render the canvas section
+        let position = 0;
+        for (let i = 0; i < pagesCount; i++) {
+          if (i > 0) {
+            pdf.addPage();
+          }
+          
+          const srcWidth = contentWidth;
+          const srcHeight = (pageHeight / (pageWidth / contentWidth));
+          const srcX = 0;
+          const srcY = position;
+          
+          position += srcHeight;
+          
+          pdf.addImage(
+            canvas,
+            'PNG',
+            0,
+            0,
+            pageWidth,
+            srcHeight * (pageWidth / contentWidth),
+            '',
+            'FAST',
+            0
+          );
+        }
+        
+        // Save the PDF
+        pdf.save(filename);
+        
+        // Clean up the iframe
+        document.body.removeChild(iframe);
+        
+        toast({
+          title: 'PDF Generated',
+          description: 'Your document has been generated and downloaded.',
+        });
+        
+        // Return the PDF as a blob
+        return pdf.output('blob');
+      } catch (jsPdfError) {
+        console.error('Error generating PDF with jsPDF:', jsPdfError);
+        
+        // Fallback to browser print functionality
+        if (iframe.contentWindow) {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        }
+        
+        // Clean up the iframe
+        document.body.removeChild(iframe);
+        
+        toast({
+          title: 'PDF Generated',
+          description: 'Save the document using your browser\'s print dialog',
+        });
+        
+        return null;
       }
-      
-      // Clean up the iframe
-      document.body.removeChild(iframe);
-      
-      toast({
-        title: 'PDF Generated',
-        description: 'Save the document using your browser\'s print dialog',
-      });
-      
-      // For now, return null as we're using the browser's print dialog
-      // In a future enhancement, we could integrate with a PDF generation library
-      return null;
     } catch (error: any) {
       console.error('Error generating PDF:', error);
       toast({

@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { BaseService } from './BaseService';
 import { ProjectQuotation, RealProject, Washroom } from './types';
 import { PdfService } from '@/services/PdfService';
+import { VendorRateCardService } from '@/services/VendorRateCardService';
 
 export class QuotationService extends BaseService {
   /**
@@ -56,8 +57,38 @@ export class QuotationService extends BaseService {
         );
       }
       
+      // Fetch all service details to get names
+      const serviceIds = sanitizedQuotationData.items
+        .filter((item: any) => item.serviceDetails && item.serviceDetails.length > 0)
+        .flatMap((item: any) => item.serviceDetails.map((service: any) => service.serviceId))
+        .filter(Boolean);
+      
+      let serviceDetailsMap: Record<string, any> = {};
+      
+      if (serviceIds.length > 0) {
+        // Fetch service details from vendor_items
+        const { data: serviceItems } = await supabase
+          .from('vendor_items')
+          .select('id, scope_of_work, measuring_unit, category:vendor_categories(id, name)')
+          .in('id', serviceIds);
+          
+        if (serviceItems) {
+          serviceDetailsMap = serviceItems.reduce((acc: Record<string, any>, item: any) => {
+            acc[item.id] = {
+              name: item.scope_of_work,
+              unit: item.measuring_unit,
+              categoryName: item.category?.name || 'General'
+            };
+            return acc;
+          }, {});
+        }
+      }
+      
+      // Add service names to the quotation data for easier access in the HTML generation
+      sanitizedQuotationData.serviceDetailsMap = serviceDetailsMap;
+      
       // Generate HTML for the quotation with washroom details
-      const quotationHtml = QuotationService.generateQuotationHtml(project, sanitizedQuotationData, washrooms || []);
+      const quotationHtml = await QuotationService.generateQuotationHtml(project, sanitizedQuotationData, washrooms || []);
       
       // Get the current count of quotations for this project to create a unique sequence number
       const { count, error: countError } = await supabase
@@ -201,7 +232,7 @@ export class QuotationService extends BaseService {
   /**
    * Helper function to generate HTML for quotation
    */
-  static generateQuotationHtml(project: RealProject, quotationData: Record<string, any>, washrooms: Washroom[]): string {
+  static async generateQuotationHtml(project: RealProject, quotationData: Record<string, any>, washrooms: Washroom[]): Promise<string> {
     const formatAmount = (value: any): string => {
       if (value === undefined || value === null) return '0';
       const numValue = typeof value === 'number' ? value : parseFloat(value);
@@ -232,6 +263,56 @@ export class QuotationService extends BaseService {
     });
     
     const grandTotal = subtotalBeforeGst + gstAmount;
+    
+    // Group items by category for each washroom
+    const washroomItemsByCategory: Record<string, Record<string, any[]>> = {};
+    
+    for (const washroom of washrooms) {
+      const washroomItems = (quotationData.items || []).filter((item: any) => 
+        item.washroomId === washroom.id || !item.washroomId
+      );
+      
+      washroomItemsByCategory[washroom.id] = {};
+      
+      for (const item of washroomItems) {
+        if (item.isCategory) {
+          // For items that are already categories
+          const categoryName = item.name;
+          if (!washroomItemsByCategory[washroom.id][categoryName]) {
+            washroomItemsByCategory[washroom.id][categoryName] = [];
+          }
+          
+          // If the category has service details, add them individually
+          if (item.serviceDetails && item.serviceDetails.length > 0) {
+            for (const service of item.serviceDetails) {
+              // Get service name from the serviceDetailsMap
+              const serviceDetails = quotationData.serviceDetailsMap[service.serviceId] || {};
+              const serviceName = serviceDetails.name || service.name || `Service ${service.serviceId}`;
+              const serviceUnit = serviceDetails.unit || service.unit || '';
+              
+              washroomItemsByCategory[washroom.id][categoryName].push({
+                name: serviceName,
+                unit: serviceUnit,
+                description: '',
+                amount: service.cost,
+                mrp: service.cost * 1.2,
+                isService: true
+              });
+            }
+          } else {
+            // Add the category itself as an item
+            washroomItemsByCategory[washroom.id][categoryName].push(item);
+          }
+        } else {
+          // For regular items
+          const categoryName = item.category || 'Other Items';
+          if (!washroomItemsByCategory[washroom.id][categoryName]) {
+            washroomItemsByCategory[washroom.id][categoryName] = [];
+          }
+          washroomItemsByCategory[washroom.id][categoryName].push(item);
+        }
+      }
+    }
     
     return `
       <!DOCTYPE html>
@@ -428,52 +509,8 @@ export class QuotationService extends BaseService {
           <div class="washrooms-section">
             <h3 class="section-title">Washroom Details & Scope of Work</h3>
             ${washrooms.map((washroom, index) => {
-              // Get washroom-specific items from quotationData
-              const washroomItems = (quotationData.items || []).filter((item: any) => 
-                item.washroomId === washroom.id || !item.washroomId
-              );
-              
-              // Calculate washroom totals
-              const washroomTotal = washroomItems.reduce((sum: number, item: any) => 
-                sum + (parseFloat(item.amount) || 0), 0
-              );
-              
               const washroomArea = washroom.length * washroom.width;
-              
-              // Group items by category
-              const itemsByCategory: Record<string, any[]> = {};
-              
-              washroomItems.forEach((item: any) => {
-                if (item.isCategory) {
-                  // For items that are already categories, keep them as is
-                  const categoryName = item.name;
-                  if (!itemsByCategory[categoryName]) {
-                    itemsByCategory[categoryName] = [];
-                  }
-                  
-                  // Add the category item but also include its services for individual display
-                  if (item.serviceDetails && item.serviceDetails.length > 0) {
-                    item.serviceDetails.forEach((service: any) => {
-                      itemsByCategory[categoryName].push({
-                        name: service.name,
-                        unit: service.unit,
-                        cost: service.cost,
-                        mrp: service.cost * 1.2,
-                        isService: true
-                      });
-                    });
-                  } else {
-                    itemsByCategory[categoryName].push(item);
-                  }
-                } else {
-                  // For regular items
-                  const categoryName = item.category || 'Other Items';
-                  if (!itemsByCategory[categoryName]) {
-                    itemsByCategory[categoryName] = [];
-                  }
-                  itemsByCategory[categoryName].push(item);
-                }
-              });
+              const categoriesForWashroom = washroomItemsByCategory[washroom.id] || {};
               
               return `
                 <div class="washroom-card">
@@ -499,9 +536,9 @@ export class QuotationService extends BaseService {
                         </tr>
                       </thead>
                       <tbody>
-                        ${Object.entries(itemsByCategory).map(([category, items]) => {
+                        ${Object.entries(categoriesForWashroom).map(([category, items]) => {
                           // Calculate category totals
-                          const categoryTotal = items.reduce((sum, item) => sum + (item.isService ? item.cost : (parseFloat(item.amount) || 0)), 0);
+                          const categoryTotal = items.reduce((sum, item) => sum + (item.isService ? item.amount : (parseFloat(item.amount) || 0)), 0);
                           const categoryMrp = categoryTotal * 1.2;
                           
                           return `
@@ -510,8 +547,8 @@ export class QuotationService extends BaseService {
                                 ${category}
                               </td>
                             </tr>
-                            ${items.filter(item => !item.isService || (item.cost && item.cost > 0)).map(item => {
-                              const itemAmount = item.isService ? item.cost : (parseFloat(item.amount) || 0);
+                            ${items.filter(item => !item.isService || (item.amount && item.amount > 0)).map(item => {
+                              const itemAmount = item.isService ? item.amount : (parseFloat(item.amount) || 0);
                               const itemMrp = itemAmount * 1.2;
                               const itemUnit = item.unit || '';
                               
@@ -539,7 +576,7 @@ export class QuotationService extends BaseService {
                     <div class="price-box">
                       <div class="price-row">
                         <span>Total MRP:</span>
-                        <span>₹${formatAmount(washroomTotal * 1.2)}</span>
+                        <span>₹${formatAmount(subtotalBeforeGst * 1.2)}</span>
                       </div>
                       <div class="price-row">
                         <span>Discount:</span>
@@ -547,7 +584,7 @@ export class QuotationService extends BaseService {
                       </div>
                       <div class="price-row total">
                         <span>Special Price (before GST):</span>
-                        <span>₹${formatAmount(washroomTotal)}</span>
+                        <span>₹${formatAmount(subtotalBeforeGst)}</span>
                       </div>
                     </div>
                   </div>
