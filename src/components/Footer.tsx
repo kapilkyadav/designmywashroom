@@ -58,8 +58,8 @@ const Footer = () => {
                 <div className="mr-3 text-primary-foreground/80">
                   <Mail size={18} />
                 </div>
-                <a href="mailto:info@dreamspace.com" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
-                  info@dreamspace.com
+                <a href="mailto:info@ydsindia.co.in" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+                  info@ydsindia.co.in
                 </a>
               </li>
             </ul>
