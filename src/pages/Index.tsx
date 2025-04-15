@@ -257,7 +257,7 @@ const Index = () => {
                     <Card className="p-6">
                       <div className="aspect-[3/2] relative">
                         <img
-                          src="/placeholder.svg"
+                          src={brand.logo}
                           alt={`${brand.name} logo`}
                           className="object-contain w-full h-full"
                         />
