@@ -1,6 +1,6 @@
 
 import { toast } from '@/hooks/use-toast';
-import { jsPDF } from 'jspdf'; // Changed from 'import jsPDF from 'jspdf'' to 'import { jsPDF } from 'jspdf''
+import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
 export class PdfService {
@@ -33,6 +33,7 @@ export class PdfService {
             body {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
+              color-adjust: exact !important;
             }
             .container {
               padding: 0 !important;
@@ -40,6 +41,8 @@ export class PdfService {
             }
             table {
               page-break-inside: auto;
+              border-collapse: collapse;
+              width: 100%;
             }
             tr {
               page-break-inside: avoid;
@@ -51,12 +54,21 @@ export class PdfService {
             tfoot {
               display: table-footer-group;
             }
+            img {
+              max-width: 100% !important;
+            }
           }
         </style>
       `;
       
+      // Fix image paths to absolute URLs
+      let enhancedHtml = html.replace(/src="\/([^"]*)"/g, (match, p1) => {
+        const absoluteUrl = window.location.origin + '/' + p1;
+        return `src="${absoluteUrl}"`;
+      });
+      
       // Inject additional styles
-      const enhancedHtml = html.replace('</head>', `${additionalStyles}\n</head>`);
+      enhancedHtml = enhancedHtml.replace('</head>', `${additionalStyles}\n</head>`);
       
       // Write the HTML content to the iframe
       const iframeDoc = iframe.contentWindow?.document;
@@ -67,15 +79,24 @@ export class PdfService {
       iframeDoc.close();
       
       // Wait for images and resources to load
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       try {
-        // Try generating PDF using jsPDF and html2canvas
+        // Try generating PDF using jsPDF and html2canvas with improved settings
         const contentElement = iframeDoc.body;
         const canvas = await html2canvas(contentElement, {
-          scale: 2,
-          useCORS: true,
-          logging: false
+          scale: 1.5, // Higher scale for better quality
+          useCORS: true, // Enable cross-origin resource sharing
+          allowTaint: true, // Allow cross-origin images
+          logging: false,
+          onclone: (doc) => {
+            // Apply any last-minute fixes to the cloned document
+            const allTables = doc.querySelectorAll('table');
+            allTables.forEach(table => {
+              table.style.width = '100%';
+              table.style.borderCollapse = 'collapse';
+            });
+          }
         });
         
         const contentWidth = canvas.width;
@@ -89,7 +110,12 @@ export class PdfService {
         const pagesCount = Math.ceil(contentHeight * (pageWidth / contentWidth) / pageHeight);
         
         // Create PDF with A4 size
-        const pdf = new jsPDF('p', 'pt', 'a4');
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'pt',
+          format: 'a4',
+          compress: true
+        });
         
         // For each page, add a new PDF page and render the canvas section
         let position = 0;
@@ -105,6 +131,7 @@ export class PdfService {
           
           position += srcHeight;
           
+          // Add the image with better quality settings
           pdf.addImage(
             canvas,
             'PNG',
@@ -118,11 +145,22 @@ export class PdfService {
           );
         }
         
-        // Save the PDF
-        pdf.save(filename);
-        
         // Clean up the iframe
         document.body.removeChild(iframe);
+        
+        // Save the PDF
+        const pdfBlob = pdf.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        
+        // Create a link to download
+        const link = document.createElement('a');
+        link.href = pdfUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        document.body.removeChild(link);
         
         toast({
           title: 'PDF Generated',
@@ -130,7 +168,7 @@ export class PdfService {
         });
         
         // Return the PDF as a blob
-        return pdf.output('blob');
+        return pdfBlob;
       } catch (jsPdfError) {
         console.error('Error generating PDF with jsPDF:', jsPdfError);
         
@@ -144,7 +182,7 @@ export class PdfService {
         document.body.removeChild(iframe);
         
         toast({
-          title: 'PDF Generated',
+          title: 'PDF Generation Fallback',
           description: 'Save the document using your browser\'s print dialog',
         });
         

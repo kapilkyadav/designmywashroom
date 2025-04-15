@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -478,6 +479,7 @@ export class QuotationService extends BaseService {
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
+            table-layout: fixed;
           }
           
           .scope-table th {
@@ -485,11 +487,14 @@ export class QuotationService extends BaseService {
             color: var(--primary-color);
             text-align: left;
             padding: 12px;
+            font-weight: 600;
+            border: 1px solid #ddd;
           }
           
           .scope-table td {
             padding: 12px;
-            border-bottom: 1px solid var(--border-color);
+            border: 1px solid #ddd;
+            word-wrap: break-word;
           }
           
           .price-box {
@@ -540,6 +545,21 @@ export class QuotationService extends BaseService {
             
             .container {
               max-width: 100%;
+              padding: 20px;
+            }
+            
+            .washroom-header {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+              color-adjust: exact;
+              background-color: var(--primary-color) !important;
+              color: white !important;
+            }
+            
+            .scope-table th {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+              background-color: var(--secondary-color) !important;
             }
           }
         </style>
@@ -593,10 +613,10 @@ export class QuotationService extends BaseService {
                     <table class="scope-table">
                       <thead>
                         <tr>
-                          <th>Item</th>
-                          <th>Description</th>
-                          <th style="text-align: right;">MRP</th>
-                          <th style="text-align: right;">YDS Offer</th>
+                          <th style="width: 40%">Item</th>
+                          <th style="width: 25%">Description</th>
+                          <th style="width: 17.5%; text-align: right;">MRP</th>
+                          <th style="width: 17.5%; text-align: right;">YDS Offer</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -664,7 +684,7 @@ export class QuotationService extends BaseService {
               <span>₹${formatAmount(subtotalBeforeGst)}</span>
             </div>
             <div class="price-row">
-              <span>GST (18%):</span>
+              <span>GST (${quotationData.gstRate || 18}%):</span>
               <span>₹${formatAmount(gstAmount)}</span>
             </div>
             <div class="price-row total">
