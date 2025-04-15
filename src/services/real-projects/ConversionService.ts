@@ -193,14 +193,15 @@ export class ConversionService extends BaseService {
 
   /**
    * Handle error and display toast
+   * Throws the error after displaying toast to match BaseService behavior
    */
-  static handleError(error: any, defaultMessage: string) {
+  static handleError(error: any, defaultMessage: string): never {
     console.error(defaultMessage, error);
     toast({
       title: "Error",
       description: error.message || defaultMessage,
       variant: "destructive"
     });
-    throw error;
+    throw error;  // This ensures the method returns 'never' type
   }
 }
