@@ -283,7 +283,8 @@ export class QuotationService extends BaseService {
     // Calculate totals and GST
     let subtotalBeforeGst = 0;
     let gstAmount = 0;
-    
+    let totalMrp = 0;
+
     // First pass to calculate totals
     washrooms.forEach(washroom => {
       const washroomItems = (quotationData.items || []).filter((item: any) => 
@@ -291,20 +292,31 @@ export class QuotationService extends BaseService {
       );
       
       washroomItems.forEach((item: any) => {
-        const itemAmount = parseFloat(item.amount) || 0;
-        subtotalBeforeGst += itemAmount;
-        
+        // For brand products, use direct values
+        if (item.isBrandProduct) {
+          subtotalBeforeGst += parseFloat(item.client_price) || 0;
+          totalMrp += parseFloat(item.mrp) || 0;
+        } else {
+          // For services, apply margin
+          const itemAmount = parseFloat(item.amount) || 0;
+          subtotalBeforeGst += itemAmount;
+          totalMrp += itemAmount * 1.2; // 20% markup for services only
+        }
+
         if (item.applyGst !== false) {
-          gstAmount += itemAmount * (quotationData.gstRate || 18) / 100;
+          const amountForGst = item.isBrandProduct ? 
+            (parseFloat(item.client_price) || 0) : 
+            (parseFloat(item.amount) || 0);
+          gstAmount += amountForGst * (quotationData.gstRate || 18) / 100;
         }
       });
     });
-    
+
     const grandTotal = subtotalBeforeGst + gstAmount;
-    
+
     // Group items by category for each washroom
     const washroomItemsByCategory: Record<string, Record<string, any[]>> = {};
-    
+
     for (const washroom of washrooms) {
       const washroomItems = (quotationData.items || []).filter((item: any) => 
         item.washroomId === washroom.id || !item.washroomId
@@ -332,7 +344,7 @@ export class QuotationService extends BaseService {
                 unit: serviceUnit,
                 description: '',
                 amount: service.cost,
-                mrp: service.cost * 1.2,
+                mrp: service.cost * 1.2, // Apply markup only for services
                 isService: true
               });
             }
@@ -347,12 +359,12 @@ export class QuotationService extends BaseService {
             washroomItemsByCategory[washroom.id][categoryName] = [];
           }
 
-          // For brand products, use actual MRP and client_price
           if (item.isBrandProduct) {
+            // For brand products, use actual MRP and client_price directly
             washroomItemsByCategory[washroom.id][categoryName].push({
               ...item,
-              mrp: item.mrp || item.amount,
-              amount: item.client_price || item.amount
+              mrp: item.mrp,
+              amount: item.client_price
             });
           } else {
             // For services, apply standard markup
@@ -589,7 +601,6 @@ export class QuotationService extends BaseService {
                       </thead>
                       <tbody>
                         ${Object.entries(categoriesForWashroom).map(([category, items]) => {
-                          // Calculate category totals using actual prices
                           const categoryTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
                           const categoryMrp = items.reduce((sum, item) => sum + (parseFloat(item.mrp) || 0), 0);
                           
@@ -599,15 +610,20 @@ export class QuotationService extends BaseService {
                                 ${category}
                               </td>
                             </tr>
-                            ${items.filter(item => !item.isService || (item.amount && item.amount > 0)).map(item => {
+                            ${items.map(item => {
                               const itemAmount = parseFloat(item.amount) || 0;
                               const itemMrp = parseFloat(item.mrp) || 0;
                               const itemUnit = item.unit || '';
+                              const discountPercentage = item.isBrandProduct && itemMrp > 0 ? 
+                                Math.round((1 - (itemAmount / itemMrp)) * 100) : 0;
                               
                               return `
                                 <tr>
                                   <td style="padding-left: 24px;">
                                     • ${item.name} ${itemUnit ? `(${itemUnit})` : ''}
+                                    ${item.isBrandProduct && discountPercentage > 0 ? 
+                                      `<br/><span style="color: #16a34a; font-size: 0.9em;">${discountPercentage}% off</span>` : 
+                                      ''}
                                   </td>
                                   <td>${item.description || ''}</td>
                                   <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
@@ -628,7 +644,7 @@ export class QuotationService extends BaseService {
                     <div class="price-box">
                       <div class="price-row">
                         <span>Total MRP:</span>
-                        <span>₹${formatAmount(subtotalBeforeGst * 1.2)}</span>
+                        <span>₹${formatAmount(totalMrp)}</span>
                       </div>
                       <div class="price-row total">
                         <span>YDS Special Price (before GST):</span>
