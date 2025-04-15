@@ -35,6 +35,19 @@ export class PdfService {
               padding: 0 !important;
               max-width: 100% !important;
             }
+            table {
+              page-break-inside: auto;
+            }
+            tr {
+              page-break-inside: avoid;
+              page-break-after: auto;
+            }
+            thead {
+              display: table-header-group;
+            }
+            tfoot {
+              display: table-footer-group;
+            }
           }
         </style>
       `;

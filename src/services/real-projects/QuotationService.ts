@@ -1,9 +1,9 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { BaseService } from './BaseService';
 import { ProjectQuotation, RealProject, Washroom } from './types';
+import { PdfService } from '@/services/PdfService';
 
 export class QuotationService extends BaseService {
   /**
@@ -440,6 +440,41 @@ export class QuotationService extends BaseService {
               
               const washroomArea = washroom.length * washroom.width;
               
+              // Group items by category
+              const itemsByCategory: Record<string, any[]> = {};
+              
+              washroomItems.forEach((item: any) => {
+                if (item.isCategory) {
+                  // For items that are already categories, keep them as is
+                  const categoryName = item.name;
+                  if (!itemsByCategory[categoryName]) {
+                    itemsByCategory[categoryName] = [];
+                  }
+                  
+                  // Add the category item but also include its services for individual display
+                  if (item.serviceDetails && item.serviceDetails.length > 0) {
+                    item.serviceDetails.forEach((service: any) => {
+                      itemsByCategory[categoryName].push({
+                        name: service.name,
+                        unit: service.unit,
+                        cost: service.cost,
+                        mrp: service.cost * 1.2,
+                        isService: true
+                      });
+                    });
+                  } else {
+                    itemsByCategory[categoryName].push(item);
+                  }
+                } else {
+                  // For regular items
+                  const categoryName = item.category || 'Other Items';
+                  if (!itemsByCategory[categoryName]) {
+                    itemsByCategory[categoryName] = [];
+                  }
+                  itemsByCategory[categoryName].push(item);
+                }
+              });
+              
               return `
                 <div class="washroom-card">
                   <div class="washroom-header">
@@ -464,25 +499,37 @@ export class QuotationService extends BaseService {
                         </tr>
                       </thead>
                       <tbody>
-                        ${washroomItems.map((item: any) => {
-                          // Display list of services if this is a category
-                          const servicesList = item.isCategory && item.serviceDetails ? 
-                            `<ul style="margin: 0; padding-left: 20px; font-size: 0.9em;">
-                              ${item.serviceDetails.map((service: any) => 
-                                `<li>${service.name} ${service.unit ? `(${service.unit})` : ''}</li>`
-                              ).join('')}
-                            </ul>` 
-                            : '';
+                        ${Object.entries(itemsByCategory).map(([category, items]) => {
+                          // Calculate category totals
+                          const categoryTotal = items.reduce((sum, item) => sum + (item.isService ? item.cost : (parseFloat(item.amount) || 0)), 0);
+                          const categoryMrp = categoryTotal * 1.2;
                           
                           return `
                             <tr>
-                              <td>
-                                ${item.name}
-                                ${servicesList}
+                              <td colspan="4" style="background-color: #f1f5f9; font-weight: 600; padding: 8px 12px;">
+                                ${category}
                               </td>
-                              <td>${item.description || ''}</td>
-                              <td style="text-align: right;">₹${formatAmount(item.mrp || item.amount * 1.2)}</td>
-                              <td style="text-align: right;">₹${formatAmount(item.amount)}</td>
+                            </tr>
+                            ${items.filter(item => !item.isService || (item.cost && item.cost > 0)).map(item => {
+                              const itemAmount = item.isService ? item.cost : (parseFloat(item.amount) || 0);
+                              const itemMrp = itemAmount * 1.2;
+                              const itemUnit = item.unit || '';
+                              
+                              return `
+                                <tr>
+                                  <td style="padding-left: 24px;">
+                                    • ${item.name} ${itemUnit ? `(${itemUnit})` : ''}
+                                  </td>
+                                  <td>${item.description || ''}</td>
+                                  <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
+                                  <td style="text-align: right;">₹${formatAmount(itemAmount)}</td>
+                                </tr>
+                              `;
+                            }).join('')}
+                            <tr>
+                              <td colspan="2" style="text-align: right; font-weight: 500;">Category Total:</td>
+                              <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryMrp)}</td>
+                              <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryTotal)}</td>
                             </tr>
                           `;
                         }).join('')}
@@ -499,7 +546,7 @@ export class QuotationService extends BaseService {
                         <span>20%</span>
                       </div>
                       <div class="price-row total">
-                        <span>Special Price:</span>
+                        <span>Special Price (before GST):</span>
                         <span>₹${formatAmount(washroomTotal)}</span>
                       </div>
                     </div>
@@ -512,7 +559,7 @@ export class QuotationService extends BaseService {
           <div class="summary-box">
             <h3 class="section-title">Price Summary</h3>
             <div class="price-row">
-              <span>Subtotal:</span>
+              <span>Subtotal (before GST):</span>
               <span>₹${formatAmount(subtotalBeforeGst)}</span>
             </div>
             <div class="price-row">
@@ -520,7 +567,7 @@ export class QuotationService extends BaseService {
               <span>₹${formatAmount(gstAmount)}</span>
             </div>
             <div class="price-row total">
-              <span>Total Amount:</span>
+              <span>Total Amount (with GST):</span>
               <span>₹${formatAmount(grandTotal)}</span>
             </div>
           </div>
