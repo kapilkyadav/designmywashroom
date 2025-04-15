@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -40,8 +41,17 @@ export class QuotationService extends BaseService {
       // Generate HTML for the quotation with washroom details
       const quotationHtml = QuotationService.generateQuotationHtml(project, sanitizedQuotationData, washrooms || []);
       
-      // Create a quotation number
-      const quotationNumber = `QUO-${project.project_id}-${format(new Date(), 'yyyyMMdd')}`;
+      // Get the current count of quotations for this project to create a unique sequence number
+      const { count, error: countError } = await supabase
+        .from('project_quotations')
+        .select('*', { count: 'exact', head: true })
+        .eq('project_id', projectId);
+        
+      if (countError) throw countError;
+      
+      // Create a quotation number with sequence to make it unique
+      const sequenceNumber = (count || 0) + 1;
+      const quotationNumber = `QUO-${project.project_id}-${format(new Date(), 'yyyyMMdd')}-${sequenceNumber}`;
       
       // Get the current user's session
       const { data: sessionData } = await supabase.auth.getSession();
