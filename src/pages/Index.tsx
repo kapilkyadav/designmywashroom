@@ -239,7 +239,7 @@ const Index = () => {
               Our Partner Brands
             </h2>
             <p className="text-base sm:text-lg text-muted-foreground reveal opacity-0">
-              We work with the world's leading bathroom fixture brands
+              Homeowner
             </p>
           </div>
 
