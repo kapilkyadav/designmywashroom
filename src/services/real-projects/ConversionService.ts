@@ -194,7 +194,7 @@ export class ConversionService extends BaseService {
   /**
    * Handle error and display toast
    */
-  private static handleError(error: any, defaultMessage: string) {
+  static handleError(error: any, defaultMessage: string) {
     console.error(defaultMessage, error);
     toast({
       title: "Error",
