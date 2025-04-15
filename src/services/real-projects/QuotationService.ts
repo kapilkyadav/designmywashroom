@@ -323,7 +323,6 @@ export class QuotationService extends BaseService {
           // If the category has service details, add them individually
           if (item.serviceDetails && item.serviceDetails.length > 0) {
             for (const service of item.serviceDetails) {
-              // Get service name from the serviceDetailsMap
               const serviceDetails = quotationData.serviceDetailsMap[service.serviceId] || {};
               const serviceName = serviceDetails.name || service.name || `Service ${service.serviceId}`;
               const serviceUnit = serviceDetails.unit || service.unit || '';
@@ -347,11 +346,26 @@ export class QuotationService extends BaseService {
           if (!washroomItemsByCategory[washroom.id][categoryName]) {
             washroomItemsByCategory[washroom.id][categoryName] = [];
           }
-          washroomItemsByCategory[washroom.id][categoryName].push(item);
+
+          // For brand products, use actual MRP and client_price
+          if (item.isBrandProduct) {
+            washroomItemsByCategory[washroom.id][categoryName].push({
+              ...item,
+              mrp: item.mrp || item.amount,
+              amount: item.client_price || item.amount
+            });
+          } else {
+            // For services, apply standard markup
+            washroomItemsByCategory[washroom.id][categoryName].push({
+              ...item,
+              mrp: item.amount * 1.2,
+              amount: item.amount
+            });
+          }
         }
       }
     }
-    
+
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -570,14 +584,14 @@ export class QuotationService extends BaseService {
                           <th>Item</th>
                           <th>Description</th>
                           <th style="text-align: right;">MRP</th>
-                          <th style="text-align: right;">Special Price</th>
+                          <th style="text-align: right;">YDS Offer</th>
                         </tr>
                       </thead>
                       <tbody>
                         ${Object.entries(categoriesForWashroom).map(([category, items]) => {
-                          // Calculate category totals
-                          const categoryTotal = items.reduce((sum, item) => sum + (item.isService ? item.amount : (parseFloat(item.amount) || 0)), 0);
-                          const categoryMrp = categoryTotal * 1.2;
+                          // Calculate category totals using actual prices
+                          const categoryTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                          const categoryMrp = items.reduce((sum, item) => sum + (parseFloat(item.mrp) || 0), 0);
                           
                           return `
                             <tr>
@@ -586,8 +600,8 @@ export class QuotationService extends BaseService {
                               </td>
                             </tr>
                             ${items.filter(item => !item.isService || (item.amount && item.amount > 0)).map(item => {
-                              const itemAmount = item.isService ? item.amount : (parseFloat(item.amount) || 0);
-                              const itemMrp = itemAmount * 1.2;
+                              const itemAmount = parseFloat(item.amount) || 0;
+                              const itemMrp = parseFloat(item.mrp) || 0;
                               const itemUnit = item.unit || '';
                               
                               return `
@@ -616,12 +630,8 @@ export class QuotationService extends BaseService {
                         <span>Total MRP:</span>
                         <span>₹${formatAmount(subtotalBeforeGst * 1.2)}</span>
                       </div>
-                      <div class="price-row">
-                        <span>Discount:</span>
-                        <span>20%</span>
-                      </div>
                       <div class="price-row total">
-                        <span>Special Price (before GST):</span>
+                        <span>YDS Special Price (before GST):</span>
                         <span>₹${formatAmount(subtotalBeforeGst)}</span>
                       </div>
                     </div>
