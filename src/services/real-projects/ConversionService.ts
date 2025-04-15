@@ -1,7 +1,7 @@
-
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './BaseService';
 import { ConvertibleRecord } from './types';
+import { toast } from '@/hooks/use-toast';
 
 export class ConversionService extends BaseService {
   /**
@@ -14,7 +14,7 @@ export class ConversionService extends BaseService {
       // Get leads that haven't been converted yet
       const { data: leads, error: leadsError } = await supabase
         .from('leads')
-        .select('id, customer_name, phone, email, location, created_at, status, real_project_id')
+        .select('id, customer_name, phone, email, location, created_at, status')
         .order('created_at', { ascending: false });
       
       if (leadsError) {
@@ -36,9 +36,8 @@ export class ConversionService extends BaseService {
       console.log("Fetched leads:", leads?.length || 0);
       console.log("Fetched estimates:", estimates?.length || 0);
       
-      // Convert leads to standardized format
+      // Convert leads to standardized format - remove real_project_id filter since it doesn't exist in leads table
       const convertibleLeads = (leads || [])
-        .filter(lead => !lead.real_project_id) // Filter out already converted leads
         .map(lead => ({
           record_type: 'lead' as const,
           record_id: lead.id,
@@ -72,7 +71,8 @@ export class ConversionService extends BaseService {
       return allRecords;
     } catch (error: any) {
       console.error("Error in getConvertibleRecords:", error);
-      return this.handleError(error, 'Failed to fetch convertible records');
+      // Return empty array instead of using the handleError method that doesn't exist
+      return [];
     }
   }
   
