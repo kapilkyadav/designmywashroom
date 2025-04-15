@@ -82,7 +82,13 @@ export class QuotationService extends BaseService {
       
       return { success: true, quotation: savedQuotation as ProjectQuotation };
     } catch (error: any) {
-      return this.handleError(error, 'Failed to generate quotation');
+      console.error('Error generating quotation:', error);
+      toast({
+        title: "Error generating quotation",
+        description: error.message || "Failed to generate quotation",
+        variant: "destructive",
+      });
+      return { success: false, quotation: null };
     }
   }
   
@@ -118,6 +124,11 @@ export class QuotationService extends BaseService {
           .footer { margin-top: 40px; font-size: 12px; text-align: center; color: #666; }
           .washroom-details { margin-bottom: 30px; }
           .washroom-details h3 { border-bottom: 1px solid #eee; padding-bottom: 5px; }
+          @media print {
+            body { -webkit-print-color-adjust: exact; }
+            .container { max-width: 100%; }
+            .footer { position: fixed; bottom: 20px; left: 0; right: 0; }
+          }
         </style>
       </head>
       <body>
@@ -226,7 +237,13 @@ export class QuotationService extends BaseService {
       
       return data as ProjectQuotation[];
     } catch (error: any) {
-      return this.handleError(error, 'Failed to fetch quotations');
+      console.error('Error fetching quotations:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch quotations",
+        variant: "destructive",
+      });
+      return [];
     }
   }
   
@@ -245,7 +262,13 @@ export class QuotationService extends BaseService {
       
       return data as ProjectQuotation;
     } catch (error: any) {
-      return this.handleError(error, 'Failed to fetch quotation');
+      console.error('Error fetching quotation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch quotation",
+        variant: "destructive",
+      });
+      return null;
     }
   }
 }

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { FileText } from 'lucide-react';
+import { FileText, Download } from 'lucide-react';
 
 interface ViewQuotationDialogProps {
   html: string | null;
@@ -37,7 +37,7 @@ const ViewQuotationDialog: React.FC<ViewQuotationDialogProps> = ({
             onClick={() => html && onDownload(html, `quotation-${projectId}.pdf`)}
             disabled={!html}
           >
-            <FileText className="mr-2 h-4 w-4" />
+            <Download className="mr-2 h-4 w-4" />
             Download as PDF
           </Button>
         </div>
@@ -48,6 +48,7 @@ const ViewQuotationDialog: React.FC<ViewQuotationDialogProps> = ({
               srcDoc={html}
               style={{ width: '100%', height: '60vh', border: 'none' }}
               title="Quotation Preview"
+              className="w-full"
             />
           ) : (
             <div className="text-center py-10 text-gray-500">

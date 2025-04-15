@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { RealProject, RealProjectService, ProjectQuotation } from '@/services/RealProjectService';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { PdfService } from '@/services/PdfService';
 
 export const useQuotations = (project: RealProject, onUpdate: () => void) => {
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
@@ -77,27 +78,15 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     }
   };
   
-  const downloadPdf = async (html: string, filename: string) => {
+  const downloadAsPdf = async (html: string, filename: string) => {
     try {
-      // Create a blob from the HTML content
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
+      // First attempt browser-based PDF generation
+      const pdfBlob = await PdfService.generatePdfFromHtml(html, filename);
       
-      // Create a link to download
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename || 'quotation.html';
-      document.body.appendChild(link);
-      link.click();
-      
-      // Clean up
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      toast({
-        title: 'Download Started',
-        description: 'Your quotation download has started',
-      });
+      // If PDF generation fails or is not supported, fall back to HTML download
+      if (!pdfBlob) {
+        PdfService.downloadHtmlAsFile(html, filename.replace('.pdf', '.html'));
+      }
     } catch (error: any) {
       console.error('Error downloading quotation:', error);
       toast({
@@ -120,6 +109,6 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     setQuotationTerms,
     handleGenerateQuotation,
     viewQuotation,
-    downloadAsPdf: downloadPdf
+    downloadAsPdf
   };
 };
