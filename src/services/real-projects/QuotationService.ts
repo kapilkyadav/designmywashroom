@@ -1,10 +1,8 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { BaseService } from './BaseService';
 import { ProjectQuotation, RealProject, Washroom } from './types';
-import { VendorRateCardService } from '@/services/VendorRateCardService';
 
 export class QuotationService extends BaseService {
   /**
@@ -40,7 +38,6 @@ export class QuotationService extends BaseService {
       };
       
       // Generate HTML for the quotation with washroom details
-      // Fix: Use the class name directly instead of 'this'
       const quotationHtml = QuotationService.generateQuotationHtml(project, sanitizedQuotationData, washrooms || []);
       
       // Create a quotation number
@@ -97,14 +94,12 @@ export class QuotationService extends BaseService {
    * Helper function to generate HTML for quotation
    */
   static generateQuotationHtml(project: RealProject, quotationData: Record<string, any>, washrooms: Washroom[]): string {
-    // Format value with safe number handling
     const formatAmount = (value: any): string => {
       if (value === undefined || value === null) return '0';
       const numValue = typeof value === 'number' ? value : parseFloat(value);
       return isNaN(numValue) ? '0' : numValue.toLocaleString('en-IN');
     };
     
-    // Create a basic HTML template for the quotation
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -113,35 +108,174 @@ export class QuotationService extends BaseService {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Quotation ${project.project_id}</title>
         <style>
-          body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
-          .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-          .header { text-align: center; margin-bottom: 30px; }
-          .quotation-info { display: flex; justify-content: space-between; margin-bottom: 20px; }
-          .client-info, .project-info { flex: 1; }
-          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-          th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-          th { background-color: #f2f2f2; }
-          .total { font-weight: bold; text-align: right; margin-top: 20px; }
-          .footer { margin-top: 40px; font-size: 12px; text-align: center; color: #666; }
-          .washroom-details { margin-bottom: 30px; }
-          .washroom-details h3 { border-bottom: 1px solid #eee; padding-bottom: 5px; }
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+          
+          :root {
+            --primary-color: #1A1F2C;
+            --accent-color: #6E59A5;
+            --border-color: #E5DEFF;
+          }
+          
+          body {
+            font-family: 'Inter', sans-serif;
+            color: #333;
+            line-height: 1.6;
+            background-color: #fff;
+            margin: 0;
+            padding: 0;
+          }
+          
+          .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            background-color: #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+          }
+          
+          .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            border-bottom: 2px solid var(--border-color);
+            position: relative;
+          }
+          
+          .logo {
+            max-width: 200px;
+            margin-bottom: 20px;
+          }
+          
+          .header h1 {
+            color: var(--primary-color);
+            font-size: 28px;
+            margin: 0;
+            font-weight: 600;
+          }
+          
+          .header h2 {
+            color: var(--accent-color);
+            font-size: 20px;
+            margin: 10px 0;
+            font-weight: 500;
+          }
+          
+          .quotation-info {
+            display: flex;
+            justify-content: space-between;
+            gap: 40px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #F8F9FC;
+            border-radius: 8px;
+          }
+          
+          .client-info, .project-info {
+            flex: 1;
+          }
+          
+          .info-title {
+            color: var(--primary-color);
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border-color);
+          }
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+          }
+          
+          th {
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 12px;
+            text-align: left;
+            font-weight: 500;
+          }
+          
+          td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+          }
+          
+          tr:last-child td {
+            border-bottom: none;
+          }
+          
+          .total {
+            font-weight: 600;
+            text-align: right;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #F8F9FC;
+            border-radius: 8px;
+            color: var(--primary-color);
+            font-size: 18px;
+          }
+          
+          .terms {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #F8F9FC;
+            border-radius: 8px;
+          }
+          
+          .terms h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+            font-size: 18px;
+            font-weight: 600;
+          }
+          
+          .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid var(--border-color);
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+          }
+          
+          .footer img {
+            max-width: 100px;
+            margin-bottom: 10px;
+          }
+          
           @media print {
-            body { -webkit-print-color-adjust: exact; }
-            .container { max-width: 100%; }
-            .footer { position: fixed; bottom: 20px; left: 0; right: 0; }
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            
+            .container {
+              max-width: 100%;
+              box-shadow: none;
+            }
+            
+            .header, .quotation-info, table, .total, .terms {
+              break-inside: avoid;
+            }
           }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>Quotation</h1>
-            <h2>${project.project_id}</h2>
+            <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="YDS Logo" class="logo">
+            <h1>Your Dream Space</h1>
+            <h2>Quotation ${project.project_id}</h2>
           </div>
           
           <div class="quotation-info">
             <div class="client-info">
-              <h3>Client Information</h3>
+              <h3 class="info-title">Client Information</h3>
               <p><strong>Name:</strong> ${project.client_name}</p>
               <p><strong>Email:</strong> ${project.client_email || 'N/A'}</p>
               <p><strong>Phone:</strong> ${project.client_mobile}</p>
@@ -149,7 +283,7 @@ export class QuotationService extends BaseService {
             </div>
             
             <div class="project-info">
-              <h3>Project Information</h3>
+              <h3 class="info-title">Project Information</h3>
               <p><strong>Project ID:</strong> ${project.project_id}</p>
               <p><strong>Date:</strong> ${format(new Date(project.last_updated_at), 'dd/MM/yyyy')}</p>
               <p><strong>Project Type:</strong> ${project.project_type}</p>
@@ -158,7 +292,7 @@ export class QuotationService extends BaseService {
           </div>
           
           <div class="washroom-details">
-            <h3>Washroom Details</h3>
+            <h3 class="info-title">Washroom Details</h3>
             <table>
               <thead>
                 <tr>
@@ -184,7 +318,7 @@ export class QuotationService extends BaseService {
             </table>
           </div>
           
-          <h3>Quotation Details</h3>
+          <h3 class="info-title">Quotation Details</h3>
           <table>
             <thead>
               <tr>
@@ -205,7 +339,7 @@ export class QuotationService extends BaseService {
           </table>
           
           <div class="total">
-            <p>Total Amount: ₹${formatAmount(quotationData.totalAmount)}</p>
+            Total Amount: ₹${formatAmount(quotationData.totalAmount)}
           </div>
           
           <div class="terms">
@@ -214,6 +348,7 @@ export class QuotationService extends BaseService {
           </div>
           
           <div class="footer">
+            <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="YDS Logo" />
             <p>This is a computer-generated quotation and doesn't require a signature.</p>
             <p>Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
           </div>
