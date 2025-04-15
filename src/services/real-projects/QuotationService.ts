@@ -152,8 +152,16 @@ export class QuotationService extends BaseService {
       const marginAmount = basePrice * (marginPercentage / 100);
       const priceWithMargin = basePrice + marginAmount;
       
-      // Apply GST
-      const gstAmount = priceWithMargin * (gstRate / 100);
+      // Apply GST only to items that need GST
+      const gstableAmount = washroomItems
+        .filter(item => item.applyGst !== false)
+        .reduce((sum, item) => {
+          const itemAmount = parseFloat(item.amount) || 0;
+          const itemMargin = itemAmount * (marginPercentage / 100);
+          return sum + (itemAmount + itemMargin);
+        }, 0);
+      
+      const gstAmount = gstableAmount * (gstRate / 100);
       const totalPrice = priceWithMargin + gstAmount;
       
       // Store pricing details for this washroom
@@ -162,6 +170,7 @@ export class QuotationService extends BaseService {
         marginPercentage,
         marginAmount,
         priceWithMargin,
+        gstableAmount,
         gstPercentage: gstRate,
         gstAmount,
         totalPrice
@@ -201,6 +210,28 @@ export class QuotationService extends BaseService {
     
     // Calculate total area of all washrooms
     const totalArea = washrooms.reduce((sum, w) => sum + (w.length * w.width), 0);
+    
+    // Calculate totals and GST
+    let subtotalBeforeGst = 0;
+    let gstAmount = 0;
+    
+    // First pass to calculate totals
+    washrooms.forEach(washroom => {
+      const washroomItems = (quotationData.items || []).filter((item: any) => 
+        item.washroomId === washroom.id || !item.washroomId
+      );
+      
+      washroomItems.forEach((item: any) => {
+        const itemAmount = parseFloat(item.amount) || 0;
+        subtotalBeforeGst += itemAmount;
+        
+        if (item.applyGst !== false) {
+          gstAmount += itemAmount * (quotationData.gstRate || 18) / 100;
+        }
+      });
+    });
+    
+    const grandTotal = subtotalBeforeGst + gstAmount;
     
     return `
       <!DOCTYPE html>
@@ -348,6 +379,14 @@ export class QuotationService extends BaseService {
             margin-bottom: 15px;
           }
           
+          .summary-box {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+          }
+          
           @media print {
             body {
               -webkit-print-color-adjust: exact;
@@ -418,21 +457,35 @@ export class QuotationService extends BaseService {
                     <table class="scope-table">
                       <thead>
                         <tr>
-                          <th>Service</th>
+                          <th>Item</th>
                           <th>Description</th>
                           <th style="text-align: right;">MRP</th>
                           <th style="text-align: right;">Special Price</th>
                         </tr>
                       </thead>
                       <tbody>
-                        ${washroomItems.map((item: any) => `
-                          <tr>
-                            <td>${item.name}</td>
-                            <td>${item.description || ''}</td>
-                            <td style="text-align: right;">₹${formatAmount(item.mrp || item.amount * 1.2)}</td>
-                            <td style="text-align: right;">₹${formatAmount(item.amount)}</td>
-                          </tr>
-                        `).join('')}
+                        ${washroomItems.map((item: any) => {
+                          // Display list of services if this is a category
+                          const servicesList = item.isCategory && item.serviceDetails ? 
+                            `<ul style="margin: 0; padding-left: 20px; font-size: 0.9em;">
+                              ${item.serviceDetails.map((service: any) => 
+                                `<li>${service.name} ${service.unit ? `(${service.unit})` : ''}</li>`
+                              ).join('')}
+                            </ul>` 
+                            : '';
+                          
+                          return `
+                            <tr>
+                              <td>
+                                ${item.name}
+                                ${servicesList}
+                              </td>
+                              <td>${item.description || ''}</td>
+                              <td style="text-align: right;">₹${formatAmount(item.mrp || item.amount * 1.2)}</td>
+                              <td style="text-align: right;">₹${formatAmount(item.amount)}</td>
+                            </tr>
+                          `;
+                        }).join('')}
                       </tbody>
                     </table>
                     
@@ -456,10 +509,19 @@ export class QuotationService extends BaseService {
             }).join('')}
           </div>
           
-          <div class="total-section" style="margin-top: 30px; padding: 20px; background: var(--secondary-color); border-radius: 8px;">
-            <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 600;">
-              <span>Total Project Value:</span>
-              <span>₹${formatAmount(quotationData.totalAmount)}</span>
+          <div class="summary-box">
+            <h3 class="section-title">Price Summary</h3>
+            <div class="price-row">
+              <span>Subtotal:</span>
+              <span>₹${formatAmount(subtotalBeforeGst)}</span>
+            </div>
+            <div class="price-row">
+              <span>GST (18%):</span>
+              <span>₹${formatAmount(gstAmount)}</span>
+            </div>
+            <div class="price-row total">
+              <span>Total Amount:</span>
+              <span>₹${formatAmount(grandTotal)}</span>
             </div>
           </div>
           

@@ -85,6 +85,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
       );
       
       const items: any[] = [];
+      const serviceCategories: Record<string, any> = {};
       
       washroomData.forEach(washroom => {
         if (washroom.services) {
@@ -92,6 +93,23 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
             if (isSelected) {
               const serviceRate = costData.service_rates[serviceId] || 0;
               const measurementUnit = costData.service_measurements[serviceId] || '';
+              const serviceDetails = costData.service_details?.[serviceId] || {};
+              
+              // Get service name and category
+              const serviceName = serviceDetails.name || `Service ${serviceId}`;
+              const serviceCategory = serviceDetails.category || 'General';
+              
+              // Create category entry if it doesn't exist
+              if (!serviceCategories[serviceCategory]) {
+                serviceCategories[serviceCategory] = {
+                  washroomId: washroom.id,
+                  name: serviceCategory,
+                  description: `${washroom.name} - ${serviceCategory} Services`,
+                  services: [],
+                  totalAmount: 0,
+                  isCategory: true
+                };
+              }
               
               let serviceCost = serviceRate;
               if (
@@ -104,19 +122,35 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
                 serviceCost = serviceRate * area;
               }
               
-              const serviceName = `Service ID: ${serviceId}`;
-              
-              items.push({
-                washroomId: washroom.id,
+              // Add to the category's services
+              serviceCategories[serviceCategory].services.push({
                 serviceId,
                 name: serviceName,
-                description: `${washroom.name} - ${measurementUnit}`,
-                mrp: serviceCost * 1.2,
-                amount: serviceCost
+                cost: serviceCost,
+                unit: measurementUnit
               });
+              
+              // Add to the category's total
+              serviceCategories[serviceCategory].totalAmount += serviceCost;
             }
           });
         }
+        
+        // Add each service category as an item
+        Object.values(serviceCategories).forEach((category: any) => {
+          if (category.totalAmount > 0) {
+            items.push({
+              washroomId: category.washroomId,
+              name: category.name,
+              description: category.description,
+              mrp: category.totalAmount * 1.2,
+              amount: category.totalAmount,
+              isCategory: true,
+              serviceDetails: category.services,
+              applyGst: true // Apply GST to execution services
+            });
+          }
+        });
         
         if (washroom.selected_brand) {
           const brandCost = costData.washroom_costs[washroom.id]?.productCosts || 0;
@@ -126,7 +160,8 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
               name: `${washroom.selected_brand} Products`,
               description: `Complete set of ${washroom.selected_brand} products for ${washroom.name}`,
               mrp: brandCost * 1.2,
-              amount: brandCost
+              amount: brandCost,
+              applyGst: false // Don't apply GST to product costs as they already include tax
             });
           }
         }

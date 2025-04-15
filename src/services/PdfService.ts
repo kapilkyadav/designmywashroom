@@ -19,12 +19,35 @@ export class PdfService {
       
       document.body.appendChild(iframe);
       
+      // Add print styles for better PDF rendering
+      const additionalStyles = `
+        <style>
+          @page {
+            size: A4;
+            margin: 1cm;
+          }
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .container {
+              padding: 0 !important;
+              max-width: 100% !important;
+            }
+          }
+        </style>
+      `;
+      
+      // Inject additional styles
+      const enhancedHtml = html.replace('</head>', `${additionalStyles}\n</head>`);
+      
       // Write the HTML content to the iframe
       const iframeDoc = iframe.contentWindow?.document;
       if (!iframeDoc) throw new Error('Could not access iframe document');
       
       iframeDoc.open();
-      iframeDoc.write(html);
+      iframeDoc.write(enhancedHtml);
       iframeDoc.close();
       
       // Wait for images and resources to load
@@ -38,6 +61,11 @@ export class PdfService {
       
       // Clean up the iframe
       document.body.removeChild(iframe);
+      
+      toast({
+        title: 'PDF Generated',
+        description: 'Save the document using your browser\'s print dialog',
+      });
       
       // For now, return null as we're using the browser's print dialog
       // In a future enhancement, we could integrate with a PDF generation library
