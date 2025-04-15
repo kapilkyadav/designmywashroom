@@ -51,9 +51,7 @@ const Index = () => {
                     <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
                   </Link>
                 </Button>
-                <Button size={isMobile ? "default" : "lg"} variant="outline" className={isMobile ? "text-base px-4 py-2" : "text-lg px-8 py-6"}>
-                  Explore Our Work
-                </Button>
+                
               </div>
             </div>
             
