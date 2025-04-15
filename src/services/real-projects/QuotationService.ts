@@ -40,7 +40,8 @@ export class QuotationService extends BaseService {
       };
       
       // Generate HTML for the quotation with washroom details
-      const quotationHtml = this.generateQuotationHtml(project, sanitizedQuotationData, washrooms || []);
+      // Fix: Use the class name directly instead of 'this'
+      const quotationHtml = QuotationService.generateQuotationHtml(project, sanitizedQuotationData, washrooms || []);
       
       // Create a quotation number
       const quotationNumber = `QUO-${project.project_id}-${format(new Date(), 'yyyyMMdd')}`;
