@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -47,7 +48,7 @@ export class QuotationService extends BaseService {
       
       // Calculate internal pricing if enabled
       if (sanitizedQuotationData.internalPricing) {
-        sanitizedQuotationData.internalPricingDetails = this.calculateInternalPricing(
+        sanitizedQuotationData.internalPricingDetails = QuotationService.calculateInternalPricing(
           washrooms || [],
           sanitizedQuotationData.items,
           sanitizedQuotationData.margins,

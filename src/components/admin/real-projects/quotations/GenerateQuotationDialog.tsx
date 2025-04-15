@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -12,7 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
-import { RealProject, RealProjectService, QuotationService } from '@/services/RealProjectService';
+import { RealProject, RealProjectService } from '@/services/RealProjectService';
+import { QuotationService } from '@/services/real-projects/QuotationService';
 import InternalPricingSection from './InternalPricingSection';
 
 interface GenerateQuotationDialogProps {
@@ -23,6 +25,8 @@ interface GenerateQuotationDialogProps {
   onQuotationTermsChange: (terms: string) => void;
   onGenerateQuotation: () => void;
   isGeneratingQuote: boolean;
+  internalPricingEnabled: boolean;
+  onInternalPricingChange: (enabled: boolean) => void;
 }
 
 const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
@@ -32,7 +36,9 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
   quotationTerms,
   onQuotationTermsChange,
   onGenerateQuotation,
-  isGeneratingQuote
+  isGeneratingQuote,
+  internalPricingEnabled,
+  onInternalPricingChange
 }) => {
   const [activeTab, setActiveTab] = useState('general');
   const [washrooms, setWashrooms] = useState<any[]>([]);
@@ -40,7 +46,6 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
   const [quotationItems, setQuotationItems] = useState<any[]>([]);
   const [totalAmount, setTotalAmount] = useState(0);
   
-  const [internalPricing, setInternalPricing] = useState(false);
   const [margins, setMargins] = useState<Record<string, number>>({});
   const [gstRate, setGstRate] = useState(18);
   const [internalPricingDetails, setInternalPricingDetails] = useState<Record<string, any> | undefined>(undefined);
@@ -60,6 +65,9 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
       const initialMargins: Record<string, number> = {};
       washroomData.forEach(w => { initialMargins[w.id] = 0 });
       setMargins(initialMargins);
+      
+      // Calculate costs after loading washroom data
+      await calculateCosts(washroomData);
     } catch (error) {
       console.error('Error loading washrooms:', error);
     } finally {
@@ -129,14 +137,16 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
       setQuotationItems(items);
       setTotalAmount(calculatedTotal);
       
-      calculateInternalPricing(items);
+      if (internalPricingEnabled) {
+        calculateInternalPricing(items);
+      }
     } catch (error) {
       console.error('Error calculating costs:', error);
     }
   };
   
   const calculateInternalPricing = (items: any[]) => {
-    if (!internalPricing) return;
+    if (!internalPricingEnabled) return;
     
     try {
       const details = QuotationService.calculateInternalPricing(
@@ -153,7 +163,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
   };
   
   const handleInternalPricingToggle = (enabled: boolean) => {
-    setInternalPricing(enabled);
+    onInternalPricingChange(enabled);
     
     if (enabled) {
       calculateInternalPricing(quotationItems);
@@ -177,10 +187,10 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
       items: quotationItems,
       totalAmount,
       terms: quotationTerms,
-      internalPricing,
+      internalPricing: internalPricingEnabled,
       margins,
       gstRate,
-      ...(internalPricing && { internalPricingDetails })
+      internalPricingDetails
     };
     
     onGenerateQuotation();
@@ -234,7 +244,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
                 onMarginsChange={handleMarginsChange}
                 onGstRateChange={handleGstRateChange}
                 onInternalPricingToggle={handleInternalPricingToggle}
-                internalPricing={internalPricing}
+                internalPricing={internalPricingEnabled}
                 margins={margins}
                 gstRate={gstRate}
                 internalPricingDetails={internalPricingDetails}

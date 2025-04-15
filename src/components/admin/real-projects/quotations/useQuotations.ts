@@ -15,7 +15,7 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     'This quotation is valid for 30 days from the date of issue.'
   );
   
-  // New state for internal pricing
+  // State for internal pricing
   const [internalPricingEnabled, setInternalPricingEnabled] = useState(false);
   
   const { data: quotations = [], isLoading, refetch } = useQuery({
@@ -34,10 +34,8 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
         throw new Error('Quotation data not found');
       }
       
-      // If internalPricingEnabled is true, make sure it's included in the quotation data
-      if (internalPricingEnabled && !quotationData.internalPricing) {
-        quotationData.internalPricing = true;
-      }
+      // Make sure internalPricingEnabled is included in the quotation data
+      quotationData.internalPricing = internalPricingEnabled;
       
       const result = await RealProjectService.generateQuotation(
         project.id, 

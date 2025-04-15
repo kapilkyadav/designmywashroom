@@ -25,6 +25,8 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
     setViewQuotationHtml,
     quotationTerms,
     setQuotationTerms,
+    internalPricingEnabled,
+    setInternalPricingEnabled,
     handleGenerateQuotation,
     viewQuotation,
     downloadAsPdf
@@ -60,6 +62,8 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
         onQuotationTermsChange={setQuotationTerms}
         onGenerateQuotation={handleGenerateQuotation}
         isGeneratingQuote={isGeneratingQuote}
+        internalPricingEnabled={internalPricingEnabled}
+        onInternalPricingChange={setInternalPricingEnabled}
       />
       
       {/* View Quotation HTML Dialog */}
