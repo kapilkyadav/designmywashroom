@@ -1,14 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2 } from 'lucide-react';
 import { RealProject, RealProjectService } from '@/services/RealProjectService';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { VendorRateCardService } from '@/services/VendorRateCardService';
+import InternalPricingSection from './InternalPricingSection';
 
 interface GenerateQuotationDialogProps {
   open: boolean;
@@ -16,7 +22,7 @@ interface GenerateQuotationDialogProps {
   project: RealProject;
   quotationTerms: string;
   onQuotationTermsChange: (terms: string) => void;
-  onGenerateQuotation: () => Promise<void>;
+  onGenerateQuotation: () => void;
   isGeneratingQuote: boolean;
 }
 
@@ -29,293 +35,247 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
   onGenerateQuotation,
   isGeneratingQuote
 }) => {
-  const [items, setItems] = useState<{ name: string; description: string; amount: number; }[]>([]);
-  const [isCalculating, setIsCalculating] = useState(false);
+  const [activeTab, setActiveTab] = useState('general');
+  const [washrooms, setWashrooms] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [quotationItems, setQuotationItems] = useState<any[]>([]);
+  const [totalAmount, setTotalAmount] = useState(0);
   
-  // Helper function to safely format currency values
-  const formatCurrency = (amount: any): string => {
-    // Check if amount exists and is a number
-    if (amount === undefined || amount === null) {
-      return '₹0';
-    }
-    
-    // Make sure it's a number before calling toLocaleString
-    const numericAmount = typeof amount === 'number' ? amount : parseFloat(amount);
-    
-    // Handle NaN case
-    if (isNaN(numericAmount)) {
-      return '₹0';
-    }
-    
-    return `₹${numericAmount.toLocaleString('en-IN')}`;
-  };
+  // Internal pricing states
+  const [internalPricing, setInternalPricing] = useState(false);
+  const [margins, setMargins] = useState<Record<string, number>>({});
+  const [gstRate, setGstRate] = useState(18); // Default 18% GST
+  const [internalPricingDetails, setInternalPricingDetails] = useState<Record<string, any> | undefined>(undefined);
   
   useEffect(() => {
-    const initializeQuotation = async () => {
-      setIsCalculating(true);
+    if (open && project.id) {
+      loadWashrooms();
+    }
+  }, [open, project.id]);
+  
+  const loadWashrooms = async () => {
+    setLoading(true);
+    try {
+      // Load washrooms
+      const washroomData = await RealProjectService.getProjectWashrooms(project.id);
+      setWashrooms(washroomData);
       
-      try {
-        // Initialize with execution costs and tiling costs from project
-        const costs = await RealProjectService.calculateProjectCosts(
-          project.id, 
-          project.washrooms || [], 
-          project.execution_costs || {}
-        );
-        
-        const newItems = [
-          {
-            name: 'Execution Services',
-            description: 'All execution services as specified',
-            amount: costs.execution_services_total || 0
-          }
-        ];
-        
-        if (costs.tiling_cost && costs.tiling_cost > 0) {
-          newItems.push({
-            name: 'Tiling Work',
-            description: `Tiling work for ${costs.total_area.toFixed(2)} sq ft area`,
-            amount: costs.tiling_cost
-          });
-        }
-        
-        // If we have selected services, add them as individual items
-        if (project.washrooms) {
-          // Extract all unique selected service IDs
-          const selectedServices: Record<string, boolean> = {};
-          project.washrooms.forEach(washroom => {
-            if (washroom.services) {
-              Object.entries(washroom.services).forEach(([id, isSelected]) => {
-                if (isSelected) {
-                  selectedServices[id] = true;
-                }
+      // Initialize items and calculate costs
+      calculateCosts(washroomData);
+      
+      // Initialize margins for each washroom
+      const initialMargins: Record<string, number> = {};
+      washroomData.forEach(w => { initialMargins[w.id] = 0 });
+      setMargins(initialMargins);
+    } catch (error) {
+      console.error('Error loading washrooms:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const calculateCosts = async (washroomData: any[]) => {
+    try {
+      // Get execution costs from the service or calculate them
+      const executionCosts = {};
+      const costData = await RealProjectService.calculateProjectCosts(
+        project.id,
+        washroomData,
+        executionCosts
+      );
+      
+      // Prepare quotation items
+      const items: any[] = [];
+      
+      // Process each washroom
+      washroomData.forEach(washroom => {
+        // Get washroom services
+        if (washroom.services) {
+          Object.entries(washroom.services).forEach(([serviceId, isSelected]) => {
+            if (isSelected) {
+              const serviceRate = costData.service_rates[serviceId] || 0;
+              const measurementUnit = costData.service_measurements[serviceId] || '';
+              
+              // Calculate cost based on measurement unit and area
+              let serviceCost = serviceRate;
+              if (
+                measurementUnit.toLowerCase().includes('sqft') || 
+                measurementUnit.toLowerCase().includes('sft') || 
+                measurementUnit.toLowerCase().includes('sq ft') || 
+                measurementUnit.toLowerCase().includes('square')
+              ) {
+                const area = washroom.length * washroom.width;
+                serviceCost = serviceRate * area;
+              }
+              
+              // Find the item in costData (could be by category later)
+              const serviceName = `Service ID: ${serviceId}`;
+              
+              // Add to items
+              items.push({
+                washroomId: washroom.id,
+                serviceId,
+                name: serviceName,
+                description: `${washroom.name} - ${measurementUnit}`,
+                mrp: serviceCost * 1.2, // 20% markup for MRP
+                amount: serviceCost
               });
             }
           });
-          
-          // Get details for all selected service items
-          const serviceIds = Object.keys(selectedServices);
-          if (serviceIds.length > 0) {
-            const serviceItems = await VendorRateCardService.getItemsByIds(serviceIds);
-            
-            // Get rate cards for these items
-            const ratePromises = serviceIds.map(id => VendorRateCardService.getRateCardByItemId(id));
-            const rateCards = await Promise.all(ratePromises);
-            
-            // Create an item for each service with its rate
-            rateCards.forEach((rateCard, index) => {
-              if (rateCard && serviceItems[index]) {
-                const serviceItem = serviceItems.find(item => item.id === serviceIds[index]);
-                if (serviceItem) {
-                  newItems.push({
-                    name: serviceItem.scope_of_work,
-                    description: `${serviceItem.category?.name || 'Service'} - ${serviceItem.measuring_unit || 'Unit'}`,
-                    amount: rateCard.client_rate || 0
-                  });
-                }
-              }
+        }
+        
+        // Add brand-specific products if available
+        if (washroom.selected_brand) {
+          const brandCost = costData.washroom_costs[washroom.id]?.productCosts || 0;
+          if (brandCost > 0) {
+            items.push({
+              washroomId: washroom.id,
+              name: `${washroom.selected_brand} Products`,
+              description: `Complete set of ${washroom.selected_brand} products for ${washroom.name}`,
+              mrp: brandCost * 1.2, // 20% markup for MRP
+              amount: brandCost
             });
           }
         }
-        
-        setItems(newItems);
-      } catch (error) {
-        console.error('Error initializing quotation:', error);
-      } finally {
-        setIsCalculating(false);
-      }
+      });
+      
+      // Calculate total
+      const calculatedTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+      
+      setQuotationItems(items);
+      setTotalAmount(calculatedTotal);
+      
+      // Make data available for internal pricing calculation
+      calculateInternalPricing(items);
+      
+    } catch (error) {
+      console.error('Error calculating costs:', error);
+    }
+  };
+  
+  const calculateInternalPricing = (items: any[]) => {
+    if (!internalPricing) return;
+    
+    try {
+      const details = RealProjectService.QuotationService.calculateInternalPricing(
+        washrooms,
+        items,
+        margins,
+        gstRate
+      );
+      
+      setInternalPricingDetails(details);
+    } catch (error) {
+      console.error('Error calculating internal pricing:', error);
+    }
+  };
+  
+  const handleInternalPricingToggle = (enabled: boolean) => {
+    setInternalPricing(enabled);
+    
+    if (enabled) {
+      calculateInternalPricing(quotationItems);
+    } else {
+      setInternalPricingDetails(undefined);
+    }
+  };
+  
+  const handleMarginsChange = (newMargins: Record<string, number>) => {
+    setMargins(newMargins);
+    calculateInternalPricing(quotationItems);
+  };
+  
+  const handleGstRateChange = (rate: number) => {
+    setGstRate(rate);
+    calculateInternalPricing(quotationItems);
+  };
+  
+  const handleSubmit = () => {
+    // Store quotation data globally to be accessed by the parent component
+    (window as any).currentQuotationData = {
+      items: quotationItems,
+      totalAmount,
+      terms: quotationTerms,
+      // Add internal pricing data if enabled
+      internalPricing,
+      margins,
+      gstRate,
+      ...(internalPricing && { internalPricingDetails })
     };
     
-    if (open && project) {
-      initializeQuotation();
-    }
-  }, [open, project]);
-  
-  const addItem = () => {
-    setItems([...items, { name: '', description: '', amount: 0 }]);
+    onGenerateQuotation();
   };
-  
-  const removeItem = (index: number) => {
-    const updatedItems = [...items];
-    updatedItems.splice(index, 1);
-    setItems(updatedItems);
-  };
-  
-  const updateItem = (index: number, field: string, value: string | number) => {
-    const updatedItems = [...items];
-    updatedItems[index] = { ...updatedItems[index], [field]: value };
-    setItems(updatedItems);
-  };
-  
-  const totalAmount = items.reduce((sum, item) => sum + (item.amount || 0), 0);
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px]">
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Generate Quotation</DialogTitle>
           <DialogDescription>
-            Create a new quotation for project {project.project_id}
+            Create a detailed quotation for this project to share with the client.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-6 max-h-[60vh] overflow-y-auto py-4">
-          {isCalculating ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <>
-              {/* Washrooms summary */}
-              {project.washrooms && project.washrooms.length > 0 && (
+        {loading ? (
+          <div className="flex justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="internal">Internal Pricing</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="general">
+              <div className="space-y-6">
                 <div>
-                  <Label className="text-base">Washroom Details</Label>
-                  <Table className="mt-2">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Washroom</TableHead>
-                        <TableHead>Dimensions</TableHead>
-                        <TableHead className="text-right">Area</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {project.washrooms.map((washroom) => (
-                        <TableRow key={washroom.id}>
-                          <TableCell>{washroom.name}</TableCell>
-                          <TableCell>
-                            {washroom.length}' × {washroom.width}' × {washroom.height}'
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {(washroom.length * washroom.width).toFixed(2)} sq ft
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-              
-              {/* Quotation items */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <Label className="text-base">Quotation Items</Label>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={addItem}
-                    type="button"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Item
-                  </Button>
+                  <h3 className="text-lg font-medium mb-2">Quotation Summary</h3>
+                  <p>Total items: {quotationItems.length}</p>
+                  <p>Total amount: ₹{totalAmount.toLocaleString('en-IN')}</p>
                 </div>
                 
-                {items.map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-2 mb-3 items-start">
-                    <div className="col-span-4">
-                      <Label htmlFor={`item-name-${index}`} className="sr-only">
-                        Item Name
-                      </Label>
-                      <Input
-                        id={`item-name-${index}`}
-                        placeholder="Item name"
-                        value={item.name}
-                        onChange={(e) => updateItem(index, 'name', e.target.value)}
-                      />
-                    </div>
-                    
-                    <div className="col-span-5">
-                      <Label htmlFor={`item-description-${index}`} className="sr-only">
-                        Item Description
-                      </Label>
-                      <Input
-                        id={`item-description-${index}`}
-                        placeholder="Description"
-                        value={item.description}
-                        onChange={(e) => updateItem(index, 'description', e.target.value)}
-                      />
-                    </div>
-                    
-                    <div className="col-span-2">
-                      <Label htmlFor={`item-amount-${index}`} className="sr-only">
-                        Amount
-                      </Label>
-                      <div className="flex items-center">
-                        <span className="mr-1">₹</span>
-                        <Input
-                          id={`item-amount-${index}`}
-                          type="number"
-                          min="0"
-                          value={item.amount}
-                          onChange={(e) => updateItem(index, 'amount', parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="col-span-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(index)}
-                        type="button"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                
-                {/* Total amount */}
-                <div className="flex justify-end items-center mt-4 space-x-2 font-medium">
-                  <div>Total Amount:</div>
-                  <div>{formatCurrency(totalAmount)}</div>
+                <div>
+                  <Label htmlFor="terms">Terms & Conditions</Label>
+                  <Textarea
+                    id="terms"
+                    className="min-h-32"
+                    value={quotationTerms}
+                    onChange={(e) => onQuotationTermsChange(e.target.value)}
+                    placeholder="Enter terms and conditions for the quotation..."
+                  />
                 </div>
               </div>
-              
-              {/* Terms & conditions */}
-              <div className="space-y-2">
-                <Label htmlFor="quotation-terms" className="text-base">
-                  Terms & Conditions
-                </Label>
-                <Textarea
-                  id="quotation-terms"
-                  placeholder="Enter quotation terms and conditions"
-                  value={quotationTerms}
-                  onChange={(e) => onQuotationTermsChange(e.target.value)}
-                  rows={5}
-                />
-              </div>
-            </>
-          )}
-        </div>
+            </TabsContent>
+            
+            <TabsContent value="internal">
+              <InternalPricingSection
+                washrooms={washrooms}
+                onMarginsChange={handleMarginsChange}
+                onGstRateChange={handleGstRateChange}
+                onInternalPricingToggle={handleInternalPricingToggle}
+                internalPricing={internalPricing}
+                margins={margins}
+                gstRate={gstRate}
+                internalPricingDetails={internalPricingDetails}
+              />
+            </TabsContent>
+          </Tabs>
+        )}
         
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isGeneratingQuote}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
-            disabled={isGeneratingQuote || items.length === 0 || isCalculating}
-            onClick={async () => {
-              // Prepare quotation data
-              const quotationData = {
-                items,
-                totalAmount,
-                terms: quotationTerms,
-                washrooms: project.washrooms || []
-              };
-              
-              // Store in context for the parent component
-              (window as any).currentQuotationData = quotationData;
-              
-              // Call the parent's generate function
-              await onGenerateQuotation();
-            }}
-          >
-            {isGeneratingQuote && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isGeneratingQuote ? 'Generating...' : 'Generate Quotation'}
+          <Button onClick={handleSubmit} disabled={isGeneratingQuote || loading}>
+            {isGeneratingQuote ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              'Generate Quotation'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

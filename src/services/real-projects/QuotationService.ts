@@ -9,7 +9,10 @@ export class QuotationService extends BaseService {
   /**
    * Generate and save a quotation for a project
    */
-  static async generateQuotation(projectId: string, quotationData: Record<string, any>): Promise<{ success: boolean, quotation: ProjectQuotation | null }> {
+  static async generateQuotation(
+    projectId: string, 
+    quotationData: Record<string, any>
+  ): Promise<{ success: boolean, quotation: ProjectQuotation | null }> {
     try {
       // Get the project details to include in the quotation
       const { data: project, error: projectError } = await supabase
@@ -35,8 +38,22 @@ export class QuotationService extends BaseService {
         items: (quotationData.items || []).map((item: any) => ({
           ...item,
           amount: parseFloat(item.amount) || 0
-        }))
+        })),
+        // Add internal pricing data if provided
+        margins: quotationData.margins || {},
+        gstRate: quotationData.gstRate || 18, // Default 18% GST
+        internalPricing: quotationData.internalPricing || false
       };
+      
+      // Calculate internal pricing if enabled
+      if (sanitizedQuotationData.internalPricing) {
+        sanitizedQuotationData.internalPricingDetails = this.calculateInternalPricing(
+          washrooms || [],
+          sanitizedQuotationData.items,
+          sanitizedQuotationData.margins,
+          sanitizedQuotationData.gstRate
+        );
+      }
       
       // Generate HTML for the quotation with washroom details
       const quotationHtml = QuotationService.generateQuotationHtml(project, sanitizedQuotationData, washrooms || []);
@@ -98,6 +115,77 @@ export class QuotationService extends BaseService {
       });
       return { success: false, quotation: null };
     }
+  }
+  
+  /**
+   * Calculate internal pricing with margins and GST for each washroom
+   * This is for internal team use only and won't be shown to clients
+   */
+  static calculateInternalPricing(
+    washrooms: Washroom[],
+    items: any[],
+    margins: Record<string, number>,
+    gstRate: number
+  ): Record<string, any> {
+    const washroomPricing: Record<string, any> = {};
+    let projectTotalBasePrice = 0;
+    let projectTotalWithMargin = 0;
+    let projectTotalGST = 0;
+    let projectGrandTotal = 0;
+    
+    // Process each washroom
+    washrooms.forEach(washroom => {
+      // Get items for this washroom
+      const washroomItems = items.filter(item => 
+        item.washroomId === washroom.id || !item.washroomId
+      );
+      
+      // Calculate base price (sum of all items)
+      const basePrice = washroomItems.reduce(
+        (sum, item) => sum + (parseFloat(item.amount) || 0), 
+        0
+      );
+      
+      // Apply margin if specified for this washroom
+      const marginPercentage = margins[washroom.id] || 0;
+      const marginAmount = basePrice * (marginPercentage / 100);
+      const priceWithMargin = basePrice + marginAmount;
+      
+      // Apply GST
+      const gstAmount = priceWithMargin * (gstRate / 100);
+      const totalPrice = priceWithMargin + gstAmount;
+      
+      // Store pricing details for this washroom
+      washroomPricing[washroom.id] = {
+        basePrice,
+        marginPercentage,
+        marginAmount,
+        priceWithMargin,
+        gstPercentage: gstRate,
+        gstAmount,
+        totalPrice
+      };
+      
+      // Add to project totals
+      projectTotalBasePrice += basePrice;
+      projectTotalWithMargin += priceWithMargin;
+      projectTotalGST += gstAmount;
+      projectGrandTotal += totalPrice;
+    });
+    
+    // Overall project pricing summary
+    return {
+      washroomPricing,
+      projectSummary: {
+        totalBasePrice: projectTotalBasePrice,
+        totalWithMargin: projectTotalWithMargin,
+        totalGST: projectTotalGST,
+        grandTotal: projectGrandTotal,
+        averageMargin: projectTotalBasePrice > 0 
+          ? ((projectTotalWithMargin - projectTotalBasePrice) / projectTotalBasePrice) * 100 
+          : 0
+      }
+    };
   }
   
   /**

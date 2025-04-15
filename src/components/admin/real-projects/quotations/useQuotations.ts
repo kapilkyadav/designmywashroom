@@ -15,6 +15,9 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     'This quotation is valid for 30 days from the date of issue.'
   );
   
+  // New state for internal pricing
+  const [internalPricingEnabled, setInternalPricingEnabled] = useState(false);
+  
   const { data: quotations = [], isLoading, refetch } = useQuery({
     queryKey: ['project-quotations', project.id],
     queryFn: () => RealProjectService.getProjectQuotations(project.id),
@@ -107,6 +110,8 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     setViewQuotationHtml,
     quotationTerms,
     setQuotationTerms,
+    internalPricingEnabled,
+    setInternalPricingEnabled,
     handleGenerateQuotation,
     viewQuotation,
     downloadAsPdf
