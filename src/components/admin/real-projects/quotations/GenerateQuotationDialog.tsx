@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -13,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
-import { RealProject, RealProjectService } from '@/services/RealProjectService';
+import { RealProject, RealProjectService, QuotationService } from '@/services/RealProjectService';
 import InternalPricingSection from './InternalPricingSection';
 
 interface GenerateQuotationDialogProps {
@@ -41,10 +40,9 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
   const [quotationItems, setQuotationItems] = useState<any[]>([]);
   const [totalAmount, setTotalAmount] = useState(0);
   
-  // Internal pricing states
   const [internalPricing, setInternalPricing] = useState(false);
   const [margins, setMargins] = useState<Record<string, number>>({});
-  const [gstRate, setGstRate] = useState(18); // Default 18% GST
+  const [gstRate, setGstRate] = useState(18);
   const [internalPricingDetails, setInternalPricingDetails] = useState<Record<string, any> | undefined>(undefined);
   
   useEffect(() => {
@@ -56,14 +54,9 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
   const loadWashrooms = async () => {
     setLoading(true);
     try {
-      // Load washrooms
       const washroomData = await RealProjectService.getProjectWashrooms(project.id);
       setWashrooms(washroomData);
       
-      // Initialize items and calculate costs
-      calculateCosts(washroomData);
-      
-      // Initialize margins for each washroom
       const initialMargins: Record<string, number> = {};
       washroomData.forEach(w => { initialMargins[w.id] = 0 });
       setMargins(initialMargins);
@@ -76,7 +69,6 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
   
   const calculateCosts = async (washroomData: any[]) => {
     try {
-      // Get execution costs from the service or calculate them
       const executionCosts = {};
       const costData = await RealProjectService.calculateProjectCosts(
         project.id,
@@ -84,19 +76,15 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
         executionCosts
       );
       
-      // Prepare quotation items
       const items: any[] = [];
       
-      // Process each washroom
       washroomData.forEach(washroom => {
-        // Get washroom services
         if (washroom.services) {
           Object.entries(washroom.services).forEach(([serviceId, isSelected]) => {
             if (isSelected) {
               const serviceRate = costData.service_rates[serviceId] || 0;
               const measurementUnit = costData.service_measurements[serviceId] || '';
               
-              // Calculate cost based on measurement unit and area
               let serviceCost = serviceRate;
               if (
                 measurementUnit.toLowerCase().includes('sqft') || 
@@ -108,23 +96,20 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
                 serviceCost = serviceRate * area;
               }
               
-              // Find the item in costData (could be by category later)
               const serviceName = `Service ID: ${serviceId}`;
               
-              // Add to items
               items.push({
                 washroomId: washroom.id,
                 serviceId,
                 name: serviceName,
                 description: `${washroom.name} - ${measurementUnit}`,
-                mrp: serviceCost * 1.2, // 20% markup for MRP
+                mrp: serviceCost * 1.2,
                 amount: serviceCost
               });
             }
           });
         }
         
-        // Add brand-specific products if available
         if (washroom.selected_brand) {
           const brandCost = costData.washroom_costs[washroom.id]?.productCosts || 0;
           if (brandCost > 0) {
@@ -132,22 +117,19 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
               washroomId: washroom.id,
               name: `${washroom.selected_brand} Products`,
               description: `Complete set of ${washroom.selected_brand} products for ${washroom.name}`,
-              mrp: brandCost * 1.2, // 20% markup for MRP
+              mrp: brandCost * 1.2,
               amount: brandCost
             });
           }
         }
       });
       
-      // Calculate total
       const calculatedTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
       
       setQuotationItems(items);
       setTotalAmount(calculatedTotal);
       
-      // Make data available for internal pricing calculation
       calculateInternalPricing(items);
-      
     } catch (error) {
       console.error('Error calculating costs:', error);
     }
@@ -157,7 +139,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
     if (!internalPricing) return;
     
     try {
-      const details = RealProjectService.QuotationService.calculateInternalPricing(
+      const details = QuotationService.calculateInternalPricing(
         washrooms,
         items,
         margins,
@@ -191,12 +173,10 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
   };
   
   const handleSubmit = () => {
-    // Store quotation data globally to be accessed by the parent component
     (window as any).currentQuotationData = {
       items: quotationItems,
       totalAmount,
       terms: quotationTerms,
-      // Add internal pricing data if enabled
       internalPricing,
       margins,
       gstRate,

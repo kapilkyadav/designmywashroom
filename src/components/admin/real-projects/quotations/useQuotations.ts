@@ -34,6 +34,11 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
         throw new Error('Quotation data not found');
       }
       
+      // If internalPricingEnabled is true, make sure it's included in the quotation data
+      if (internalPricingEnabled && !quotationData.internalPricing) {
+        quotationData.internalPricing = true;
+      }
+      
       const result = await RealProjectService.generateQuotation(
         project.id, 
         quotationData

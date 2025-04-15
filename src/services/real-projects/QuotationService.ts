@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -42,7 +41,8 @@ export class QuotationService extends BaseService {
         // Add internal pricing data if provided
         margins: quotationData.margins || {},
         gstRate: quotationData.gstRate || 18, // Default 18% GST
-        internalPricing: quotationData.internalPricing || false
+        internalPricing: quotationData.internalPricing || false,
+        internalPricingDetails: quotationData.internalPricingDetails || undefined
       };
       
       // Calculate internal pricing if enabled
