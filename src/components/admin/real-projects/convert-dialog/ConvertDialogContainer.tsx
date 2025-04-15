@@ -1,10 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ConvertibleRecord } from '@/services/real-projects/types';
 import { RealProjectService } from '@/services/RealProjectService';
-import { useQuery } from '@tanstack/react-query';
 import RecordsListView from './RecordsListView';
 import LoadingIndicator from './LoadingIndicator';
 import { toast } from '@/hooks/use-toast';
@@ -19,13 +18,33 @@ const ConvertDialogContainer: React.FC<ConvertDialogContainerProps> = ({ open, o
   const [selectedRecord, setSelectedRecord] = useState<ConvertibleRecord | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [recordType, setRecordType] = useState<'lead' | 'project_estimate'>('lead');
+  const [isLoading, setIsLoading] = useState(true);
+  const [records, setRecords] = useState<ConvertibleRecord[]>([]);
   
-  // Fetch convertible records
-  const { data: records = [], isLoading, refetch } = useQuery({
-    queryKey: ['convertible-records'],
-    queryFn: () => RealProjectService.getConvertibleRecords(),
-    enabled: open,
-  });
+  // Fetch convertible records when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchRecords();
+    }
+  }, [open]);
+  
+  const fetchRecords = async () => {
+    setIsLoading(true);
+    try {
+      const data = await RealProjectService.getConvertibleRecords();
+      console.log("Fetched records in dialog:", data);
+      setRecords(data || []);
+    } catch (error) {
+      console.error("Error fetching records:", error);
+      toast({
+        title: "Error fetching records",
+        description: "Failed to load convertible records. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   const handleConvert = async () => {
     if (!selectedRecord) return;
@@ -53,6 +72,7 @@ const ConvertDialogContainer: React.FC<ConvertDialogContainerProps> = ({ open, o
       onSuccess();
       onClose();
     } catch (error: any) {
+      console.error("Error converting record:", error);
       toast({
         title: 'Conversion failed',
         description: error.message || 'An error occurred during conversion.',

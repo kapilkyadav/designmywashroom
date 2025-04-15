@@ -18,7 +18,7 @@ const RecordsListView: React.FC<RecordsListViewProps> = ({
   onSelectRecord,
   onChangeRecordType
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [records, setRecords] = useState<ConvertibleRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
@@ -33,8 +33,8 @@ const RecordsListView: React.FC<RecordsListViewProps> = ({
     setIsLoading(true);
     try {
       const data = await RealProjectService.getConvertibleRecords();
-      console.log("Fetched records:", data); // Log fetched data for debugging
-      setRecords(data);
+      console.log("Fetched convertible records:", data); // Add logging
+      setRecords(data || []);
     } catch (error) {
       console.error("Error fetching convertible records:", error);
     } finally {
@@ -42,12 +42,32 @@ const RecordsListView: React.FC<RecordsListViewProps> = ({
     }
   };
 
+  // Filter records based on search term and active tab
+  const filteredRecords = records.filter(record => {
+    const matchesSearch = searchTerm === '' || 
+      record.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.client_mobile?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.client_email?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesTab = activeTab === 'all' || 
+      (activeTab === 'leads' && record.record_type === 'lead') ||
+      (activeTab === 'estimates' && record.record_type === 'project_estimate');
+    
+    return matchesSearch && matchesTab;
+  });
+
   return (
-    <RecordsList
-      records={records}
-      isLoading={isLoading}
-      onSelectRecord={onSelectRecord}
-    />
+    <div className="space-y-4">
+      {isLoading ? (
+        <LoadingIndicator />
+      ) : (
+        <RecordsList
+          records={records}
+          isLoading={isLoading}
+          onSelectRecord={onSelectRecord}
+        />
+      )}
+    </div>
   );
 };
 

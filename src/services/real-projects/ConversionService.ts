@@ -9,52 +9,69 @@ export class ConversionService extends BaseService {
    */
   static async getConvertibleRecords(): Promise<ConvertibleRecord[]> {
     try {
+      console.log("Fetching convertible records...");
+      
       // Get leads that haven't been converted yet
       const { data: leads, error: leadsError } = await supabase
         .from('leads')
-        .select('id, customer_name, phone, email, location, created_at, status')
-        .is('real_project_id', null)
+        .select('id, customer_name, phone, email, location, created_at, status, real_project_id')
         .order('created_at', { ascending: false });
       
-      if (leadsError) throw leadsError;
+      if (leadsError) {
+        console.error("Error fetching leads:", leadsError);
+        throw leadsError;
+      }
       
       // Get project estimates that haven't been converted yet
       const { data: estimates, error: estimatesError } = await supabase
         .from('projects')
-        .select('id, client_name, client_email, client_mobile, client_location, created_at')
-        .is('real_project_id', null)
+        .select('id, client_name, client_email, client_mobile, client_location, created_at, real_project_id')
         .order('created_at', { ascending: false });
       
-      if (estimatesError) throw estimatesError;
+      if (estimatesError) {
+        console.error("Error fetching project estimates:", estimatesError);
+        throw estimatesError;
+      }
+      
+      console.log("Fetched leads:", leads?.length || 0);
+      console.log("Fetched estimates:", estimates?.length || 0);
       
       // Convert leads to standardized format
-      const convertibleLeads = (leads || []).map(lead => ({
-        record_type: 'lead' as const,
-        record_id: lead.id,
-        client_name: lead.customer_name,
-        client_email: lead.email,
-        client_mobile: lead.phone,
-        client_location: lead.location,
-        created_date: lead.created_at,
-        status: lead.status,
-        real_project_id: null
-      }));
+      const convertibleLeads = (leads || [])
+        .filter(lead => !lead.real_project_id) // Filter out already converted leads
+        .map(lead => ({
+          record_type: 'lead' as const,
+          record_id: lead.id,
+          client_name: lead.customer_name || '',
+          client_email: lead.email || '',
+          client_mobile: lead.phone || '',
+          client_location: lead.location || '',
+          created_date: lead.created_at,
+          status: lead.status,
+          real_project_id: null
+        }));
       
       // Convert estimates to standardized format
-      const convertibleEstimates = (estimates || []).map(estimate => ({
-        record_type: 'project_estimate' as const,
-        record_id: estimate.id,
-        client_name: estimate.client_name,
-        client_email: estimate.client_email,
-        client_mobile: estimate.client_mobile,
-        client_location: estimate.client_location,
-        created_date: estimate.created_at,
-        status: null,
-        real_project_id: null
-      }));
+      const convertibleEstimates = (estimates || [])
+        .filter(estimate => !estimate.real_project_id) // Filter out already converted estimates
+        .map(estimate => ({
+          record_type: 'project_estimate' as const,
+          record_id: estimate.id,
+          client_name: estimate.client_name || '',
+          client_email: estimate.client_email || '',
+          client_mobile: estimate.client_mobile || '',
+          client_location: estimate.client_location || '',
+          created_date: estimate.created_at,
+          status: null,
+          real_project_id: null
+        }));
       
-      return [...convertibleLeads, ...convertibleEstimates];
+      const allRecords = [...convertibleLeads, ...convertibleEstimates];
+      console.log("Total convertible records:", allRecords.length);
+      
+      return allRecords;
     } catch (error: any) {
+      console.error("Error in getConvertibleRecords:", error);
       return this.handleError(error, 'Failed to fetch convertible records');
     }
   }
