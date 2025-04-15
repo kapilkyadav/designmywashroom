@@ -4,12 +4,51 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { ArrowRight, CheckCircle, Smartphone, Ruler, Clock, Sparkles } from 'lucide-react';
+import { ArrowRight, CheckCircle, Smartphone, Ruler, Clock, Sparkles, Star, Quote } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+
 const Index = () => {
   const heroRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+
+  const testimonials = [
+    {
+      name: "Rajesh Kumar",
+      role: "Homeowner",
+      content: "The washroom renovation exceeded our expectations. The team's attention to detail and use of premium fixtures transformed our space completely.",
+      rating: 5
+    },
+    {
+      name: "Priya Sharma",
+      role: "Interior Designer",
+      content: "Working with this team has been fantastic. Their extensive range of premium brands and professional installation services make them my go-to choice for clients.",
+      rating: 5
+    },
+    {
+      name: "Amit Patel",
+      role: "Property Developer",
+      content: "Outstanding service and quality. The estimation calculator helped us plan our budget accurately, and the final result was exactly what we envisioned.",
+      rating: 5
+    }
+  ];
+
+  const brands = [
+    { name: "Jaquar", logo: "/lovable-uploads/jaquar-logo.png" },
+    { name: "Grohe", logo: "/lovable-uploads/grohe-logo.png" },
+    { name: "Kohler", logo: "/lovable-uploads/kohler-logo.png" },
+    { name: "Cera", logo: "/lovable-uploads/cera-logo.png" },
+    { name: "Kajaria", logo: "/lovable-uploads/kajaria-logo.png" },
+    { name: "Somany", logo: "/lovable-uploads/somany-logo.png" }
+  ];
+
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
@@ -26,6 +65,7 @@ const Index = () => {
       elements.forEach(el => observer.unobserve(el));
     };
   }, []);
+
   return <div className="min-h-screen flex flex-col">
       <Header />
       
@@ -156,7 +196,83 @@ const Index = () => {
           </div>
         </div>
       </section>
-      
+
+      {/* Testimonials Section */}
+      <section className="py-16 sm:py-20 px-4 bg-background">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 reveal opacity-0">
+              What Our Clients Say
+            </h2>
+            <p className="text-base sm:text-lg text-muted-foreground reveal opacity-0">
+              Real experiences from our satisfied customers
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="p-6 reveal opacity-0" style={{
+                animationDelay: `${0.1 * (index + 1)}s`
+              }}>
+                <div className="flex items-center mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <Quote className="w-8 h-8 text-primary/20 mb-4" />
+                <p className="text-sm md:text-base mb-4">{testimonial.content}</p>
+                <div className="mt-auto">
+                  <p className="font-semibold">{testimonial.name}</p>
+                  <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Partner Brands Section */}
+      <section className="py-16 sm:py-20 px-4 bg-secondary/10">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 reveal opacity-0">
+              Our Partner Brands
+            </h2>
+            <p className="text-base sm:text-lg text-muted-foreground reveal opacity-0">
+              We work with the world's leading bathroom fixture brands
+            </p>
+          </div>
+
+          <div className="relative px-12 reveal opacity-0">
+            <Carousel
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+              className="w-full"
+            >
+              <CarouselContent className="-ml-2 md:-ml-4">
+                {brands.map((brand, index) => (
+                  <CarouselItem key={index} className="pl-2 md:pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4">
+                    <Card className="p-6">
+                      <div className="aspect-[3/2] relative">
+                        <img
+                          src="/placeholder.svg"
+                          alt={`${brand.name} logo`}
+                          className="object-contain w-full h-full"
+                        />
+                      </div>
+                    </Card>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-12 sm:py-16 md:py-20 px-4 bg-primary text-primary-foreground">
         <div className="container mx-auto max-w-4xl text-center">
@@ -180,4 +296,5 @@ const Index = () => {
       <Footer />
     </div>;
 };
+
 export default Index;
