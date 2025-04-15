@@ -100,6 +100,9 @@ export class QuotationService extends BaseService {
       return isNaN(numValue) ? '0' : numValue.toLocaleString('en-IN');
     };
     
+    // Calculate total area of all washrooms
+    const totalArea = washrooms.reduce((sum, w) => sum + (w.length * w.width), 0);
+    
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -174,70 +177,63 @@ export class QuotationService extends BaseService {
             border-bottom: 2px solid var(--border-color);
           }
           
-          .washroom-table {
-            width: 100%;
-            margin-bottom: 30px;
-            border-collapse: collapse;
-          }
-          
-          .washroom-table th {
-            background-color: var(--primary-color);
-            color: white;
-            text-align: left;
-            padding: 12px;
-          }
-          
-          .washroom-table td {
-            padding: 12px;
-            border-bottom: 1px solid var(--border-color);
-          }
-          
-          .washroom-table tr:nth-child(even) {
-            background-color: #f8fafc;
-          }
-          
-          .items-table {
-            width: 100%;
-            margin-bottom: 30px;
-            border-collapse: collapse;
-          }
-          
-          .items-table th {
-            background-color: var(--primary-color);
-            color: white;
-            text-align: left;
-            padding: 12px;
-          }
-          
-          .items-table td {
-            padding: 12px;
-            border-bottom: 1px solid var(--border-color);
-          }
-          
-          .items-table tr:nth-child(even) {
-            background-color: #f8fafc;
-          }
-          
-          .total-section {
-            background-color: #f8fafc;
-            padding: 20px;
+          .washroom-card {
+            background: white;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
           }
           
-          .total-row {
+          .washroom-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
             display: flex;
             justify-content: space-between;
-            font-weight: 600;
-            font-size: 18px;
-            color: var(--primary-color);
+            align-items: center;
           }
           
-          .terms-section {
-            background-color: #f8fafc;
+          .washroom-content {
             padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
+          }
+          
+          .scope-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+          }
+          
+          .scope-table th {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            text-align: left;
+            padding: 12px;
+          }
+          
+          .scope-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+          }
+          
+          .price-box {
+            background: var(--secondary-color);
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+          }
+          
+          .price-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+          }
+          
+          .price-row.total {
+            font-weight: 600;
+            border-top: 1px solid var(--border-color);
+            padding-top: 8px;
           }
           
           .footer {
@@ -251,34 +247,6 @@ export class QuotationService extends BaseService {
           .footer img {
             max-width: 120px;
             margin-bottom: 15px;
-          }
-          
-          .product-list {
-            margin-top: 40px;
-          }
-          
-          .product-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 30px;
-          }
-          
-          .product-table th {
-            background-color: var(--primary-color);
-            color: white;
-            text-align: left;
-            padding: 12px;
-          }
-          
-          .product-table td {
-            padding: 12px;
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: middle;
-          }
-          
-          .product-table img {
-            max-width: 60px;
-            height: auto;
           }
           
           @media print {
@@ -315,62 +283,88 @@ export class QuotationService extends BaseService {
               <p><strong>Project ID:</strong> ${project.project_id}</p>
               <p><strong>Date:</strong> ${format(new Date(), 'dd/MM/yyyy')}</p>
               <p><strong>Project Type:</strong> ${project.project_type}</p>
-              <p><strong>Brand:</strong> ${project.selected_brand || 'N/A'}</p>
+              <p><strong>Total Area:</strong> ${totalArea.toFixed(2)} sq ft</p>
             </div>
           </div>
           
           <div class="washrooms-section">
-            <h3 class="section-title">Washroom Details</h3>
-            <table class="washroom-table">
-              <thead>
-                <tr>
-                  <th>Washroom</th>
-                  <th>Dimensions</th>
-                  <th>Area (sq ft)</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${washrooms.map((washroom) => `
-                  <tr>
-                    <td>${washroom.name || 'Washroom'}</td>
-                    <td>${washroom.length}' × ${washroom.width}' × ${washroom.height}'</td>
-                    <td>${(washroom.length * washroom.width).toFixed(2)} sq ft</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
+            <h3 class="section-title">Washroom Details & Scope of Work</h3>
+            ${washrooms.map((washroom, index) => {
+              // Get washroom-specific items from quotationData
+              const washroomItems = (quotationData.items || []).filter((item: any) => 
+                item.washroomId === washroom.id || !item.washroomId
+              );
+              
+              // Calculate washroom totals
+              const washroomTotal = washroomItems.reduce((sum: number, item: any) => 
+                sum + (parseFloat(item.amount) || 0), 0
+              );
+              
+              const washroomArea = washroom.length * washroom.width;
+              
+              return `
+                <div class="washroom-card">
+                  <div class="washroom-header">
+                    <h4 style="margin: 0">${washroom.name}</h4>
+                    <span>${washroomArea.toFixed(2)} sq ft</span>
+                  </div>
+                  <div class="washroom-content">
+                    <div>
+                      <strong>Dimensions:</strong> ${washroom.length}' × ${washroom.width}' × ${washroom.height}'
+                    </div>
+                    <div>
+                      <strong>Selected Brand:</strong> ${washroom.selected_brand || 'Not specified'}
+                    </div>
+                    
+                    <table class="scope-table">
+                      <thead>
+                        <tr>
+                          <th>Service</th>
+                          <th>Description</th>
+                          <th style="text-align: right;">MRP</th>
+                          <th style="text-align: right;">Special Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${washroomItems.map((item: any) => `
+                          <tr>
+                            <td>${item.name}</td>
+                            <td>${item.description || ''}</td>
+                            <td style="text-align: right;">₹${formatAmount(item.mrp || item.amount * 1.2)}</td>
+                            <td style="text-align: right;">₹${formatAmount(item.amount)}</td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                    
+                    <div class="price-box">
+                      <div class="price-row">
+                        <span>Total MRP:</span>
+                        <span>₹${formatAmount(washroomTotal * 1.2)}</span>
+                      </div>
+                      <div class="price-row">
+                        <span>Discount:</span>
+                        <span>20%</span>
+                      </div>
+                      <div class="price-row total">
+                        <span>Special Price:</span>
+                        <span>₹${formatAmount(washroomTotal)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
           </div>
           
-          <div class="items-section">
-            <h3 class="section-title">Quotation Items</h3>
-            <table class="items-table">
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Description</th>
-                  <th style="text-align: right;">Amount (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${(quotationData.items || []).map((item: any) => `
-                  <tr>
-                    <td>${item.name || ''}</td>
-                    <td>${item.description || ''}</td>
-                    <td style="text-align: right;">₹${formatAmount(item.amount)}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-          
-          <div class="total-section">
-            <div class="total-row">
-              <span>Total Amount:</span>
+          <div class="total-section" style="margin-top: 30px; padding: 20px; background: var(--secondary-color); border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 600;">
+              <span>Total Project Value:</span>
               <span>₹${formatAmount(quotationData.totalAmount)}</span>
             </div>
           </div>
           
-          <div class="terms-section">
+          <div class="terms-section" style="margin-top: 30px;">
             <h3 class="section-title">Terms & Conditions</h3>
             <div>${quotationData.terms || 'Standard terms and conditions apply.'}</div>
           </div>
