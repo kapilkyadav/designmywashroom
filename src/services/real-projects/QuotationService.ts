@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -182,24 +181,52 @@ export class QuotationService extends BaseService {
         item.washroomId === washroom.id || !item.washroomId
       );
       
-      // Calculate base price (sum of all items)
-      const basePrice = washroomItems.reduce(
-        (sum, item) => sum + (parseFloat(item.amount) || 0), 
-        0
-      );
+      let washroomBasePrice = 0;
+      let washroomMarginAmount = 0;
+      const itemizedPricing: any[] = [];
       
-      // Apply margin if specified for this washroom
-      const marginPercentage = margins[washroom.id] || 0;
-      const marginAmount = basePrice * (marginPercentage / 100);
-      const priceWithMargin = basePrice + marginAmount;
+      // Calculate pricing for each item
+      washroomItems.forEach(item => {
+        const itemBasePrice = parseFloat(item.amount) || 0;
+        let itemMarginAmount = 0;
+        
+        // Only apply margin if it's a service (not a brand product)
+        if (!item.isBrandProduct && item.serviceDetails) {
+          const marginPercentage = margins[washroom.id] || 0;
+          itemMarginAmount = itemBasePrice * (marginPercentage / 100);
+        }
+        
+        const itemTotalPrice = itemBasePrice + itemMarginAmount;
+        
+        washroomBasePrice += itemBasePrice;
+        washroomMarginAmount += itemMarginAmount;
+        
+        itemizedPricing.push({
+          itemName: item.name,
+          basePrice: itemBasePrice,
+          marginAmount: itemMarginAmount,
+          totalPrice: itemTotalPrice,
+          isBrandProduct: item.isBrandProduct || false
+        });
+      });
+      
+      const priceWithMargin = washroomBasePrice + washroomMarginAmount;
       
       // Apply GST only to items that need GST
       const gstableAmount = washroomItems
         .filter(item => item.applyGst !== false)
         .reduce((sum, item) => {
-          const itemAmount = parseFloat(item.amount) || 0;
-          const itemMargin = itemAmount * (marginPercentage / 100);
-          return sum + (itemAmount + itemMargin);
+          const itemBasePrice = parseFloat(item.amount) || 0;
+          let itemTotalWithMargin = itemBasePrice;
+          
+          // Only apply margin to non-brand products
+          if (!item.isBrandProduct && item.serviceDetails) {
+            const marginPercentage = margins[washroom.id] || 0;
+            const itemMarginAmount = itemBasePrice * (marginPercentage / 100);
+            itemTotalWithMargin += itemMarginAmount;
+          }
+          
+          return sum + itemTotalWithMargin;
         }, 0);
       
       const gstAmount = gstableAmount * (gstRate / 100);
@@ -207,18 +234,19 @@ export class QuotationService extends BaseService {
       
       // Store pricing details for this washroom
       washroomPricing[washroom.id] = {
-        basePrice,
-        marginPercentage,
-        marginAmount,
+        basePrice: washroomBasePrice,
+        marginAmount: washroomMarginAmount,
+        marginPercentage: washroomBasePrice > 0 ? (washroomMarginAmount / washroomBasePrice) * 100 : 0,
         priceWithMargin,
         gstableAmount,
         gstPercentage: gstRate,
         gstAmount,
-        totalPrice
+        totalPrice,
+        itemizedPricing // Add itemized pricing details
       };
       
       // Add to project totals
-      projectTotalBasePrice += basePrice;
+      projectTotalBasePrice += washroomBasePrice;
       projectTotalWithMargin += priceWithMargin;
       projectTotalGST += gstAmount;
       projectGrandTotal += totalPrice;
