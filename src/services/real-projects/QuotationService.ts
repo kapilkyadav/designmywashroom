@@ -276,20 +276,12 @@ export class QuotationService extends BaseService {
       const numValue = typeof value === 'number' ? value : parseFloat(value);
       return isNaN(numValue) ? '0' : numValue.toLocaleString('en-IN');
     };
-
-    // Calculate discount percentage based on MRP and selling price
-    const calculateDiscountPercentage = (mrp: number, sellingPrice: number): number => {
-      if (mrp <= 0) return 0;
-      const discount = ((mrp - sellingPrice) / mrp) * 100;
-      return Math.round(discount * 100) / 100; // Round to 2 decimal places
-    };
     
     // Calculate total area of all washrooms
     const totalArea = washrooms.reduce((sum, w) => sum + (w.length * w.width), 0);
     
     // Calculate totals and GST
     let subtotalBeforeGst = 0;
-    let totalMrp = 0;
     let gstAmount = 0;
     
     // First pass to calculate totals
@@ -300,13 +292,6 @@ export class QuotationService extends BaseService {
       
       washroomItems.forEach((item: any) => {
         const itemAmount = parseFloat(item.amount) || 0;
-        // For brand products, use actual MRP
-        if (item.isBrandProduct && item.mrp) {
-          totalMrp += parseFloat(item.mrp);
-        } else {
-          // For services, there's no separate MRP
-          totalMrp += itemAmount;
-        }
         subtotalBeforeGst += itemAmount;
         
         if (item.applyGst !== false) {
@@ -366,8 +351,7 @@ export class QuotationService extends BaseService {
         }
       }
     }
-
-    // Generate HTML with proper styling for PDF
+    
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -524,28 +508,12 @@ export class QuotationService extends BaseService {
           
           @media print {
             body {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              width: 100%;
-              margin: 0;
-              padding: 0;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
             }
             
-            .table-wrapper {
-              page-break-inside: auto;
-            }
-            
-            tr {
-              page-break-inside: avoid;
-              page-break-after: auto;
-            }
-            
-            thead {
-              display: table-header-group;
-            }
-            
-            tfoot {
-              display: table-footer-group;
+            .container {
+              max-width: 100%;
             }
           }
         </style>
@@ -578,7 +546,7 @@ export class QuotationService extends BaseService {
           
           <div class="washrooms-section">
             <h3 class="section-title">Washroom Details & Scope of Work</h3>
-            ${washrooms.map((washroom) => {
+            ${washrooms.map((washroom, index) => {
               const washroomArea = washroom.length * washroom.width;
               const categoriesForWashroom = washroomItemsByCategory[washroom.id] || {};
               
@@ -596,44 +564,66 @@ export class QuotationService extends BaseService {
                       <strong>Selected Brand:</strong> ${washroom.selected_brand || 'Not specified'}
                     </div>
                     
-                    <div class="table-wrapper">
-                      <table class="scope-table">
-                        <thead>
-                          <tr>
-                            <th>Item</th>
-                            <th>Description</th>
-                            <th style="text-align: right;">MRP</th>
-                            <th style="text-align: right;">YDS Offer</th>
-                            <th style="text-align: right;">Discount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          ${Object.entries(categoriesForWashroom).map(([category, items]) => {
-                            return `
-                              <tr>
-                                <td colspan="5" style="background-color: #f1f5f9; font-weight: 600; padding: 8px 12px;">
-                                  ${category}
-                                </td>
-                              </tr>
-                              ${items.map(item => {
-                                const itemAmount = parseFloat(item.amount) || 0;
-                                const itemMrp = item.isBrandProduct ? (parseFloat(item.mrp) || itemAmount) : itemAmount;
-                                const discountPercentage = calculateDiscountPercentage(itemMrp, itemAmount);
-                                
-                                return `
-                                  <tr>
-                                    <td>${item.name}</td>
-                                    <td>${item.description || ''}</td>
-                                    <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
-                                    <td style="text-align: right;">₹${formatAmount(itemAmount)}</td>
-                                    <td style="text-align: right;">${discountPercentage}%</td>
-                                  </tr>
-                                `;
-                              }).join('')}
-                            `;
-                          }).join('')}
-                        </tbody>
-                      </table>
+                    <table class="scope-table">
+                      <thead>
+                        <tr>
+                          <th>Item</th>
+                          <th>Description</th>
+                          <th style="text-align: right;">MRP</th>
+                          <th style="text-align: right;">Special Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${Object.entries(categoriesForWashroom).map(([category, items]) => {
+                          // Calculate category totals
+                          const categoryTotal = items.reduce((sum, item) => sum + (item.isService ? item.amount : (parseFloat(item.amount) || 0)), 0);
+                          const categoryMrp = categoryTotal * 1.2;
+                          
+                          return `
+                            <tr>
+                              <td colspan="4" style="background-color: #f1f5f9; font-weight: 600; padding: 8px 12px;">
+                                ${category}
+                              </td>
+                            </tr>
+                            ${items.filter(item => !item.isService || (item.amount && item.amount > 0)).map(item => {
+                              const itemAmount = item.isService ? item.amount : (parseFloat(item.amount) || 0);
+                              const itemMrp = itemAmount * 1.2;
+                              const itemUnit = item.unit || '';
+                              
+                              return `
+                                <tr>
+                                  <td style="padding-left: 24px;">
+                                    • ${item.name} ${itemUnit ? `(${itemUnit})` : ''}
+                                  </td>
+                                  <td>${item.description || ''}</td>
+                                  <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
+                                  <td style="text-align: right;">₹${formatAmount(itemAmount)}</td>
+                                </tr>
+                              `;
+                            }).join('')}
+                            <tr>
+                              <td colspan="2" style="text-align: right; font-weight: 500;">Category Total:</td>
+                              <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryMrp)}</td>
+                              <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryTotal)}</td>
+                            </tr>
+                          `;
+                        }).join('')}
+                      </tbody>
+                    </table>
+                    
+                    <div class="price-box">
+                      <div class="price-row">
+                        <span>Total MRP:</span>
+                        <span>₹${formatAmount(subtotalBeforeGst * 1.2)}</span>
+                      </div>
+                      <div class="price-row">
+                        <span>Discount:</span>
+                        <span>20%</span>
+                      </div>
+                      <div class="price-row total">
+                        <span>Special Price (before GST):</span>
+                        <span>₹${formatAmount(subtotalBeforeGst)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -644,19 +634,15 @@ export class QuotationService extends BaseService {
           <div class="summary-box">
             <h3 class="section-title">Price Summary</h3>
             <div class="price-row">
-              <span>Total MRP Value:</span>
-              <span>₹${formatAmount(totalMrp)}</span>
-            </div>
-            <div class="price-row">
-              <span>YDS Special Price (before GST):</span>
+              <span>Subtotal (before GST):</span>
               <span>₹${formatAmount(subtotalBeforeGst)}</span>
             </div>
             <div class="price-row">
-              <span>GST (${quotationData.gstRate || 18}%):</span>
+              <span>GST (18%):</span>
               <span>₹${formatAmount(gstAmount)}</span>
             </div>
             <div class="price-row total">
-              <span>Net Amount (with GST):</span>
+              <span>Total Amount (with GST):</span>
               <span>₹${formatAmount(grandTotal)}</span>
             </div>
           </div>
