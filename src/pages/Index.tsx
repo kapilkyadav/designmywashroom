@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -14,7 +13,6 @@ const Index = () => {
   const isMobile = useIsMobile();
   
   useEffect(() => {
-    // Create IntersectionObserver instance before using it
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -25,11 +23,9 @@ const Index = () => {
       threshold: 0.1
     });
     
-    // Now use the observer after it's defined
     const elements = document.querySelectorAll('.reveal');
     elements.forEach(el => observer.observe(el));
     
-    // Clean up observer on component unmount
     return () => {
       elements.forEach(el => observer.unobserve(el));
     };
@@ -74,7 +70,11 @@ const Index = () => {
                 <div className="absolute -top-2 sm:-top-4 -left-2 sm:-left-4 w-16 h-16 sm:w-24 sm:h-24 md:w-32 md:h-32 bg-primary/5 rounded-full"></div>
                 <div className="absolute -bottom-2 sm:-bottom-4 -right-2 sm:-right-4 w-20 h-20 sm:w-32 sm:h-32 md:w-40 md:h-40 bg-primary/5 rounded-full"></div>
                 <div className="relative overflow-hidden rounded-xl border border-border shadow-lg">
-                  <img src="https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1287&q=80" alt="Modern washroom design" className="w-full h-auto object-cover" />
+                  <img 
+                    src="/lovable-uploads/b31d2c04-d06b-47b1-9748-54f38a30b99c.png" 
+                    alt="Modern washroom design" 
+                    className="w-full h-auto object-cover" 
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-6">
                     <div className="inline-block backdrop-blur-sm rounded-lg px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium bg-zinc-900">
