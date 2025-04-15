@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './BaseService';
 import { ConvertibleRecord } from './types';
@@ -22,10 +23,10 @@ export class ConversionService extends BaseService {
         throw leadsError;
       }
       
-      // Get project estimates that haven't been converted yet
+      // Get project estimates - don't filter by real_project_id since it doesn't exist
       const { data: estimates, error: estimatesError } = await supabase
         .from('projects')
-        .select('id, client_name, client_email, client_mobile, client_location, created_at, real_project_id')
+        .select('id, client_name, client_email, client_mobile, client_location, created_at')
         .order('created_at', { ascending: false });
       
       if (estimatesError) {
@@ -36,7 +37,7 @@ export class ConversionService extends BaseService {
       console.log("Fetched leads:", leads?.length || 0);
       console.log("Fetched estimates:", estimates?.length || 0);
       
-      // Convert leads to standardized format - remove real_project_id filter since it doesn't exist in leads table
+      // Convert leads to standardized format
       const convertibleLeads = (leads || [])
         .map(lead => ({
           record_type: 'lead' as const,
@@ -50,9 +51,8 @@ export class ConversionService extends BaseService {
           real_project_id: null
         }));
       
-      // Convert estimates to standardized format
+      // Convert estimates to standardized format without filtering
       const convertibleEstimates = (estimates || [])
-        .filter(estimate => !estimate.real_project_id) // Filter out already converted estimates
         .map(estimate => ({
           record_type: 'project_estimate' as const,
           record_id: estimate.id,
@@ -71,7 +71,6 @@ export class ConversionService extends BaseService {
       return allRecords;
     } catch (error: any) {
       console.error("Error in getConvertibleRecords:", error);
-      // Return empty array instead of using the handleError method that doesn't exist
       return [];
     }
   }
@@ -125,15 +124,19 @@ export class ConversionService extends BaseService {
       
       if (projectError) throw projectError;
       
-      // Update the lead with the real project ID
+      // Update the lead status to converted
       await supabase
         .from('leads')
-        .update({ real_project_id: project.id })
+        .update({ 
+          status: 'Converted',
+          remarks: `Converted to Project ${project.project_id} on ${new Date().toLocaleDateString()}`
+        })
         .eq('id', leadId);
       
       return project;
     } catch (error: any) {
-      return this.handleError(error, 'Failed to convert lead to real project');
+      console.error("Error converting lead to project:", error);
+      throw new Error(`Failed to convert lead to real project: ${error.message}`);
     }
   }
   
@@ -178,15 +181,26 @@ export class ConversionService extends BaseService {
       
       if (projectError) throw projectError;
       
-      // Update the project estimate with the real project ID
-      await supabase
-        .from('projects')
-        .update({ real_project_id: project.id })
-        .eq('id', estimateId);
+      // We don't need to update the project estimate with real_project_id
+      // as this column doesn't exist
       
       return project;
     } catch (error: any) {
-      return this.handleError(error, 'Failed to convert estimate to real project');
+      console.error("Error converting estimate to project:", error);
+      throw new Error(`Failed to convert estimate to real project: ${error.message}`);
     }
+  }
+
+  /**
+   * Handle error and display toast
+   */
+  private static handleError(error: any, defaultMessage: string) {
+    console.error(defaultMessage, error);
+    toast({
+      title: "Error",
+      description: error.message || defaultMessage,
+      variant: "destructive"
+    });
+    throw error;
   }
 }

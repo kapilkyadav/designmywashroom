@@ -18,7 +18,6 @@ const ConvertDialogContainer: React.FC<ConvertDialogContainerProps> = ({ open, o
   const [selectedRecord, setSelectedRecord] = useState<ConvertibleRecord | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [recordType, setRecordType] = useState<'lead' | 'project_estimate'>('lead');
-  const [isLoading, setIsLoading] = useState(false);
   
   // Reset state when dialog opens
   useEffect(() => {

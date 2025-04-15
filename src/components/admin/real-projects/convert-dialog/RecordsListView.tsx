@@ -54,9 +54,9 @@ const RecordsListView: React.FC<RecordsListViewProps> = ({
   // Filter records based on search term and active tab
   const filteredRecords = records.filter(record => {
     const matchesSearch = searchTerm === '' || 
-      record.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.client_mobile?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.client_email?.toLowerCase().includes(searchTerm.toLowerCase());
+      (record.client_name && record.client_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (record.client_mobile && record.client_mobile.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (record.client_email && record.client_email.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesTab = activeTab === 'all' || 
       (activeTab === 'leads' && record.record_type === 'lead') ||
