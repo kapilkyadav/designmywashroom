@@ -13,10 +13,13 @@ const ThemeContext = React.createContext<ThemeContextType | undefined>(undefined
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Check for user preference or saved theme
   const [theme, setTheme] = React.useState<Theme>(() => {
-    // Check localStorage first
+    // Check if we're in a browser environment
     if (typeof window !== 'undefined') {
+      // Check localStorage first
       const savedTheme = localStorage.getItem('theme') as Theme;
-      if (savedTheme) return savedTheme;
+      if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
+        return savedTheme;
+      }
       
       // Check user preference
       if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -43,8 +46,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  const contextValue = React.useMemo(() => {
+    return { theme, setTheme };
+  }, [theme]);
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );
