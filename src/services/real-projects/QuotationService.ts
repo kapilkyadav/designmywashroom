@@ -76,8 +76,8 @@ export class QuotationService extends BaseService {
           } 
           // If category is an array with at least one item
           else if (Array.isArray(item.category) && item.category.length > 0) {
-            // Use optional chaining to safely access properties
-            const firstCategory = item.category[0];
+            // Type assertion for the array item
+            const firstCategory = item.category[0] as { name?: string; id?: string } | null;
             categoryName = firstCategory?.name || categoryName;
             categoryId = firstCategory?.id || categoryId;
           }
