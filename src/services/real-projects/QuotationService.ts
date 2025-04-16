@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -75,8 +74,8 @@ export class QuotationService extends BaseService {
           } 
           // If category is an array with at least one item
           else if (Array.isArray(item.category) && item.category.length > 0) {
-            categoryName = item.category[0].name || categoryName;
-            categoryId = item.category[0].id || categoryId;
+            categoryName = item.category[0]?.name || categoryName;
+            categoryId = item.category[0]?.id || categoryId;
           }
         }
         

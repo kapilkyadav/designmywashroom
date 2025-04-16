@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { VendorRateCardService, VendorItem } from '@/services/VendorRateCardService';
-import { WashroomWithAreas } from '../../types';
+import { WashroomWithAreas, ServiceDetail } from '../../types';
 
 // Define a type for the service items
 export interface ServiceItem {
@@ -120,7 +120,7 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
       
       // Add service if not already present
       const serviceExists = washroom.service_details[categoryId].some(
-        (s: any) => s.serviceId === serviceId
+        (s: ServiceDetail) => s.serviceId === serviceId
       );
       
       if (!serviceExists) {
@@ -135,7 +135,7 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
       // Remove service if category exists
       if (washroom.service_details[categoryId]) {
         washroom.service_details[categoryId] = washroom.service_details[categoryId].filter(
-          (s: any) => s.serviceId !== serviceId
+          (s: ServiceDetail) => s.serviceId !== serviceId
         );
         
         // Remove empty category
