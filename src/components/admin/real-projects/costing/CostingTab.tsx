@@ -27,8 +27,7 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
     setAdditionalCosts,
     executionTotal,
     vendorTotal,
-    additionalTotal,
-    grandTotal
+    additionalTotal
   } = useCostingState(project);
   
   const [isSaving, setIsSaving] = useState(false);
@@ -44,6 +43,8 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
             return sum + (product.quotation_price || 0);
           }, 0);
           setProductCost(brandProductTotal);
+          
+          // Calculate logistics cost as 7.5% of product cost
           const logistics = brandProductTotal * 0.075;
           setLogisticsCost(logistics);
         } else {
@@ -60,10 +61,16 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
     calculateProductCosts();
   }, [project.selected_brand]);
   
-  // Calculate total with GST
-  const subtotal = executionTotal + vendorTotal + additionalTotal + productCost + logisticsCost;
-  const gstableAmount = executionTotal + vendorTotal + additionalTotal;
-  const gstAmount = gstableAmount * 0.18; // 18% GST
+  // Execution services total
+  const executionServicesTotal = executionTotal + vendorTotal + additionalTotal;
+  
+  // Calculate subtotal (execution + product + logistics)
+  const subtotal = executionServicesTotal + productCost + logisticsCost;
+  
+  // GST is 18% of execution services only (not on product/logistics)
+  const gstAmount = executionServicesTotal * 0.18; // 18% GST
+  
+  // Final total with GST
   const finalTotal = subtotal + gstAmount;
   
   const removeItem = (id: string, category: string) => {

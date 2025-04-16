@@ -26,45 +26,32 @@ const CostSummary: React.FC<CostSummaryProps> = ({
     return amount.toLocaleString('en-IN');
   };
   
-  // Calculate subtotal (all costs before GST)
-  const subtotal = executionTotal + vendorTotal + additionalTotal + productCost + logisticsCost;
+  // Total of all execution services costs
+  const executionServicesTotal = executionTotal + vendorTotal + additionalTotal;
   
-  // Assume GST is 18% of execution, vendor, and additional costs (not on product/logistics)
-  const gstableAmount = executionTotal + vendorTotal + additionalTotal;
-  const gstAmount = gstableAmount * 0.18; // 18% GST
+  // Calculate subtotal (execution services + product + logistics)
+  const subtotal = executionServicesTotal + productCost + logisticsCost;
+  
+  // GST is 18% of execution services only (not on product/logistics)
+  const gstAmount = executionServicesTotal * 0.18; // 18% GST
   
   return (
     <>
-      <h3 className="text-lg font-medium">Summary</h3>
+      <h3 className="text-lg font-medium">Price Summary</h3>
       
       <div className="mt-4 space-y-4">
         <div className="flex justify-between py-2 border-b">
-          <span>Original Estimate</span>
-          <span>₹{formatNumber(originalEstimate)}</span>
+          <span>Execution Services Cost</span>
+          <span>₹{formatNumber(executionServicesTotal)}</span>
         </div>
         
-        <div className="flex justify-between py-2 border-b">
-          <span>Execution Costs</span>
-          <span>₹{formatNumber(executionTotal)}</span>
-        </div>
-        
-        <div className="flex justify-between py-2 border-b">
-          <span>Vendor Rates</span>
-          <span>₹{formatNumber(vendorTotal)}</span>
-        </div>
-        
-        <div className="flex justify-between py-2 border-b">
-          <span>Additional Costs</span>
-          <span>₹{formatNumber(additionalTotal)}</span>
-        </div>
-
         <div className="flex justify-between py-2 border-b">
           <span>Product Cost</span>
           <span>₹{formatNumber(productCost)}</span>
         </div>
         
         <div className="flex justify-between py-2 border-b">
-          <span>Logistics & Creative Services (7.5%)</span>
+          <span>Logistics and Creative Service (7.5%)</span>
           <span>₹{formatNumber(logisticsCost)}</span>
         </div>
         
