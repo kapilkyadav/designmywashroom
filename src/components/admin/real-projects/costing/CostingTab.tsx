@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { RealProject } from '@/services/real-projects/types';
 import { Card, CardContent } from '@/components/ui/card';
@@ -59,6 +60,12 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
     calculateProductCosts();
   }, [project.selected_brand]);
   
+  // Calculate total with GST
+  const subtotal = executionTotal + vendorTotal + additionalTotal + productCost + logisticsCost;
+  const gstableAmount = executionTotal + vendorTotal + additionalTotal;
+  const gstAmount = gstableAmount * 0.18; // 18% GST
+  const finalTotal = subtotal + gstAmount;
+  
   const removeItem = (id: string, category: string) => {
     if (category === 'execution') {
       setExecutionCosts(executionCosts.filter(item => item.id !== id));
@@ -101,8 +108,6 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
         return acc;
       }, {} as Record<string, any>);
       
-      const finalTotal = grandTotal + productCost + logisticsCost;
-      
       await project.updateCosts({
         execution_costs: executionCostsObj,
         vendor_rates: vendorRatesObj,
@@ -144,7 +149,7 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
               vendorTotal={vendorTotal}
               additionalTotal={additionalTotal}
               originalEstimate={project.original_estimate || 0}
-              grandTotal={grandTotal + productCost + logisticsCost}
+              grandTotal={finalTotal}
               productCost={productCost}
               logisticsCost={logisticsCost}
             />

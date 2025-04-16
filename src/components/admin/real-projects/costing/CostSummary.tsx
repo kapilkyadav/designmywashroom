@@ -26,6 +26,13 @@ const CostSummary: React.FC<CostSummaryProps> = ({
     return amount.toLocaleString('en-IN');
   };
   
+  // Calculate subtotal (all costs before GST)
+  const subtotal = executionTotal + vendorTotal + additionalTotal + productCost + logisticsCost;
+  
+  // Assume GST is 18% of execution, vendor, and additional costs (not on product/logistics)
+  const gstableAmount = executionTotal + vendorTotal + additionalTotal;
+  const gstAmount = gstableAmount * 0.18; // 18% GST
+  
   return (
     <>
       <h3 className="text-lg font-medium">Summary</h3>
@@ -52,7 +59,7 @@ const CostSummary: React.FC<CostSummaryProps> = ({
         </div>
 
         <div className="flex justify-between py-2 border-b">
-          <span>Product Costs</span>
+          <span>Product Cost</span>
           <span>₹{formatNumber(productCost)}</span>
         </div>
         
@@ -61,8 +68,18 @@ const CostSummary: React.FC<CostSummaryProps> = ({
           <span>₹{formatNumber(logisticsCost)}</span>
         </div>
         
+        <div className="flex justify-between py-2 border-b">
+          <span>Subtotal (before GST)</span>
+          <span>₹{formatNumber(subtotal)}</span>
+        </div>
+        
+        <div className="flex justify-between py-2 border-b">
+          <span>GST (18%)</span>
+          <span>₹{formatNumber(gstAmount)}</span>
+        </div>
+        
         <div className="flex justify-between pt-4 font-bold">
-          <span>Final Quotation Amount</span>
+          <span>Total Amount (with GST)</span>
           <span>₹{formatNumber(grandTotal)}</span>
         </div>
       </div>
