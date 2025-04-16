@@ -245,9 +245,21 @@ export class ProductService {
         await this.updateBrandProductCount(data.brand_id);
       }
       
+      toast({
+        title: 'Product Created',
+        description: `Product "${data.name}" has been added.`,
+      });
+      
       return data;
     } catch (error: any) {
       console.error('Error creating product:', error);
+      
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to create product',
+        variant: 'destructive',
+      });
+      
       return null;
     }
   }
@@ -263,9 +275,21 @@ export class ProductService {
       
       if (error) throw error;
       
+      toast({
+        title: 'Product Updated',
+        description: `Product "${data.name}" has been updated.`,
+      });
+      
       return data;
     } catch (error: any) {
       console.error('Error updating product:', error);
+      
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update product',
+        variant: 'destructive',
+      });
+      
       return null;
     }
   }
