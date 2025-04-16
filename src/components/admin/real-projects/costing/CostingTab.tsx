@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { RealProject } from '@/services/RealProjectService';
+import { RealProject } from '@/services/real-projects/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -43,7 +43,7 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
           // Get products for the selected brand
           const products = await ProductService.getProductsByBrandId(project.selected_brand);
           
-          // Calculate total product cost
+          // Calculate total product cost based on client_price
           const brandProductTotal = products.reduce((sum, product) => {
             return sum + (product.client_price || 0);
           }, 0);
@@ -53,9 +53,15 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
           // Calculate logistics cost (7.5% of product cost)
           const logistics = brandProductTotal * 0.075;
           setLogisticsCost(logistics);
+        } else {
+          // Reset costs if no brand is selected
+          setProductCost(0);
+          setLogisticsCost(0);
         }
       } catch (error) {
         console.error('Error calculating product costs:', error);
+        setProductCost(0);
+        setLogisticsCost(0);
       }
     };
     
@@ -124,9 +130,6 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
     }
   };
 
-  // Calculate final total including product and logistics costs
-  const finalTotal = grandTotal + productCost + logisticsCost;
-
   return (
     <div className="space-y-6">
       {project.original_estimate ? (
@@ -152,7 +155,7 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
               vendorTotal={vendorTotal}
               additionalTotal={additionalTotal}
               originalEstimate={project.original_estimate || 0}
-              grandTotal={finalTotal}
+              grandTotal={grandTotal + productCost + logisticsCost}
               productCost={productCost}
               logisticsCost={logisticsCost}
             />
@@ -203,3 +206,4 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
 };
 
 export default CostingTab;
+
