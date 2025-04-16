@@ -13,19 +13,24 @@ export interface ServiceItem {
   scope_of_work?: string;
   category_id?: string;
   measuring_unit?: string;
+  category_name?: string; // Added to ensure we have category name
 }
 
 export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
   const [activeTab, setActiveTab] = useState<string>(initialWashrooms[0]?.name || '');
   const [washroomsWithScope, setWashroomsWithScope] = useState<WashroomWithAreas[]>(initialWashrooms);
 
-  // Fetch all vendor items
+  // Fetch all vendor items with their categories
   const { data: vendorItems = [], isLoading } = useQuery({
-    queryKey: ['vendor-items'],
-    queryFn: () => VendorRateCardService.getItems(),
+    queryKey: ['vendor-items-with-categories'],
+    queryFn: async () => {
+      const items = await VendorRateCardService.getItems();
+      // Enhance items with more category information if needed
+      return items;
+    },
   });
 
-  // Transform vendor items to service items format
+  // Transform vendor items to service items format with better category handling
   const services: ServiceItem[] = vendorItems.map((item: VendorItem) => {
     // Extract category name from item.category object or use a default
     const categoryName = item.category?.name || "Uncategorized";
@@ -34,6 +39,7 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
       id: item.id,
       name: item.scope_of_work,
       category: categoryName,
+      category_name: categoryName, // Store explicitly for easier access
       description: item.scope_of_work,
       scope_of_work: item.scope_of_work,
       measuring_unit: item.measuring_unit,
@@ -47,6 +53,12 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
       acc[service.category] = [];
     }
     acc[service.category].push(service);
+    return acc;
+  }, {});
+
+  // Create a map of service IDs to service details
+  const serviceDetailsMap = services.reduce((acc: Record<string, ServiceItem>, service) => {
+    acc[service.id] = service;
     return acc;
   }, {});
 
@@ -102,6 +114,7 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
     washroomsWithScope,
     services,
     servicesByCategory,
+    serviceDetailsMap, // Add this to expose the mapping
     isLoading,
     handleServiceChange,
     handleSelectAllInCategory,

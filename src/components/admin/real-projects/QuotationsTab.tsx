@@ -33,7 +33,7 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
     handleDeleteQuotations
   } = useQuotations(project, onUpdate);
 
-  // Enhanced debugging for category issues
+  // Enhanced debugging for data visualization
   useEffect(() => {
     // Check the window object for the current quotation data when available
     const checkQuotationData = () => {
@@ -47,8 +47,11 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
             name: item.name,
             category: item.category,
             isCategory: item.isCategory,
+            description: item.description,
             serviceDetails: item.serviceDetails?.map((s: any) => ({
               serviceId: s.serviceId,
+              serviceName: s.serviceName,
+              categoryName: s.categoryName,
               categoryInMap: quotationData.serviceDetailsMap?.[s.serviceId]?.categoryName
             }))
           })));
@@ -57,12 +60,20 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
         // Check service details map
         if (quotationData.serviceDetailsMap) {
           console.log('Service details map (keys):', Object.keys(quotationData.serviceDetailsMap));
-          console.log('Service details map (full):', quotationData.serviceDetailsMap);
+          const categoryGroups = {};
+          Object.values(quotationData.serviceDetailsMap).forEach((service: any) => {
+            const category = service.categoryName || 'Uncategorized';
+            if (!categoryGroups[category]) {
+              categoryGroups[category] = [];
+            }
+            categoryGroups[category].push(service);
+          });
+          console.log('Services grouped by category:', categoryGroups);
         }
       }
     };
     
-    // Check after dialog is opened and when it's closed (quotation generated)
+    // Check at different points to ensure data is available
     if (isQuoteDialogOpen) {
       setTimeout(checkQuotationData, 1000);
     } else if (quotations.length > 0) {

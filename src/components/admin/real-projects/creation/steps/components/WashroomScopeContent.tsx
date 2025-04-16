@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import ServiceCategory from './ServiceCategory';
 import { ServiceItem } from '../hooks/useWashroomScope';
 import { WashroomWithAreas } from '../../types';
+import { Badge } from '@/components/ui/badge';
 
 interface WashroomScopeContentProps {
   washroom: WashroomWithAreas;
@@ -24,12 +25,21 @@ const WashroomScopeContent: React.FC<WashroomScopeContentProps> = ({
   areAllServicesInCategorySelected,
   areSomeServicesInCategorySelected
 }) => {
+  // Count selected services for this washroom
+  const countSelectedServices = () => {
+    if (!washroom.services) return 0;
+    return Object.values(washroom.services).filter(Boolean).length;
+  };
+
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-col sm:flex-row justify-between items-start gap-2">
         <CardTitle className="text-lg">
           Scope of Work for {washroom.name}
         </CardTitle>
+        <Badge variant="outline">
+          {countSelectedServices()} service(s) selected
+        </Badge>
       </CardHeader>
       <CardContent className="space-y-6">
         {Object.keys(servicesByCategory).length === 0 ? (
