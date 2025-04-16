@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -66,7 +67,7 @@ export class QuotationService extends BaseService {
         );
       }
       
-      // Fetch all service details to get names
+      // Fetch all service details to get names and categories
       const serviceIds = sanitizedQuotationData.items
         .filter((item: any) => item.serviceDetails && item.serviceDetails.length > 0)
         .flatMap((item: any) => item.serviceDetails.map((service: any) => service.serviceId))
@@ -75,21 +76,42 @@ export class QuotationService extends BaseService {
       let serviceDetailsMap: Record<string, any> = {};
       
       if (serviceIds.length > 0) {
-        // Fetch service details from vendor_items
-        const { data: serviceItems } = await supabase
-          .from('vendor_items')
-          .select('id, scope_of_work, measuring_unit, category:category_id(id, name)')
-          .in('id', serviceIds);
+        try {
+          // Use the VendorRateCardService to get items with proper category details
+          const vendorItems = await VendorRateCardService.getItemsByIds(serviceIds);
           
-        if (serviceItems) {
-          serviceDetailsMap = serviceItems.reduce((acc: Record<string, any>, item: any) => {
-            acc[item.id] = {
-              name: item.scope_of_work,
-              unit: item.measuring_unit,
-              categoryName: item.category?.name || 'General'
-            };
-            return acc;
-          }, {});
+          if (vendorItems && vendorItems.length > 0) {
+            serviceDetailsMap = vendorItems.reduce((acc: Record<string, any>, item: any) => {
+              acc[item.id] = {
+                name: item.scope_of_work,
+                unit: item.measuring_unit,
+                categoryName: item.category?.name || 'General',
+                categoryId: item.category_id
+              };
+              return acc;
+            }, {});
+          } else {
+            // Fallback to direct query if the service method fails
+            const { data: serviceItems } = await supabase
+              .from('vendor_items')
+              .select('id, scope_of_work, measuring_unit, category_id, category:category_id(id, name)')
+              .in('id', serviceIds);
+              
+            if (serviceItems) {
+              serviceDetailsMap = serviceItems.reduce((acc: Record<string, any>, item: any) => {
+                acc[item.id] = {
+                  name: item.scope_of_work,
+                  unit: item.measuring_unit,
+                  categoryName: item.category?.name || 'General',
+                  categoryId: item.category_id
+                };
+                return acc;
+              }, {});
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching vendor items:', error);
+          // Continue with empty service details map
         }
       }
       
