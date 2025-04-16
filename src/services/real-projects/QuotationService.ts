@@ -578,6 +578,27 @@ export class QuotationService extends BaseService {
     `;
 
     // Replace the existing CSS in the style block with these updates
+    // Get categories with their sequence numbers from vendor_categories
+    const { data: categories } = await supabase
+      .from('vendor_categories')
+      .select('*')
+      .order('sequence');
+      
+    // Create a map of category IDs to their sequence numbers
+    const categorySequenceMap: Record<string, number> = {};
+    if (categories) {
+      categories.forEach((category, index) => {
+        categorySequenceMap[category.name] = category.sequence || index;
+      });
+    }
+
+    // Sort categories by their sequence
+    const sortedCategories = Object.entries(itemsByCategory).sort((a, b) => {
+      const seqA = categorySequenceMap[a[0]] ?? Number.MAX_SAFE_INTEGER;
+      const seqB = categorySequenceMap[b[0]] ?? Number.MAX_SAFE_INTEGER;
+      return seqA - seqB;
+    });
+
     const htmlTemplate = `
       <!DOCTYPE html>
       <html lang="en">
@@ -662,75 +683,73 @@ export class QuotationService extends BaseService {
                   <table class="scope-table">
                     <thead>
                       <tr>
+                        <th style="width: 25%">Category</th>
                         <th style="width: 40%">Item</th>
-                        <th style="width: 25%">Description</th>
                         <th style="width: 17.5%; text-align: right;">MRP</th>
                         <th style="width: 17.5%; text-align: right;">YDS Offer</th>
                       </tr>
                     </thead>
                     <tbody>
-                      ${Object.entries(itemsByCategory)
-                        .filter(([_, items]) => items.some(item => item.washroomId === washroom.id))
-                        .map(([category, items]) => {
-                          const washroomItems = items.filter(item => item.washroomId === washroom.id);
-                          const categoryTotal = washroomItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-                          const categoryMrp = washroomItems.reduce((sum, item) => sum + (parseFloat(item.mrp) || 0), 0);
-                          
-                          return `
-                            <tr>
-                              <td colspan="4" style="background-color: #f1f5f9; font-weight: 600; padding: 8px 12px;">
-                                ${category}
-                              </td>
-                            </tr>
-                            ${washroomItems.map(item => {
-                              const itemAmount = parseFloat(item.amount) || 0;
-                              const itemMrp = parseFloat(item.mrp) || 0;
-                              const itemUnit = item.unit || '';
-                              const discountPercentage = item.isBrandProduct && itemMrp > 0 ? 
-                                Math.round((1 - (itemAmount / itemMrp)) * 100) : 0;
-                              
-                              // Handle execution services differently from brand products
-                              if (!item.isBrandProduct && item.serviceDetails) {
-                                return item.serviceDetails.map((service: any) => {
-                                  const serviceName = quotationData.serviceDetailsMap[service.serviceId]?.name || service.serviceId;
-                                  const categoryName = quotationData.serviceDetailsMap[service.serviceId]?.categoryName || '';
-                                  const unit = quotationData.serviceDetailsMap[service.serviceId]?.unit || '';
-                                  
-                                  return `
-                                    <tr>
-                                      <td style="padding-left: 24px;">
-                                        • ${serviceName} ${unit ? `(${unit})` : ''}
-                                      </td>
-                                      <td>${categoryName}</td>
-                                      <td style="text-align: right;">₹${formatAmount(service.cost * 1.2)}</td>
-                                      <td style="text-align: right;">₹${formatAmount(service.cost)}</td>
-                                    </tr>
-                                  `;
-                                }).join('');
-                              } else {
-                                // Brand products remain the same
+                      ${sortedCategories.map(([category, items]) => {
+                        const washroomItems = items.filter(item => item.washroomId === washroom.id);
+                        const categoryTotal = washroomItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                        const categoryMrp = washroomItems.reduce((sum, item) => sum + (parseFloat(item.mrp) || 0), 0);
+                        
+                        return `
+                          <tr>
+                            <td colspan="4" style="background-color: #f1f5f9; font-weight: 600; padding: 8px 12px;">
+                              ${category}
+                            </td>
+                          </tr>
+                          ${washroomItems.map(item => {
+                            const itemAmount = parseFloat(item.amount) || 0;
+                            const itemMrp = parseFloat(item.mrp) || 0;
+                            const itemUnit = item.unit || '';
+                            const discountPercentage = item.isBrandProduct && itemMrp > 0 ? 
+                              Math.round((1 - (itemAmount / itemMrp)) * 100) : 0;
+                            
+                            // Handle execution services differently from brand products
+                            if (!item.isBrandProduct && item.serviceDetails) {
+                              return item.serviceDetails.map((service: any) => {
+                                const serviceName = quotationData.serviceDetailsMap[service.serviceId]?.name || service.serviceId;
+                                const categoryName = quotationData.serviceDetailsMap[service.serviceId]?.categoryName || '';
+                                const unit = quotationData.serviceDetailsMap[service.serviceId]?.unit || '';
+                                
                                 return `
                                   <tr>
+                                    <td>${categoryName}</td>
                                     <td style="padding-left: 24px;">
-                                      • ${item.name} ${itemUnit ? `(${itemUnit})` : ''}
-                                      ${item.isBrandProduct && discountPercentage > 0 ? 
-                                        `<br/><span style="color: #16a34a; font-size: 0.9em;">${discountPercentage}% off</span>` : 
-                                        ''}
+                                      • ${serviceName} ${unit ? `(${unit})` : ''}
                                     </td>
-                                    <td>${item.description || ''}</td>
-                                    <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
-                                    <td style="text-align: right;">₹${formatAmount(itemAmount)}</td>
+                                    <td style="text-align: right;">₹${formatAmount(service.cost * 1.2)}</td>
+                                    <td style="text-align: right;">₹${formatAmount(service.cost)}</td>
                                   </tr>
                                 `;
-                              }
-                            }).join('')}
-                            <tr>
-                              <td colspan="2" style="text-align: right; font-weight: 500;">Category Total:</td>
-                              <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryMrp)}</td>
-                              <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryTotal)}</td>
-                            </tr>
-                          `;
-                        }).join('')}
+                              }).join('');
+                            } else {
+                              // Brand products
+                              return `
+                                <tr>
+                                  <td>${item.description || ''}</td>
+                                  <td style="padding-left: 24px;">
+                                    • ${item.name} ${itemUnit ? `(${itemUnit})` : ''}
+                                    ${item.isBrandProduct && discountPercentage > 0 ? 
+                                      `<br/><span style="color: #16a34a; font-size: 0.9em;">${discountPercentage}% off</span>` : 
+                                      ''}
+                                  </td>
+                                  <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
+                                  <td style="text-align: right;">₹${formatAmount(itemAmount)}</td>
+                                </tr>
+                              `;
+                            }
+                          }).join('')}
+                          <tr>
+                            <td colspan="2" style="text-align: right; font-weight: 500;">Category Total:</td>
+                            <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryMrp)}</td>
+                            <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryTotal)}</td>
+                          </tr>
+                        `;
+                      }).join('')}
                     </tbody>
                   </table>
                   
@@ -856,13 +875,4 @@ export class QuotationService extends BaseService {
       
       return true;
     } catch (error: any) {
-      console.error('Error deleting quotation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete quotation",
-        variant: "destructive",
-      });
-      return false;
-    }
-  }
-}
+      console
