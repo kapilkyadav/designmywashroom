@@ -338,16 +338,59 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                   />
                 </div>
                 
-                <div className="col-span-2 md:col-span-1">
-                  <div className="space-y-4 bg-muted p-4 rounded-lg">
-                    <div>
-                      <Label>Total Area</Label>
-                      <div className="text-xl font-bold text-primary">
-                        {washroom.total_area?.toFixed(2) || '0.00'} sq ft
+                <div className="col-span-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="space-y-4 bg-muted p-4 rounded-lg">
+                      <div>
+                        <Label>Floor Area</Label>
+                        <div className="text-lg font-medium">
+                          {(washroom.length * washroom.width).toFixed(2)} sq ft
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Length × Width
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Floor Area + Wall Area
-                      </p>
+                    </div>
+
+                    <div className="space-y-4 bg-muted p-4 rounded-lg">
+                      <div>
+                        <Label>Wall Area</Label>
+                        <div className="text-lg font-medium">
+                          {washroom.wall_area?.toFixed(2) || '0.00'} sq ft
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Perimeter × Height
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 bg-muted p-4 rounded-lg">
+                      <div>
+                        <Label>Ceiling Area</Label>
+                        <div className="text-lg font-medium">
+                          {washroom.ceiling_area?.toFixed(2) || '0.00'} sq ft
+                        </div>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={washroom.ceiling_area || 0}
+                          onChange={(e) => updateWashroomField(index, 'ceiling_area', parseFloat(e.target.value) || 0)}
+                          className="mt-2"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 bg-muted p-4 rounded-lg">
+                      <div>
+                        <Label>Total Area</Label>
+                        <div className="text-xl font-bold text-primary">
+                          {washroom.total_area?.toFixed(2) || '0.00'} sq ft
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Floor Area + Wall Area
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
