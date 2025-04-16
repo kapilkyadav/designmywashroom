@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { BaseService } from './BaseService';
@@ -7,6 +6,28 @@ import { VendorRateCardService } from '@/services/VendorRateCardService';
 import { ProductService } from '@/services/ProductService';
 
 export class CostingService extends BaseService {
+  /**
+   * Get all vendor items with their categories and rate cards
+   */
+  static async getVendorItemsWithRates(): Promise<any[]> {
+    try {
+      const { data: items, error } = await supabase
+        .from('vendor_items')
+        .select(`
+          *,
+          category:vendor_categories(name),
+          rate_cards:vendor_rate_cards(*)
+        `)
+        .order('sl_no');
+
+      if (error) throw error;
+      return items || [];
+    } catch (error: any) {
+      console.error('Error fetching vendor items with rates:', error);
+      return [];
+    }
+  }
+
   /**
    * Get vendor items for projects scope of work
    */
