@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { VendorRateCardService, VendorItem } from '@/services/VendorRateCardService';
 import { WashroomWithAreas } from '../../types';
@@ -13,7 +13,7 @@ export interface ServiceItem {
   scope_of_work?: string;
   category_id?: string;
   measuring_unit?: string;
-  category_name?: string; // Added to ensure we have category name
+  category_name?: string; 
 }
 
 export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
@@ -25,30 +25,29 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
     queryKey: ['vendor-items-with-categories'],
     queryFn: async () => {
       const items = await VendorRateCardService.getItems();
-      
-      // Log for debugging to make sure categories are properly included
       console.log("Fetched vendor items with categories:", items);
-      
       return items;
     },
   });
 
   // Transform vendor items to service items format with better category handling
   const services: ServiceItem[] = vendorItems.map((item: VendorItem) => {
-    // Extract category name from item.category object or use a default
+    // Ensure we have access to category data
     const categoryName = item.category?.name || "Uncategorized";
+    const categoryId = item.category?.id || item.category_id || null;
     
-    console.log(`Processing item ${item.id} - ${item.scope_of_work} with category:`, item.category);
+    console.log(`Processing item ${item.id} - ${item.scope_of_work} with category:`, 
+      { categoryName, categoryId, fullCategory: item.category });
     
     return {
       id: item.id,
       name: item.scope_of_work,
       category: categoryName,
-      category_name: categoryName, // Store explicitly for easier access
+      category_id: categoryId,
+      category_name: categoryName,
       description: item.scope_of_work,
       scope_of_work: item.scope_of_work,
-      measuring_unit: item.measuring_unit,
-      category_id: item.category_id
+      measuring_unit: item.measuring_unit
     };
   });
 
@@ -67,6 +66,18 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
     return acc;
   }, {});
 
+  // Log the services by category for debugging
+  useEffect(() => {
+    console.log('Services by category:', servicesByCategory);
+    console.log('Service details map:', serviceDetailsMap);
+    
+    // Check if there are any selected services in washrooms
+    console.log('Washrooms with scope:', washroomsWithScope.map(w => ({
+      name: w.name,
+      selectedServices: w.services ? Object.entries(w.services).filter(([_, selected]) => selected).length : 0
+    })));
+  }, [servicesByCategory, serviceDetailsMap, washroomsWithScope]);
+
   // Handle checkbox change for a service
   const handleServiceChange = (washroomIndex: number, serviceId: string, checked: boolean) => {
     const updatedWashrooms = [...washroomsWithScope];
@@ -74,7 +85,65 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
       updatedWashrooms[washroomIndex].services = {};
     }
     updatedWashrooms[washroomIndex].services[serviceId] = checked;
+    
+    // Also update service_details structure for better display
+    updateServiceDetails(updatedWashrooms, washroomIndex, serviceId, checked);
+    
     setWashroomsWithScope(updatedWashrooms);
+  };
+
+  // Update service_details when services are changed
+  const updateServiceDetails = (
+    washrooms: WashroomWithAreas[], 
+    washroomIndex: number, 
+    serviceId: string, 
+    checked: boolean
+  ) => {
+    const washroom = washrooms[washroomIndex];
+    const serviceInfo = serviceDetailsMap[serviceId];
+    
+    if (!serviceInfo) return;
+    
+    // Initialize service_details if not present
+    if (!washroom.service_details) {
+      washroom.service_details = {};
+    }
+    
+    const categoryId = serviceInfo.category_id || 'uncategorized';
+    
+    // Add or remove service from the category
+    if (checked) {
+      // Create category array if it doesn't exist
+      if (!washroom.service_details[categoryId]) {
+        washroom.service_details[categoryId] = [];
+      }
+      
+      // Add service if not already present
+      const serviceExists = washroom.service_details[categoryId].some(
+        (s: any) => s.serviceId === serviceId
+      );
+      
+      if (!serviceExists) {
+        washroom.service_details[categoryId].push({
+          serviceId,
+          serviceName: serviceInfo.name,
+          unit: serviceInfo.measuring_unit,
+          categoryName: serviceInfo.category
+        });
+      }
+    } else {
+      // Remove service if category exists
+      if (washroom.service_details[categoryId]) {
+        washroom.service_details[categoryId] = washroom.service_details[categoryId].filter(
+          (s: any) => s.serviceId !== serviceId
+        );
+        
+        // Remove empty category
+        if (washroom.service_details[categoryId].length === 0) {
+          delete washroom.service_details[categoryId];
+        }
+      }
+    }
   };
 
   // Handle the "Select All" checkbox for a category
@@ -88,6 +157,8 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
     // Update all services in this category
     servicesInCategory.forEach(service => {
       washroomServices[service.id] = checked;
+      // Also update service_details
+      updateServiceDetails(updatedWashrooms, washroomIndex, service.id, checked);
     });
     
     updatedWashrooms[washroomIndex].services = washroomServices;

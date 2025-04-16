@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RealProject, RealProjectService, ProjectQuotation } from '@/services/RealProjectService';
@@ -23,16 +24,43 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     enabled: !!project.id,
   });
   
+  // Debug: Log washrooms data when available
+  useEffect(() => {
+    const fetchProjectWashrooms = async () => {
+      try {
+        const washrooms = await RealProjectService.getProjectWashrooms(project.id);
+        console.log('Project washrooms for quotation:', washrooms);
+        
+        // Check if washrooms have service details
+        washrooms.forEach((washroom, index) => {
+          console.log(`Washroom ${index + 1} (${washroom.name}):`, {
+            services: washroom.services,
+            serviceDetails: washroom.service_details
+          });
+        });
+      } catch (error) {
+        console.error('Error fetching washrooms:', error);
+      }
+    };
+    
+    if (project.id) {
+      fetchProjectWashrooms();
+    }
+  }, [project.id]);
+  
   const handleGenerateQuotation = async () => {
     try {
       setIsGeneratingQuote(true);
       
-      const quotationData = (window as any).currentQuotationData;
-      if (!quotationData) {
-        throw new Error('Quotation data not found');
-      }
-      
-      quotationData.internalPricing = internalPricingEnabled;
+      // Prepare data for quotation generation
+      const quotationData = {
+        items: [],
+        totalAmount: 0,
+        terms: quotationTerms,
+        internalPricing: internalPricingEnabled,
+        margins: {},
+        gstRate: 18
+      };
       
       const result = await RealProjectService.generateQuotation(
         project.id, 

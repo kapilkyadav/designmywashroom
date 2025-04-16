@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -30,24 +31,15 @@ export class QuotationService extends BaseService {
       
       if (washroomsError) throw washroomsError;
 
-      // Extract ALL service IDs from service_details of washrooms
-      const allServiceIds = washrooms
-        .flatMap(washroom => {
-          const serviceDetails = washroom.service_details || {};
-          // Safely extract service IDs by ensuring we're working with arrays
-          return Object.values(serviceDetails)
-            .flatMap((category: any) => {
-              // Check if category is an array before trying to map over it
-              if (Array.isArray(category)) {
-                return category.map((service: any) => service.serviceId);
-              } else {
-                // If it's not an array, return an empty array (or extract the ID if it's an object)
-                console.log('Non-array category found:', category);
-                return [];
-              }
-            })
-            .filter(Boolean);
-        });
+      console.log('Washrooms data:', washrooms);
+
+      // Extract ALL service IDs from services of washrooms
+      const allServiceIds = washrooms.flatMap(washroom => {
+        const services = washroom.services || {};
+        return Object.entries(services)
+          .filter(([_, isSelected]) => isSelected === true)
+          .map(([serviceId]) => serviceId);
+      });
       
       console.log('Service IDs from washrooms:', allServiceIds);
 
@@ -58,12 +50,9 @@ export class QuotationService extends BaseService {
           id,
           scope_of_work,
           measuring_unit,
-          category:vendor_categories!vendor_items_category_id_fkey (
-            id,
-            name
-          )
+          category:vendor_categories(id, name)
         `)
-        .in('id', allServiceIds);
+        .in('id', allServiceIds.length > 0 ? allServiceIds : ['no-services']);
 
       if (serviceError) {
         console.error('Error fetching service details:', serviceError);
@@ -74,28 +63,20 @@ export class QuotationService extends BaseService {
 
       // Create a map of service details with categories
       const serviceDetailsMap = serviceDetails.reduce((acc: Record<string, any>, item) => {
-        // Check item.category's structure and safely extract the category data
-        // It could be an object with id/name properties or could have a different structure
+        // Extract category name and ID safely
         let categoryName = 'Other Items';
         let categoryId = null;
         
         if (item.category) {
-          // If category is an object with direct properties
-          if (typeof item.category === 'object' && !Array.isArray(item.category)) {
-            // Use type assertion to tell TypeScript this is an object with name/id properties
-            const categoryObj = item.category as { name?: string; id?: string };
-            categoryName = categoryObj.name || categoryName;
-            categoryId = categoryObj.id || categoryId;
+          // If category is a direct object
+          if (!Array.isArray(item.category) && typeof item.category === 'object') {
+            categoryName = item.category.name || categoryName;
+            categoryId = item.category.id || categoryId;
           } 
-          // If category is an array with a first element that has name/id
+          // If category is an array with at least one item
           else if (Array.isArray(item.category) && item.category.length > 0) {
-            // Use a type guard to check properties exist
-            const firstCategory = item.category[0];
-            if (firstCategory && typeof firstCategory === 'object') {
-              // Use 'in' operator to check if properties exist before accessing
-              categoryName = 'name' in firstCategory ? String(firstCategory.name) : categoryName;
-              categoryId = 'id' in firstCategory ? String(firstCategory.id) : categoryId;
-            }
+            categoryName = item.category[0].name || categoryName;
+            categoryId = item.category[0].id || categoryId;
           }
         }
         
@@ -110,6 +91,42 @@ export class QuotationService extends BaseService {
       }, {});
 
       console.log('Service details map:', serviceDetailsMap);
+
+      // For each washroom, create service details structure
+      washrooms.forEach(washroom => {
+        const services = washroom.services || {};
+        const serviceDetailsObj: Record<string, any> = {};
+        
+        // Group services by category
+        Object.entries(services).forEach(([serviceId, isSelected]) => {
+          if (isSelected === true && serviceDetailsMap[serviceId]) {
+            const serviceInfo = serviceDetailsMap[serviceId];
+            const categoryId = serviceInfo.categoryId || 'uncategorized';
+            
+            if (!serviceDetailsObj[categoryId]) {
+              serviceDetailsObj[categoryId] = [];
+            }
+            
+            serviceDetailsObj[categoryId].push({
+              serviceId,
+              serviceName: serviceInfo.name,
+              unit: serviceInfo.unit,
+              categoryName: serviceInfo.categoryName
+            });
+          }
+        });
+        
+        // Store service details in washroom
+        washroom.service_details = serviceDetailsObj;
+      });
+
+      // Save updated washrooms with service details
+      for (const washroom of washrooms) {
+        await supabase
+          .from('project_washrooms')
+          .update({ service_details: washroom.service_details })
+          .eq('id', washroom.id);
+      }
 
       // Update quotation data with service details
       const sanitizedQuotationData = {
@@ -133,7 +150,8 @@ export class QuotationService extends BaseService {
         margins: quotationData.margins || {},
         gstRate: quotationData.gstRate || 18,
         internalPricing: quotationData.internalPricing || false,
-        serviceDetailsMap
+        serviceDetailsMap,
+        washrooms // Add washrooms data to quotation data
       };
 
       // Store data for debugging
