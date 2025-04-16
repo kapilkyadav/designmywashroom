@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -278,10 +277,37 @@ export class QuotationService extends BaseService {
       return isNaN(numValue) ? '0' : numValue.toLocaleString('en-IN');
     };
     
+    // Define category order
+    const categoryOrder = [
+      'Dismantling Works',
+      'Plumbing Works',
+      'Electrical Works',
+      'Electrical Package',
+      'False Ceiling',
+      'Ledge Wall',
+      'Tile Works',
+      'Wall Plaster',
+      'Paint Works'
+    ];
+
+    // Sort categories function
+    const sortCategories = (a: string, b: string): number => {
+      const indexA = categoryOrder.indexOf(a);
+      const indexB = categoryOrder.indexOf(b);
+      
+      // If both categories are not in the predefined order, sort alphabetically
+      if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+      
+      // If one category is not in the order, put it at the end
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      
+      // Sort according to predefined order
+      return indexA - indexB;
+    };
+
     // Calculate total area of all washrooms
     const totalArea = washrooms.reduce((sum, w) => sum + (w.length * w.width), 0);
-    
-    // Calculate totals and GST
     let subtotalBeforeGst = 0;
     let gstAmount = 0;
     let totalMrp = 0;
@@ -596,6 +622,9 @@ export class QuotationService extends BaseService {
               const washroomArea = washroom.length * washroom.width;
               const categoriesForWashroom = washroomItemsByCategory[washroom.id] || {};
               
+              // Sort categories according to defined order
+              const sortedCategories = Object.keys(categoriesForWashroom).sort(sortCategories);
+              
               return `
                 <div class="washroom-card">
                   <div class="washroom-header">
@@ -613,49 +642,45 @@ export class QuotationService extends BaseService {
                     <table class="scope-table">
                       <thead>
                         <tr>
-                          <th style="width: 40%">Item</th>
-                          <th style="width: 25%">Description</th>
+                          <th style="width: 30%">Category</th>
+                          <th style="width: 35%">Item</th>
                           <th style="width: 17.5%; text-align: right;">MRP</th>
                           <th style="width: 17.5%; text-align: right;">YDS Offer</th>
                         </tr>
                       </thead>
                       <tbody>
-                        ${Object.entries(categoriesForWashroom).map(([category, items]) => {
+                        ${sortedCategories.map(category => {
+                          const items = categoriesForWashroom[category];
                           const categoryTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
                           const categoryMrp = items.reduce((sum, item) => sum + (parseFloat(item.mrp) || 0), 0);
                           
-                          return `
-                            <tr>
-                              <td colspan="4" style="background-color: #f1f5f9; font-weight: 600; padding: 8px 12px;">
-                                ${category}
-                              </td>
-                            </tr>
-                            ${items.map(item => {
-                              const itemAmount = parseFloat(item.amount) || 0;
-                              const itemMrp = parseFloat(item.mrp) || 0;
-                              const itemUnit = item.unit || '';
-                              const discountPercentage = item.isBrandProduct && itemMrp > 0 ? 
-                                Math.round((1 - (itemAmount / itemMrp)) * 100) : 0;
-                              
-                              return `
-                                <tr>
-                                  <td style="padding-left: 24px;">
-                                    • ${item.name} ${itemUnit ? `(${itemUnit})` : ''}
-                                    ${item.isBrandProduct && discountPercentage > 0 ? 
-                                      `<br/><span style="color: #16a34a; font-size: 0.9em;">${discountPercentage}% off</span>` : 
-                                      ''}
-                                  </td>
-                                  <td>${item.description || ''}</td>
-                                  <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
-                                  <td style="text-align: right;">₹${formatAmount(itemAmount)}</td>
-                                </tr>
-                              `;
-                            }).join('')}
+                          return items.map((item, itemIndex) => {
+                            const itemAmount = parseFloat(item.amount) || 0;
+                            const itemMrp = parseFloat(item.mrp) || 0;
+                            const itemUnit = item.unit || '';
+                            const discountPercentage = item.isBrandProduct && itemMrp > 0 ? 
+                              Math.round((1 - (itemAmount / itemMrp)) * 100) : 0;
+                            
+                            return `
+                              <tr>
+                                <td>${itemIndex === 0 ? category : ''}</td>
+                                <td>
+                                  • ${item.name} ${itemUnit ? `(${itemUnit})` : ''}
+                                  ${item.isBrandProduct && discountPercentage > 0 ? 
+                                    `<br/><span style="color: #16a34a; font-size: 0.9em;">${discountPercentage}% off</span>` : 
+                                    ''}
+                                </td>
+                                <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
+                                <td style="text-align: right;">₹${formatAmount(itemAmount)}</td>
+                              </tr>
+                            `;
+                          }).join('') + `
                             <tr>
                               <td colspan="2" style="text-align: right; font-weight: 500;">Category Total:</td>
                               <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryMrp)}</td>
                               <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryTotal)}</td>
                             </tr>
+                            <tr><td colspan="4" style="border: none; height: 10px;"></td></tr>
                           `;
                         }).join('')}
                       </tbody>
