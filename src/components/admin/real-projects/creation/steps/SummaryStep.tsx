@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ProjectInfoValues, WashroomWithAreas } from '../types';
@@ -186,7 +185,7 @@ const SummaryStep: React.FC<SummaryStepProps> = ({ projectInfo, washrooms }) => 
                       </div>
                       <div>
                         <span className="text-xs text-muted-foreground block">Wall Area</span>
-                        <span className="text-sm">{washroom.wallArea.toFixed(2)} sq. ft.</span>
+                        <span className="text-sm">{washroom.wall_area.toFixed(2)} sq. ft.</span>
                       </div>
                     </div>
                     

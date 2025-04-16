@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -80,11 +79,11 @@ export const useProjectWizard = () => {
           name: washroom.name,
           length: washroom.length,
           width: washroom.width, 
-          height: washroom.height || 8, // Default height if not provided
-          area: washroom.floorArea,  // Use floorArea instead of area
-          services: washroom.services || {},
-          wall_area: washroom.wallArea,
+          height: washroom.height || 8,
+          area: washroom.floorArea,
+          wall_area: washroom.wall_area,  // Changed from wallArea
           ceiling_area: washroom.ceilingArea,
+          services: washroom.services || {},
         });
       }
       
