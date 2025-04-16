@@ -5,7 +5,6 @@ import { RealProject, RealProjectService, ProjectQuotation } from '@/services/Re
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { PdfService } from '@/services/PdfService';
-import { supabase } from '@/lib/supabase';
 
 export const useQuotations = (project: RealProject, onUpdate: () => void) => {
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
@@ -16,6 +15,7 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     'This quotation is valid for 30 days from the date of issue.'
   );
   
+  // State for internal pricing
   const [internalPricingEnabled, setInternalPricingEnabled] = useState(false);
   
   const { data: quotations = [], isLoading, refetch } = useQuery({
@@ -24,43 +24,18 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     enabled: !!project.id,
   });
   
-  // Debug: Log washrooms data when available
-  useEffect(() => {
-    const fetchProjectWashrooms = async () => {
-      try {
-        const washrooms = await RealProjectService.getProjectWashrooms(project.id);
-        console.log('Project washrooms for quotation:', washrooms);
-        
-        // Check if washrooms have service details
-        washrooms.forEach((washroom, index) => {
-          console.log(`Washroom ${index + 1} (${washroom.name}):`, {
-            services: washroom.services,
-            serviceDetails: washroom.service_details
-          });
-        });
-      } catch (error) {
-        console.error('Error fetching washrooms:', error);
-      }
-    };
-    
-    if (project.id) {
-      fetchProjectWashrooms();
-    }
-  }, [project.id]);
-  
   const handleGenerateQuotation = async () => {
     try {
       setIsGeneratingQuote(true);
       
-      // Prepare data for quotation generation
-      const quotationData = {
-        items: [],
-        totalAmount: 0,
-        terms: quotationTerms,
-        internalPricing: internalPricingEnabled,
-        margins: {},
-        gstRate: 18
-      };
+      // Get quotation data from the dialog
+      const quotationData = (window as any).currentQuotationData;
+      if (!quotationData) {
+        throw new Error('Quotation data not found');
+      }
+      
+      // Make sure internalPricingEnabled is included in the quotation data
+      quotationData.internalPricing = internalPricingEnabled;
       
       const result = await RealProjectService.generateQuotation(
         project.id, 
@@ -111,8 +86,10 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
   
   const downloadAsPdf = async (html: string, filename: string) => {
     try {
+      // First attempt browser-based PDF generation
       const pdfBlob = await PdfService.generatePdfFromHtml(html, filename);
       
+      // If PDF generation fails or is not supported, fall back to HTML download
       if (!pdfBlob) {
         PdfService.downloadHtmlAsFile(html, filename.replace('.pdf', '.html'));
       }
@@ -126,32 +103,6 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     }
   };
   
-  const handleDeleteQuotations = async (quotationIds: string[]) => {
-    try {
-      const { error } = await supabase
-        .from('project_quotations')
-        .delete()
-        .in('id', quotationIds);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Success',
-        description: `Successfully deleted ${quotationIds.length} quotation${quotationIds.length !== 1 ? 's' : ''}`,
-      });
-
-      refetch();
-      onUpdate();
-    } catch (error: any) {
-      console.error('Error deleting quotations:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to delete quotations',
-        variant: 'destructive',
-      });
-    }
-  };
-
   return {
     quotations,
     isLoading,
@@ -166,7 +117,6 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     setInternalPricingEnabled,
     handleGenerateQuotation,
     viewQuotation,
-    downloadAsPdf,
-    handleDeleteQuotations
+    downloadAsPdf
   };
 };

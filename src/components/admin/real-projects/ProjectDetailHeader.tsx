@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { RealProject } from '@/services/RealProjectService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,9 +15,10 @@ import {
   Building
 } from 'lucide-react';
 import ProjectAddressInfo from './ProjectAddressInfo';
+import { BrandService } from '@/services/BrandService';
 
 interface ProjectDetailHeaderProps {
-  project: RealProject & { brandName?: string };
+  project: RealProject;
   onDeleteClick: () => void;
 }
 
@@ -25,6 +26,25 @@ const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({
   project, 
   onDeleteClick 
 }) => {
+  const [brandName, setBrandName] = useState<string>("");
+
+  // Fetch brand name when component loads
+  useEffect(() => {
+    const fetchBrandName = async () => {
+      if (project.selected_brand) {
+        try {
+          const brand = await BrandService.getBrandById(project.selected_brand);
+          setBrandName(brand.name);
+        } catch (error) {
+          console.error('Error fetching brand name:', error);
+          setBrandName("Unknown Brand");
+        }
+      }
+    };
+
+    fetchBrandName();
+  }, [project.selected_brand]);
+
   // Status badge color based on status
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -51,9 +71,6 @@ const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({
   
   // Calculate washroom count
   const washroomCount = project.washrooms?.length || 0;
-
-  // Get brand name - use the passed brandName or fallback
-  const brandName = project.brandName || "Not specified";
   
   return (
     <div className="space-y-6">
@@ -123,10 +140,12 @@ const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({
                 <span>Type: {project.project_type}</span>
               </div>
               
-              <div className="flex items-center gap-2">
-                <FileEdit className="h-4 w-4 text-muted-foreground" />
-                <span>Brand: {brandName}</span>
-              </div>
+              {project.selected_brand && (
+                <div className="flex items-center gap-2">
+                  <FileEdit className="h-4 w-4 text-muted-foreground" />
+                  <span>Brand: {brandName || "Loading..."}</span>
+                </div>
+              )}
               
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />

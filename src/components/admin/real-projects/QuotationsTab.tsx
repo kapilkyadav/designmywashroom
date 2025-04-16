@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { RealProject } from '@/services/RealProjectService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,58 +29,8 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
     setInternalPricingEnabled,
     handleGenerateQuotation,
     viewQuotation,
-    downloadAsPdf,
-    handleDeleteQuotations
+    downloadAsPdf
   } = useQuotations(project, onUpdate);
-
-  // Enhanced debugging for data visualization
-  useEffect(() => {
-    // Check the window object for the current quotation data when available
-    const checkQuotationData = () => {
-      const quotationData = (window as any).currentQuotationData;
-      if (quotationData) {
-        console.log('Current quotation data:', quotationData);
-        
-        // Check if items have proper category info
-        if (quotationData.items) {
-          console.log('Items with categories:', quotationData.items.map((item: any) => ({
-            name: item.name,
-            category: item.category,
-            isCategory: item.isCategory,
-            description: item.description,
-            serviceDetails: item.serviceDetails?.map((s: any) => ({
-              serviceId: s.serviceId,
-              serviceName: s.serviceName,
-              categoryName: s.categoryName,
-              categoryInMap: quotationData.serviceDetailsMap?.[s.serviceId]?.categoryName
-            }))
-          })));
-        }
-        
-        // Check service details map
-        if (quotationData.serviceDetailsMap) {
-          console.log('Service details map (keys):', Object.keys(quotationData.serviceDetailsMap));
-          const categoryGroups = {};
-          Object.values(quotationData.serviceDetailsMap).forEach((service: any) => {
-            const category = service.categoryName || 'Uncategorized';
-            if (!categoryGroups[category]) {
-              categoryGroups[category] = [];
-            }
-            categoryGroups[category].push(service);
-          });
-          console.log('Services grouped by category:', categoryGroups);
-        }
-      }
-    };
-    
-    // Check at different points to ensure data is available
-    if (isQuoteDialogOpen) {
-      setTimeout(checkQuotationData, 1000);
-    } else if (quotations.length > 0) {
-      // Check if we have quotation data after a new one is generated
-      setTimeout(checkQuotationData, 500);
-    }
-  }, [isQuoteDialogOpen, quotations.length]);
 
   return (
     <div className="space-y-6">
@@ -99,7 +49,6 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
             isLoading={isLoading}
             onViewQuotation={viewQuotation}
             onDownloadQuotation={downloadAsPdf}
-            onDeleteQuotations={handleDeleteQuotations}
           />
         </CardContent>
       </Card>

@@ -16,14 +16,6 @@ export const projectInfoSchema = z.object({
 
 export type ProjectInfoValues = z.infer<typeof projectInfoSchema>;
 
-// Define the type for a service detail
-export interface ServiceDetail {
-  serviceId: string;
-  serviceName: string;
-  unit?: string;
-  categoryName?: string;
-}
-
 // Define the type for a washroom with calculated areas
 export interface WashroomWithAreas {
   id?: string;
@@ -35,8 +27,6 @@ export interface WashroomWithAreas {
   wallArea: number;
   ceilingArea: number;
   services: Record<string, boolean>;
-  service_details?: Record<string, ServiceDetail[]>;
-  selected_brand?: string;
 }
 
 export type WizardStep = 'project-info' | 'washrooms' | 'washroom-scope' | 'summary';
