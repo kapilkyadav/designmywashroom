@@ -30,6 +30,8 @@ export interface RealProject {
   additional_costs?: Record<string, any>;
   final_quotation_amount?: number;
   original_estimate?: number;
+  product_cost?: number;
+  logistics_cost?: number;
   // Methods added during extension
   updateCosts: (data: Partial<RealProject>) => Promise<boolean>;
 }
