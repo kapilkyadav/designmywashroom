@@ -283,18 +283,28 @@ export class QuotationService extends BaseService {
     let gstAmount = 0;
     let totalMrp = 0;
     let totalProductCost = 0;
-    let logisticsServiceCharge = 0;
-
-    // First pass to calculate totals
+    
+    // First pass to calculate totals and organize items by category
+    const itemsByCategory: Record<string, any[]> = {};
+    
     for (const washroom of washrooms) {
       const washroomItems = (quotationData.items || []).filter((item: any) => 
         item.washroomId === washroom.id || !item.washroomId
       );
       
       washroomItems.forEach((item: any) => {
+        // Track product costs separately
         if (item.isBrandProduct) {
           totalProductCost += parseFloat(item.amount) || 0;
         }
+        
+        // Add to category grouping
+        const category = item.serviceDetails?.[0]?.categoryName || 'General';
+        if (!itemsByCategory[category]) {
+          itemsByCategory[category] = [];
+        }
+        itemsByCategory[category].push(item);
+        
         subtotalBeforeGst += parseFloat(item.amount) || 0;
         totalMrp += parseFloat(item.mrp) || 0;
 
@@ -307,254 +317,258 @@ export class QuotationService extends BaseService {
     }
 
     // Calculate logistics and creative service charge (7.5% of product cost)
-    logisticsServiceCharge = totalProductCost * 0.075;
+    const logisticsServiceCharge = totalProductCost * 0.075;
+    // Add logistics charge to subtotal but don't apply GST to it
     subtotalBeforeGst += logisticsServiceCharge;
 
     const grandTotal = subtotalBeforeGst + gstAmount;
 
+    // Generate the HTML template
     return `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Quotation ${project.project_id}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-          
-          :root {
-            --primary-color: #1A1F2C;
-            --secondary-color: #E5DEFF;
-            --accent-color: #6E59A5;
-            --border-color: #e2e8f0;
-          }
-          
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Quotation ${project.project_id}</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        :root {
+          --primary-color: #1A1F2C;
+          --secondary-color: #E5DEFF;
+          --accent-color: #6E59A5;
+          --border-color: #e2e8f0;
+        }
+        
+        body {
+          font-family: 'Inter', sans-serif;
+          color: #1A1F2C;
+          line-height: 1.6;
+          margin: 0;
+          padding: 0;
+        }
+        
+        .container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 40px;
+        }
+        
+        .header {
+          text-align: center;
+          padding: 20px 0;
+          margin-bottom: 40px;
+          border-bottom: 2px solid var(--border-color);
+        }
+        
+        .header img {
+          max-width: 200px;
+          margin-bottom: 20px;
+        }
+        
+        .header h1 {
+          color: var(--primary-color);
+          font-size: 24px;
+          margin: 10px 0;
+        }
+        
+        .header h2 {
+          color: var(--accent-color);
+          font-size: 18px;
+          margin: 5px 0;
+        }
+        
+        .info-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 30px;
+          margin-bottom: 30px;
+          background: #f8fafc;
+          padding: 20px;
+          border-radius: 8px;
+        }
+        
+        .section-title {
+          color: var(--primary-color);
+          font-size: 18px;
+          font-weight: 600;
+          margin-bottom: 15px;
+          padding-bottom: 8px;
+          border-bottom: 2px solid var(--border-color);
+        }
+        
+        .washroom-card {
+          background: white;
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          margin-bottom: 30px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .washroom-header {
+          background: var(--primary-color);
+          color: white;
+          padding: 15px 20px;
+          border-radius: 8px 8px 0 0;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        
+        .washroom-content {
+          padding: 20px;
+        }
+        
+        .scope-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 15px;
+          table-layout: fixed;
+        }
+        
+        .scope-table th {
+          background-color: var(--secondary-color);
+          color: var(--primary-color);
+          text-align: left;
+          padding: 12px;
+          font-weight: 600;
+          border: 1px solid #ddd;
+        }
+        
+        .scope-table td {
+          padding: 12px;
+          border: 1px solid #ddd;
+          word-wrap: break-word;
+        }
+        
+        .price-box {
+          background: var(--secondary-color);
+          padding: 15px;
+          border-radius: 6px;
+          margin-top: 20px;
+        }
+        
+        .price-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 8px;
+        }
+        
+        .price-row.total {
+          font-weight: 600;
+          border-top: 1px solid var(--border-color);
+          padding-top: 8px;
+        }
+        
+        .footer {
+          text-align: center;
+          padding-top: 30px;
+          border-top: 2px solid var(--border-color);
+          color: #64748b;
+          font-size: 14px;
+        }
+        
+        .footer img {
+          max-width: 120px;
+          margin-bottom: 15px;
+        }
+        
+        .summary-box {
+          background: #f8fafc;
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 20px;
+          margin-top: 30px;
+        }
+        
+        @media print {
           body {
-            font-family: 'Inter', sans-serif;
-            color: #1A1F2C;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px;
-          }
-          
-          .header {
-            text-align: center;
-            padding: 20px 0;
-            margin-bottom: 40px;
-            border-bottom: 2px solid var(--border-color);
-          }
-          
-          .header img {
-            max-width: 200px;
-            margin-bottom: 20px;
-          }
-          
-          .header h1 {
-            color: var(--primary-color);
-            font-size: 24px;
-            margin: 10px 0;
-          }
-          
-          .header h2 {
-            color: var(--accent-color);
-            font-size: 18px;
-            margin: 5px 0;
-          }
-          
-          .info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 30px;
-            margin-bottom: 30px;
-            background: #f8fafc;
+            max-width: 100%;
             padding: 20px;
-            border-radius: 8px;
-          }
-          
-          .section-title {
-            color: var(--primary-color);
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid var(--border-color);
-          }
-          
-          .washroom-card {
-            background: white;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
           }
           
           .washroom-header {
-            background: var(--primary-color);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px 8px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          }
-          
-          .washroom-content {
-            padding: 20px;
-          }
-          
-          .scope-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            table-layout: fixed;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
+            background-color: var(--primary-color) !important;
+            color: white !important;
           }
           
           .scope-table th {
-            background-color: var(--secondary-color);
-            color: var(--primary-color);
-            text-align: left;
-            padding: 12px;
-            font-weight: 600;
-            border: 1px solid #ddd;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            background-color: var(--secondary-color) !important;
           }
-          
-          .scope-table td {
-            padding: 12px;
-            border: 1px solid #ddd;
-            word-wrap: break-word;
-          }
-          
-          .price-box {
-            background: var(--secondary-color);
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 20px;
-          }
-          
-          .price-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-          }
-          
-          .price-row.total {
-            font-weight: 600;
-            border-top: 1px solid var(--border-color);
-            padding-top: 8px;
-          }
-          
-          .footer {
-            text-align: center;
-            padding-top: 30px;
-            border-top: 2px solid var(--border-color);
-            color: #64748b;
-            font-size: 14px;
-          }
-          
-          .footer img {
-            max-width: 120px;
-            margin-bottom: 15px;
-          }
-          
-          .summary-box {
-            background: #f8fafc;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 30px;
-          }
-          
-          @media print {
-            body {
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-            
-            .container {
-              max-width: 100%;
-              padding: 20px;
-            }
-            
-            .washroom-header {
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-              color-adjust: exact;
-              background-color: var(--primary-color) !important;
-              color: white !important;
-            }
-            
-            .scope-table th {
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-              background-color: var(--secondary-color) !important;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="Your Dream Space Logo" />
-            <h1>Your Dream Space</h1>
-            <h2>Quotation #${project.project_id}</h2>
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="Your Dream Space Logo" />
+          <h1>Your Dream Space</h1>
+          <h2>Quotation #${project.project_id}</h2>
+        </div>
+        
+        <div class="info-grid">
+          <div class="client-info">
+            <h3 class="section-title">Client Information</h3>
+            <p><strong>Name:</strong> ${project.client_name}</p>
+            <p><strong>Email:</strong> ${project.client_email || 'N/A'}</p>
+            <p><strong>Phone:</strong> ${project.client_mobile}</p>
+            <p><strong>Location:</strong> ${project.client_location || 'N/A'}</p>
           </div>
           
-          <div class="info-grid">
-            <div class="client-info">
-              <h3 class="section-title">Client Information</h3>
-              <p><strong>Name:</strong> ${project.client_name}</p>
-              <p><strong>Email:</strong> ${project.client_email || 'N/A'}</p>
-              <p><strong>Phone:</strong> ${project.client_mobile}</p>
-              <p><strong>Location:</strong> ${project.client_location || 'N/A'}</p>
-            </div>
-            
-            <div class="project-info">
-              <h3 class="section-title">Project Details</h3>
-              <p><strong>Project ID:</strong> ${project.project_id}</p>
-              <p><strong>Date:</strong> ${format(new Date(), 'dd/MM/yyyy')}</p>
-              <p><strong>Project Type:</strong> ${project.project_type}</p>
-              <p><strong>Total Area:</strong> ${totalArea.toFixed(2)} sq ft</p>
-            </div>
+          <div class="project-info">
+            <h3 class="section-title">Project Details</h3>
+            <p><strong>Project ID:</strong> ${project.project_id}</p>
+            <p><strong>Date:</strong> ${format(new Date(), 'dd/MM/yyyy')}</p>
+            <p><strong>Project Type:</strong> ${project.project_type}</p>
+            <p><strong>Total Area:</strong> ${totalArea.toFixed(2)} sq ft</p>
           </div>
-          
-          <div class="washrooms-section">
-            ${washrooms.map((washroom, index) => {
-              const washroomArea = washroom.length * washroom.width;
-              const categoriesForWashroom = washroomItemsByCategory[washroom.id] || {};
-              
-              return `
-                <div class="washroom-card">
-                  <div class="washroom-header">
-                    <h4 style="margin: 0">${washroom.name}</h4>
-                    <span>${washroomArea.toFixed(2)} sq ft</span>
+        </div>
+        
+        <div class="washrooms-section">
+          ${washrooms.map((washroom) => {
+            const washroomArea = washroom.length * washroom.width;
+            
+            return `
+              <div class="washroom-card">
+                <div class="washroom-header">
+                  <h4 style="margin: 0">${washroom.name}</h4>
+                  <span>${washroomArea.toFixed(2)} sq ft</span>
+                </div>
+                <div class="washroom-content">
+                  <div>
+                    <strong>Dimensions:</strong> ${washroom.length}' × ${washroom.width}' × ${washroom.height}'
                   </div>
-                  <div class="washroom-content">
-                    <div>
-                      <strong>Dimensions:</strong> ${washroom.length}' × ${washroom.width}' × ${washroom.height}'
-                    </div>
-                    <div>
-                      <strong>Selected Brand:</strong> ${washroom.selected_brand || 'Not specified'}
-                    </div>
-                    
-                    <table class="scope-table">
-                      <thead>
-                        <tr>
-                          <th style="width: 40%">Item</th>
-                          <th style="width: 25%">Description</th>
-                          <th style="width: 17.5%; text-align: right;">MRP</th>
-                          <th style="width: 17.5%; text-align: right;">YDS Offer</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        ${Object.entries(categoriesForWashroom).map(([category, items]) => {
-                          const categoryTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-                          const categoryMrp = items.reduce((sum, item) => sum + (parseFloat(item.mrp) || 0), 0);
+                  <div>
+                    <strong>Selected Brand:</strong> ${washroom.selected_brand || 'Not specified'}
+                  </div>
+                  
+                  <table class="scope-table">
+                    <thead>
+                      <tr>
+                        <th style="width: 40%">Item</th>
+                        <th style="width: 25%">Description</th>
+                        <th style="width: 17.5%; text-align: right;">MRP</th>
+                        <th style="width: 17.5%; text-align: right;">YDS Offer</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${Object.entries(itemsByCategory)
+                        .filter(([_, items]) => items.some(item => item.washroomId === washroom.id))
+                        .map(([category, items]) => {
+                          const washroomItems = items.filter(item => item.washroomId === washroom.id);
+                          const categoryTotal = washroomItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                          const categoryMrp = washroomItems.reduce((sum, item) => sum + (parseFloat(item.mrp) || 0), 0);
                           
                           return `
                             <tr>
@@ -562,7 +576,7 @@ export class QuotationService extends BaseService {
                                 ${category}
                               </td>
                             </tr>
-                            ${items.map(item => {
+                            ${washroomItems.map(item => {
                               const itemAmount = parseFloat(item.amount) || 0;
                               const itemMrp = parseFloat(item.mrp) || 0;
                               const itemUnit = item.unit || '';
@@ -590,64 +604,64 @@ export class QuotationService extends BaseService {
                             </tr>
                           `;
                         }).join('')}
-                      </tbody>
-                    </table>
-                    
-                    <div class="price-box">
-                      <div class="price-row">
-                        <span>Total MRP:</span>
-                        <span>₹${formatAmount(totalMrp)}</span>
-                      </div>
-                      <div class="price-row total">
-                        <span>YDS Special Price (before GST):</span>
-                        <span>₹${formatAmount(subtotalBeforeGst)}</span>
-                      </div>
+                    </tbody>
+                  </table>
+                  
+                  <div class="price-box">
+                    <div class="price-row">
+                      <span>Total MRP:</span>
+                      <span>₹${formatAmount(totalMrp)}</span>
+                    </div>
+                    <div class="price-row total">
+                      <span>YDS Special Price (before GST):</span>
+                      <span>₹${formatAmount(subtotalBeforeGst)}</span>
                     </div>
                   </div>
                 </div>
-              `;
-            }).join('')}
+              </div>
+            `;
+          }).join('')}
+        </div>
+        
+        <div class="summary-box">
+          <h3 class="section-title">Price Summary</h3>
+          <div class="price-row">
+            <span>Product Cost:</span>
+            <span>₹${formatAmount(totalProductCost)}</span>
           </div>
-          
-          <div class="summary-box">
-            <h3 class="section-title">Price Summary</h3>
-            <div class="price-row">
-              <span>Product Cost:</span>
-              <span>₹${formatAmount(totalProductCost)}</span>
-            </div>
-            <div class="price-row">
-              <span>Logistics and Creative Service (7.5%):</span>
-              <span>₹${formatAmount(logisticsServiceCharge)}</span>
-            </div>
-            <div class="price-row">
-              <span>Subtotal (before GST):</span>
-              <span>₹${formatAmount(subtotalBeforeGst)}</span>
-            </div>
-            <div class="price-row">
-              <span>GST (${quotationData.gstRate || 18}%):</span>
-              <span>₹${formatAmount(gstAmount)}</span>
-            </div>
-            <div class="price-row total">
-              <span>Total Amount (with GST):</span>
-              <span>₹${formatAmount(grandTotal)}</span>
-            </div>
+          <div class="price-row">
+            <span>Logistics and Creative Service (7.5%):</span>
+            <span>₹${formatAmount(logisticsServiceCharge)}</span>
           </div>
-          
-          <div class="terms-section" style="margin-top: 30px;">
-            <h3 class="section-title">Terms & Conditions</h3>
-            <div>${quotationData.terms || 'Standard terms and conditions apply.'}</div>
+          <div class="price-row">
+            <span>Subtotal (before GST):</span>
+            <span>₹${formatAmount(subtotalBeforeGst)}</span>
           </div>
-          
-          <div class="footer">
-            <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="Your Dream Space Logo" />
-            <p>This is a computer-generated quotation and doesn't require a signature.</p>
-            <p>Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
+          <div class="price-row">
+            <span>GST (${quotationData.gstRate || 18}%):</span>
+            <span>₹${formatAmount(gstAmount)}</span>
+          </div>
+          <div class="price-row total">
+            <span>Total Amount (with GST):</span>
+            <span>₹${formatAmount(grandTotal)}</span>
           </div>
         </div>
-      </body>
-      </html>
-    `;
-  }
+        
+        <div class="terms-section" style="margin-top: 30px;">
+          <h3 class="section-title">Terms & Conditions</h3>
+          <div>${quotationData.terms || 'Standard terms and conditions apply.'}</div>
+        </div>
+        
+        <div class="footer">
+          <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="Your Dream Space Logo" />
+          <p>This is a computer-generated quotation and doesn't require a signature.</p>
+          <p>Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
 
   /**
    * Get all quotations for a project
