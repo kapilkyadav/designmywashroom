@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -632,7 +631,7 @@ export class QuotationService extends BaseService {
             const floorArea = washroom.length * washroom.width;
             const wallArea = washroom.wall_area || 0;
             const ceilingArea = washroom.ceiling_area || 0;
-            // Calculate total washroom area as floor area + wall area only (not including ceiling)
+            // Calculate total washroom area as floor area + wall area only
             const totalWashroomArea = floorArea + wallArea;
             
             return `
@@ -690,19 +689,40 @@ export class QuotationService extends BaseService {
                               const discountPercentage = item.isBrandProduct && itemMrp > 0 ? 
                                 Math.round((1 - (itemAmount / itemMrp)) * 100) : 0;
                               
-                              return `
-                                <tr>
-                                  <td style="padding-left: 24px;">
-                                    • ${item.name} ${itemUnit ? `(${itemUnit})` : ''}
-                                    ${item.isBrandProduct && discountPercentage > 0 ? 
-                                      `<br/><span style="color: #16a34a; font-size: 0.9em;">${discountPercentage}% off</span>` : 
-                                      ''}
-                                  </td>
-                                  <td>${item.description || ''}</td>
-                                  <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
-                                  <td style="text-align: right;">₹${formatAmount(itemAmount)}</td>
-                                </tr>
-                              `;
+                              // Handle execution services differently from brand products
+                              if (!item.isBrandProduct && item.serviceDetails) {
+                                return item.serviceDetails.map((service: any) => {
+                                  const serviceName = quotationData.serviceDetailsMap[service.serviceId]?.name || service.serviceId;
+                                  const categoryName = quotationData.serviceDetailsMap[service.serviceId]?.categoryName || '';
+                                  const unit = quotationData.serviceDetailsMap[service.serviceId]?.unit || '';
+                                  
+                                  return `
+                                    <tr>
+                                      <td style="padding-left: 24px;">
+                                        • ${serviceName} ${unit ? `(${unit})` : ''}
+                                      </td>
+                                      <td>${categoryName}</td>
+                                      <td style="text-align: right;">₹${formatAmount(service.cost * 1.2)}</td>
+                                      <td style="text-align: right;">₹${formatAmount(service.cost)}</td>
+                                    </tr>
+                                  `;
+                                }).join('');
+                              } else {
+                                // Brand products remain the same
+                                return `
+                                  <tr>
+                                    <td style="padding-left: 24px;">
+                                      • ${item.name} ${itemUnit ? `(${itemUnit})` : ''}
+                                      ${item.isBrandProduct && discountPercentage > 0 ? 
+                                        `<br/><span style="color: #16a34a; font-size: 0.9em;">${discountPercentage}% off</span>` : 
+                                        ''}
+                                    </td>
+                                    <td>${item.description || ''}</td>
+                                    <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
+                                    <td style="text-align: right;">₹${formatAmount(itemAmount)}</td>
+                                  </tr>
+                                `;
+                              }
                             }).join('')}
                             <tr>
                               <td colspan="2" style="text-align: right; font-weight: 500;">Category Total:</td>
