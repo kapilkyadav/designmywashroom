@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { Brand, Product } from '@/lib/supabase';
@@ -89,11 +88,9 @@ export class ProductService {
   
   static async saveProduct(product: Partial<Product>): Promise<Product | null> {
     try {
-      // Determine if we're updating or inserting
       const isUpdating = !!product.id;
       
       if (isUpdating) {
-        // Update existing product
         const { data, error } = await supabase
           .from('products')
           .update({
@@ -126,7 +123,6 @@ export class ProductService {
         
         return data;
       } else {
-        // Create new product
         const { data, error } = await supabase
           .from('products')
           .insert({
@@ -201,7 +197,6 @@ export class ProductService {
   
   static async updateBrandProductCount(brandId: string): Promise<void> {
     try {
-      // Get count of products for the brand
       const { count, error: countError } = await supabase
         .from('products')
         .select('*', { count: 'exact', head: true })
@@ -209,7 +204,6 @@ export class ProductService {
       
       if (countError) throw countError;
       
-      // Update brand with the count
       const { error: updateError } = await supabase
         .from('brands')
         .update({ product_count: count || 0 })
@@ -218,6 +212,118 @@ export class ProductService {
       if (updateError) throw updateError;
     } catch (error: any) {
       console.error('Error updating brand product count:', error);
+    }
+  }
+  
+  static async getAllProducts(): Promise<Product[]> {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      
+      return data || [];
+    } catch (error: any) {
+      console.error('Error fetching all products:', error);
+      return [];
+    }
+  }
+  
+  static async createProduct(productData: Partial<Product>): Promise<Product | null> {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .insert(productData)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      if (data && data.brand_id) {
+        await this.updateBrandProductCount(data.brand_id);
+      }
+      
+      return data;
+    } catch (error: any) {
+      console.error('Error creating product:', error);
+      return null;
+    }
+  }
+  
+  static async updateProduct(productId: string, productData: Partial<Product>): Promise<Product | null> {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .update(productData)
+        .eq('id', productId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      return data;
+    } catch (error: any) {
+      console.error('Error updating product:', error);
+      return null;
+    }
+  }
+  
+  static async importProductsFromSheet(brandId: string, products: any[]): Promise<number> {
+    try {
+      console.log(`Importing ${products.length} products for brand ${brandId}`);
+      
+      if (!products || products.length === 0) {
+        console.log('No products to import');
+        return 0;
+      }
+      
+      const formattedProducts = products.map(product => ({
+        brand_id: brandId,
+        name: product.name || 'Unnamed Product',
+        description: product.description || '',
+        category: product.category || '',
+        finish_color: product.finish_color || '',
+        series: product.series || '',
+        model_code: product.model_code || '',
+        size: product.size || '',
+        mrp: parseFloat(product.mrp || 0),
+        landing_price: parseFloat(product.landing_price || 0),
+        client_price: parseFloat(product.client_price || 0),
+        quotation_price: parseFloat(product.quotation_price || 0),
+        margin: parseFloat(product.margin || 0),
+        quantity: parseInt(product.quantity || 0, 10),
+        extra_data: product
+      }));
+      
+      const batchSize = 50;
+      let importedCount = 0;
+      
+      for (let i = 0; i < formattedProducts.length; i += batchSize) {
+        const batch = formattedProducts.slice(i, i + batchSize);
+        
+        console.log(`Importing batch ${i / batchSize + 1}/${Math.ceil(formattedProducts.length / batchSize)}`);
+        
+        const { error, count } = await supabase
+          .from('products')
+          .insert(batch)
+          .select();
+        
+        if (error) {
+          console.error('Error importing batch:', error);
+          throw error;
+        }
+        
+        importedCount += batch.length;
+      }
+      
+      await this.updateBrandProductCount(brandId);
+      
+      return importedCount;
+    } catch (error: any) {
+      console.error('Error importing products from sheet:', error);
+      throw error;
     }
   }
 }
