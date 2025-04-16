@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -76,10 +75,10 @@ export class QuotationService extends BaseService {
           } 
           // If category is an array with at least one item
           else if (Array.isArray(item.category) && item.category.length > 0) {
-            // Type assertion for the array item
-            const firstCategory = item.category[0] as { name?: string; id?: string } | null;
-            categoryName = firstCategory?.name || categoryName;
-            categoryId = firstCategory?.id || categoryId;
+            // Explicitly cast the item to have the expected properties
+            const categoryItem = item.category[0] as any;
+            categoryName = categoryItem && categoryItem.name ? categoryItem.name : categoryName;
+            categoryId = categoryItem && categoryItem.id ? categoryItem.id : categoryId;
           }
         }
         
