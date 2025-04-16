@@ -65,9 +65,23 @@ export class QuotationService extends BaseService {
 
       // Create a map of service details with categories
       const serviceDetailsMap = serviceDetails.reduce((acc: Record<string, any>, item) => {
-        // Handle the category object correctly - it's an object, not an array
-        const categoryName = item.category ? item.category.name : 'Other Items';
-        const categoryId = item.category ? item.category.id : null;
+        // Check item.category's structure and safely extract the category data
+        // It could be an object with id/name properties or could have a different structure
+        let categoryName = 'Other Items';
+        let categoryId = null;
+        
+        if (item.category) {
+          // If category is an object with direct properties
+          if (typeof item.category === 'object' && !Array.isArray(item.category)) {
+            categoryName = item.category.name || categoryName;
+            categoryId = item.category.id || categoryId;
+          } 
+          // If category is an array with a first element that has name/id
+          else if (Array.isArray(item.category) && item.category.length > 0) {
+            categoryName = item.category[0].name || categoryName;
+            categoryId = item.category[0].id || categoryId;
+          }
+        }
         
         acc[item.id] = {
           name: item.scope_of_work,
@@ -75,6 +89,7 @@ export class QuotationService extends BaseService {
           categoryName: categoryName,
           categoryId: categoryId
         };
+        
         return acc;
       }, {});
 
