@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -283,44 +282,19 @@ export class QuotationService extends BaseService {
     let subtotalBeforeGst = 0;
     let gstAmount = 0;
     let totalMrp = 0;
+    let totalProductCost = 0;
+    let logisticsServiceCharge = 0;
 
     // First pass to calculate totals
     for (const washroom of washrooms) {
       const washroomItems = (quotationData.items || []).filter((item: any) => 
         item.washroomId === washroom.id || !item.washroomId
       );
-
-      // Add fixtures pricing
-      if (washroom.fixtures) {
-        const fixtureIds = Object.entries(washroom.fixtures)
-          .filter(([_, selected]) => selected)
-          .map(([id]) => id);
-
-        // If there are selected fixtures, fetch their details
-        if (fixtureIds.length > 0) {
-          const { data: fixtures } = await supabase
-            .from('fixtures')
-            .select('*')
-            .in('id', fixtureIds);
-
-          if (fixtures) {
-            fixtures.forEach(fixture => {
-              // Add fixture as an item WITHOUT additional taxes
-              washroomItems.push({
-                washroomId: washroom.id,
-                name: fixture.name,
-                description: `Fixture for ${washroom.name}`,
-                mrp: fixture.mrp,
-                amount: fixture.client_price, // Using client_price as direct price
-                isBrandProduct: true,
-                applyGst: false // Explicitly set to false for fixtures
-              });
-            });
-          }
-        }
-      }
       
       washroomItems.forEach((item: any) => {
+        if (item.isBrandProduct) {
+          totalProductCost += parseFloat(item.amount) || 0;
+        }
         subtotalBeforeGst += parseFloat(item.amount) || 0;
         totalMrp += parseFloat(item.mrp) || 0;
 
@@ -332,71 +306,11 @@ export class QuotationService extends BaseService {
       });
     }
 
+    // Calculate logistics and creative service charge (7.5% of product cost)
+    logisticsServiceCharge = totalProductCost * 0.075;
+    subtotalBeforeGst += logisticsServiceCharge;
+
     const grandTotal = subtotalBeforeGst + gstAmount;
-
-    // Group items by category for each washroom
-    const washroomItemsByCategory: Record<string, Record<string, any[]>> = {};
-
-    for (const washroom of washrooms) {
-      const washroomItems = (quotationData.items || []).filter((item: any) => 
-        item.washroomId === washroom.id || !item.washroomId
-      );
-      
-      washroomItemsByCategory[washroom.id] = {};
-      
-      for (const item of washroomItems) {
-        if (item.isCategory) {
-          // For items that are already categories
-          const categoryName = item.name;
-          if (!washroomItemsByCategory[washroom.id][categoryName]) {
-            washroomItemsByCategory[washroom.id][categoryName] = [];
-          }
-          
-          // If the category has service details, add them individually
-          if (item.serviceDetails && item.serviceDetails.length > 0) {
-            for (const service of item.serviceDetails) {
-              const serviceDetails = quotationData.serviceDetailsMap[service.serviceId] || {};
-              const serviceName = serviceDetails.name || service.name || `Service ${service.serviceId}`;
-              const serviceUnit = serviceDetails.unit || service.unit || '';
-              
-              washroomItemsByCategory[washroom.id][categoryName].push({
-                name: serviceName,
-                unit: serviceUnit,
-                description: '',
-                amount: service.cost,
-                mrp: service.cost * 1.2, // Apply markup only for services
-                isService: true
-              });
-            }
-          } else {
-            // Add the category itself as an item
-            washroomItemsByCategory[washroom.id][categoryName].push(item);
-          }
-        } else {
-          // For regular items
-          const categoryName = item.category || 'Other Items';
-          if (!washroomItemsByCategory[washroom.id][categoryName]) {
-            washroomItemsByCategory[washroom.id][categoryName] = [];
-          }
-
-          if (item.isBrandProduct) {
-            // For brand products, use actual MRP and client_price directly
-            washroomItemsByCategory[washroom.id][categoryName].push({
-              ...item,
-              mrp: item.mrp,
-              amount: item.client_price
-            });
-          } else {
-            // For services, apply standard markup
-            washroomItemsByCategory[washroom.id][categoryName].push({
-              ...item,
-              mrp: item.amount * 1.2,
-              amount: item.amount
-            });
-          }
-        }
-      }
-    }
 
     return `
       <!DOCTYPE html>
@@ -610,7 +524,6 @@ export class QuotationService extends BaseService {
           </div>
           
           <div class="washrooms-section">
-            <h3 class="section-title">Washroom Details & Scope of Work</h3>
             ${washrooms.map((washroom, index) => {
               const washroomArea = washroom.length * washroom.width;
               const categoriesForWashroom = washroomItemsByCategory[washroom.id] || {};
@@ -699,6 +612,14 @@ export class QuotationService extends BaseService {
           <div class="summary-box">
             <h3 class="section-title">Price Summary</h3>
             <div class="price-row">
+              <span>Product Cost:</span>
+              <span>₹${formatAmount(totalProductCost)}</span>
+            </div>
+            <div class="price-row">
+              <span>Logistics and Creative Service (7.5%):</span>
+              <span>₹${formatAmount(logisticsServiceCharge)}</span>
+            </div>
+            <div class="price-row">
               <span>Subtotal (before GST):</span>
               <span>₹${formatAmount(subtotalBeforeGst)}</span>
             </div>
@@ -727,7 +648,7 @@ export class QuotationService extends BaseService {
       </html>
     `;
   }
-  
+
   /**
    * Get all quotations for a project
    */
