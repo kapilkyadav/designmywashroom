@@ -35,8 +35,18 @@ export class QuotationService extends BaseService {
       const allServiceIds = washrooms
         .flatMap(washroom => {
           const serviceDetails = washroom.service_details || {};
+          // Safely extract service IDs by ensuring we're working with arrays
           return Object.values(serviceDetails)
-            .flatMap((category: any) => category.map((service: any) => service.serviceId))
+            .flatMap((category: any) => {
+              // Check if category is an array before trying to map over it
+              if (Array.isArray(category)) {
+                return category.map((service: any) => service.serviceId);
+              } else {
+                // If it's not an array, return an empty array (or extract the ID if it's an object)
+                console.log('Non-array category found:', category);
+                return [];
+              }
+            })
             .filter(Boolean);
         });
       
