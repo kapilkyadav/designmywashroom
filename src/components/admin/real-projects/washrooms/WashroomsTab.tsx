@@ -112,7 +112,8 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
       ...washroom,
       area: floorArea,
       wall_area: wallArea,
-      ceiling_area: ceilingArea
+      ceiling_area: ceilingArea,
+      total_area: floorArea + wallArea
     };
   };
 
@@ -337,6 +338,42 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                   />
                 </div>
                 
+                {/* Area Calculations Section */}
+                <div className="col-span-2 md:col-span-1">
+                  <div className="space-y-4 bg-muted p-4 rounded-lg">
+                    <div>
+                      <Label>Floor Area</Label>
+                      <div className="text-lg font-medium">
+                        {(washroom.length * washroom.width).toFixed(2)} sq ft
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Length × Width
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label>Wall Area</Label>
+                      <div className="text-lg font-medium">
+                        {washroom.wall_area?.toFixed(2) || '0.00'} sq ft
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Perimeter × Height
+                      </p>
+                    </div>
+
+                    <div className="pt-2 border-t">
+                      <Label>Total Area</Label>
+                      <div className="text-xl font-bold text-primary">
+                        {washroom.total_area?.toFixed(2) || 
+                         ((washroom.length * washroom.width) + (washroom.wall_area || 0)).toFixed(2)} sq ft
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Floor Area + Wall Area
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label>Floor Area (sq ft)</Label>
                   <Input
