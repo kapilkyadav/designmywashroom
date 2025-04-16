@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { RealProject } from '@/services/real-projects/types';
 import { Card, CardContent } from '@/components/ui/card';
@@ -35,26 +34,18 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
   const [productCost, setProductCost] = useState(0);
   const [logisticsCost, setLogisticsCost] = useState(0);
   
-  // Calculate product cost and logistics cost when component mounts or when project changes
   useEffect(() => {
     const calculateProductCosts = async () => {
       try {
         if (project.selected_brand) {
-          // Get products for the selected brand
           const products = await ProductService.getProductsByBrandId(project.selected_brand);
-          
-          // Calculate total product cost based on client_price
           const brandProductTotal = products.reduce((sum, product) => {
-            return sum + (product.client_price || 0);
+            return sum + (product.quotation_price || 0);
           }, 0);
-          
           setProductCost(brandProductTotal);
-          
-          // Calculate logistics cost (7.5% of product cost)
           const logistics = brandProductTotal * 0.075;
           setLogisticsCost(logistics);
         } else {
-          // Reset costs if no brand is selected
           setProductCost(0);
           setLogisticsCost(0);
         }
@@ -92,7 +83,6 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
     setIsSaving(true);
     
     try {
-      // Convert arrays to objects for storage
       const executionCostsObj = executionCosts.reduce((acc, item) => {
         const { category, ...rest } = item;
         acc[item.id] = rest;
@@ -111,14 +101,13 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
         return acc;
       }, {} as Record<string, any>);
       
-      // Calculate total including product and logistics costs
       const finalTotal = grandTotal + productCost + logisticsCost;
       
       await project.updateCosts({
         execution_costs: executionCostsObj,
         vendor_rates: vendorRatesObj,
         additional_costs: additionalCostsObj,
-        washrooms: project.washrooms || [], // Add the missing washrooms property
+        washrooms: project.washrooms || [],
         final_quotation_amount: finalTotal,
         product_cost: productCost,
         logistics_cost: logisticsCost
@@ -206,4 +195,3 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
 };
 
 export default CostingTab;
-
