@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -436,6 +435,13 @@ export class QuotationService extends BaseService {
           padding: 20px;
         }
         
+        .area-details {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 10px;
+          margin-bottom: 15px;
+        }
+        
         .scope-table {
           width: 100%;
           border-collapse: collapse;
@@ -622,9 +628,10 @@ export class QuotationService extends BaseService {
         
         <div class="washrooms-section">
           ${washrooms.map((washroom) => {
-            const washroomArea = washroom.length * washroom.width;
+            const floorArea = washroom.length * washroom.width;
             const wallArea = washroom.wall_area || 0;
-            const totalWashroomArea = washroomArea + wallArea;
+            const ceilingArea = washroom.ceiling_area || 0;
+            const totalWashroomArea = floorArea + wallArea + ceilingArea;
             
             return `
               <div class="washroom-card">
@@ -633,16 +640,21 @@ export class QuotationService extends BaseService {
                   <span>Total Area: ${totalWashroomArea.toFixed(2)} sq ft</span>
                 </div>
                 <div class="washroom-content">
-                  <div>
-                    <strong>Dimensions:</strong> ${washroom.length}' × ${washroom.width}' × ${washroom.height}'
+                  <div class="area-details" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px;">
+                    <div>
+                      <strong>Dimensions:</strong> ${washroom.length}' × ${washroom.width}' × ${washroom.height}'
+                    </div>
+                    <div>
+                      <strong>Floor Area:</strong> ${floorArea.toFixed(2)} sq ft
+                    </div>
+                    <div>
+                      <strong>Wall Area:</strong> ${wallArea.toFixed(2)} sq ft
+                    </div>
+                    <div>
+                      <strong>Ceiling Area:</strong> ${ceilingArea.toFixed(2)} sq ft
+                    </div>
                   </div>
-                  <div>
-                    <strong>Floor Area:</strong> ${washroomArea.toFixed(2)} sq ft
-                  </div>
-                  <div>
-                    <strong>Wall Area:</strong> ${wallArea.toFixed(2)} sq ft
-                  </div>
-                  <div>
+                  <div style="margin-bottom: 15px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
                     <strong>Selected Brand:</strong> ${washroom.selected_brand || 'Not specified'}
                   </div>
                   
