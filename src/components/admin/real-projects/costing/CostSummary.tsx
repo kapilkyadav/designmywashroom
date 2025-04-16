@@ -7,8 +7,8 @@ interface CostSummaryProps {
   additionalTotal: number;
   originalEstimate: number;
   grandTotal: number;
-  productCost?: number;
-  logisticsCost?: number;
+  productCost: number;
+  logisticsCost: number;
 }
 
 const CostSummary: React.FC<CostSummaryProps> = ({
@@ -17,8 +17,8 @@ const CostSummary: React.FC<CostSummaryProps> = ({
   additionalTotal,
   originalEstimate,
   grandTotal,
-  productCost = 0,
-  logisticsCost = 0
+  productCost,
+  logisticsCost
 }) => {
   // Safe formatting function
   const formatNumber = (amount: number | null | undefined): string => {

@@ -30,7 +30,10 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
   const [isSaving, setIsSaving] = useState(false);
   
   // Use our product costs hook with the whole project to calculate across all washrooms
-  const { productCost, logisticsCost } = useProductCosts(project);
+  const { productCost, logisticsCost, isLoading: isLoadingProducts } = useProductCosts(project);
+  
+  console.log("Product cost in CostingTab:", productCost);
+  console.log("Logistics cost in CostingTab:", logisticsCost);
   
   // Execution services total
   const executionServicesTotal = executionTotal + vendorTotal + additionalTotal;
@@ -85,6 +88,10 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
         acc[item.id] = rest;
         return acc;
       }, {} as Record<string, any>);
+
+      console.log("Saving with product cost:", productCost);
+      console.log("Saving with logistics cost:", logisticsCost);
+      console.log("Saving with final total:", finalTotal);
       
       await project.updateCosts({
         execution_costs: executionCostsObj,
