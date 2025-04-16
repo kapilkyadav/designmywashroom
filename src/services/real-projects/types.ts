@@ -72,6 +72,7 @@ export interface Washroom {
   wallArea?: number; // For compatibility with form data
   ceiling_area?: number;
   ceilingArea?: number; // For compatibility with form data
+  total_area?: number; // Added total_area property
   services?: Record<string, boolean>;
   selected_brand?: string;
   service_details?: Record<string, ServiceDetail>;

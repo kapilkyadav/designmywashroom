@@ -338,7 +338,6 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                   />
                 </div>
                 
-                {/* Area Calculations Section */}
                 <div className="col-span-2 md:col-span-1">
                   <div className="space-y-4 bg-muted p-4 rounded-lg">
                     <div>
