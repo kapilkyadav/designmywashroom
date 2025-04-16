@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -275,10 +276,7 @@ export class QuotationService extends BaseService {
       return isNaN(numValue) ? '0' : numValue.toLocaleString('en-IN');
     };
     
-    // Calculate total area of all washrooms
-    const totalArea = washrooms.reduce((sum, w) => sum + (w.length * w.width), 0);
-    
-    // Calculate totals and GST
+    // Calculate subtotals and GST
     let subtotalBeforeGst = 0;
     let gstAmount = 0;
     let totalMrp = 0;
@@ -616,23 +614,33 @@ export class QuotationService extends BaseService {
             <p><strong>Project ID:</strong> ${project.project_id}</p>
             <p><strong>Date:</strong> ${format(new Date(), 'dd/MM/yyyy')}</p>
             <p><strong>Project Type:</strong> ${project.project_type}</p>
-            <p><strong>Total Area:</strong> ${totalArea.toFixed(2)} sq ft</p>
+            <p><strong>Address:</strong> ${project.project_details?.address || 'N/A'}</p>
+            ${project.project_details?.floor_number ? `<p><strong>Floor:</strong> ${project.project_details.floor_number}</p>` : ''}
+            <p><strong>Service Lift:</strong> ${project.project_details?.service_lift_available ? 'Available' : 'Not Available'}</p>
           </div>
         </div>
         
         <div class="washrooms-section">
           ${washrooms.map((washroom) => {
             const washroomArea = washroom.length * washroom.width;
+            const wallArea = washroom.wall_area || 0;
+            const totalWashroomArea = washroomArea + wallArea;
             
             return `
               <div class="washroom-card">
                 <div class="washroom-header">
                   <h4 style="margin: 0">${washroom.name}</h4>
-                  <span>${washroomArea.toFixed(2)} sq ft</span>
+                  <span>Total Area: ${totalWashroomArea.toFixed(2)} sq ft</span>
                 </div>
                 <div class="washroom-content">
                   <div>
                     <strong>Dimensions:</strong> ${washroom.length}' × ${washroom.width}' × ${washroom.height}'
+                  </div>
+                  <div>
+                    <strong>Floor Area:</strong> ${washroomArea.toFixed(2)} sq ft
+                  </div>
+                  <div>
+                    <strong>Wall Area:</strong> ${wallArea.toFixed(2)} sq ft
                   </div>
                   <div>
                     <strong>Selected Brand:</strong> ${washroom.selected_brand || 'Not specified'}
