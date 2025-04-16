@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { RealProject, RealProjectService } from '@/services/RealProjectService';
 import { Button } from '@/components/ui/button';
@@ -29,36 +28,30 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
   const [serviceMeasurements, setServiceMeasurements] = useState<Record<string, string>>({});
   const [activeWashroomTab, setActiveWashroomTab] = useState<string>('all');
   
-  // Fetch execution services
   const { data: services, isLoading: isLoadingServices } = useQuery({
     queryKey: ['execution-services'],
     queryFn: () => RealProjectService.getExecutionServices()
   });
   
-  // Fetch tiling rates
   const { data: ratesData } = useQuery({
     queryKey: ['tiling-rates'],
     queryFn: () => RealProjectService.getTilingRates()
   });
   
   useEffect(() => {
-    // Initialize execution costs from project
     if (project.execution_costs) {
       setExecutionCosts(project.execution_costs);
     }
     
-    // Set tiling rates
     if (ratesData) {
       setTilingRates(ratesData);
     }
     
-    // Set initial active washroom tab
     if (project.washrooms && project.washrooms.length > 0) {
       setActiveWashroomTab('all');
     }
   }, [project, ratesData]);
   
-  // Calculate costs when washrooms, execution costs, or services change
   useEffect(() => {
     const calculateCosts = async () => {
       if (!project.washrooms || !services) return;
@@ -72,11 +65,9 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
         
         setCostSummary(calculatedCosts);
         
-        // If we have service rates and measurements, update our state
         if (calculatedCosts.service_rates) {
           setServiceRates(calculatedCosts.service_rates);
           
-          // Pre-fill execution costs with rates from vendor rate cards if not already set
           const updatedCosts = { ...executionCosts };
           Object.entries(calculatedCosts.service_rates).forEach(([serviceId, rate]) => {
             if (!updatedCosts[serviceId]) {
@@ -142,7 +133,6 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
     );
   }
   
-  // Group services by category
   const servicesByCategory: Record<string, any[]> = {};
   if (services) {
     services.forEach(service => {
@@ -154,7 +144,6 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
     });
   }
   
-  // Filter services by selected washroom
   const filteredServices = (selectedWashroomId: string) => {
     if (selectedWashroomId === 'all') {
       return services || [];
@@ -166,7 +155,6 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
     }
   };
   
-  // Group filtered services by category for a specific washroom
   const filteredServicesByCategory = (selectedWashroomId: string) => {
     const filtered = filteredServices(selectedWashroomId);
     const result: Record<string, any[]> = {};
@@ -194,7 +182,10 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
             <div className="text-center">
               <h4 className="text-sm font-medium text-muted-foreground">Total Area</h4>
               <p className="text-2xl font-semibold mt-1">
-                {costSummary.total_area?.toFixed(2) || 0} sq ft
+                {(costSummary.floor_area + costSummary.wall_area)?.toFixed(2) || 0} sq ft
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                (Floor Area + Wall Area)
               </p>
             </div>
           </CardContent>
@@ -226,7 +217,6 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
         </Card>
       </div>
       
-      {/* Cost breakdown */}
       <Card>
         <CardContent className="p-0">
           <div className="bg-secondary px-4 py-3">
@@ -265,7 +255,6 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
         </CardContent>
       </Card>
       
-      {/* Washroom specific costs */}
       {project.washrooms && project.washrooms.length > 0 && costSummary.washroom_costs && (
         <Card>
           <CardContent className="p-0">
@@ -317,7 +306,6 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
         </Card>
       )}
       
-      {/* Execution services pricing */}
       <Card>
         <CardContent className="p-0">
           <div className="bg-secondary px-4 py-3">
@@ -345,7 +333,6 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
                       
                       <div className="space-y-3">
                         {categoryServices.map(service => {
-                          // Get suggested rate from vendor rate card if available
                           const suggestedRate = serviceRates[service.id] || 0;
                           const currentRate = executionCosts[service.id] || suggestedRate;
                           const measurementUnit = service.measuring_unit || '';
@@ -401,12 +388,10 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
                             
                             <div className="space-y-3">
                               {categoryServices.map(service => {
-                                // Get suggested rate from vendor rate card if available
                                 const suggestedRate = serviceRates[service.id] || 0;
                                 const currentRate = executionCosts[service.id] || suggestedRate;
                                 const measurementUnit = service.measuring_unit || '';
                                 
-                                // Calculate estimated cost based on measurement unit and dimensions
                                 let estimatedCost = currentRate;
                                 const measurementLower = measurementUnit.toLowerCase();
                                 if (measurementLower.includes('sqft') || measurementLower.includes('sft') || 
