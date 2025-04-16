@@ -370,14 +370,6 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                         <div className="text-lg font-medium">
                           {washroom.ceiling_area?.toFixed(2) || '0.00'} sq ft
                         </div>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={washroom.ceiling_area || 0}
-                          onChange={(e) => updateWashroomField(index, 'ceiling_area', parseFloat(e.target.value) || 0)}
-                          className="mt-2"
-                        />
                       </div>
                     </div>
 
@@ -393,20 +385,6 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                       </div>
                     </div>
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Ceiling Area (sq ft)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={washroom.ceiling_area || 0}
-                    onChange={(e) => updateWashroomField(index, 'ceiling_area', parseFloat(e.target.value) || 0)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Default: same as floor area
-                  </p>
                 </div>
               </div>
               
