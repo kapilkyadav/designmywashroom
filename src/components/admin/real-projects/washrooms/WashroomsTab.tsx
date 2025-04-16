@@ -341,30 +341,9 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                 <div className="col-span-2 md:col-span-1">
                   <div className="space-y-4 bg-muted p-4 rounded-lg">
                     <div>
-                      <Label>Floor Area</Label>
-                      <div className="text-lg font-medium">
-                        {(washroom.length * washroom.width).toFixed(2)} sq ft
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Length × Width
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label>Wall Area</Label>
-                      <div className="text-lg font-medium">
-                        {washroom.wall_area?.toFixed(2) || '0.00'} sq ft
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Perimeter × Height
-                      </p>
-                    </div>
-
-                    <div className="pt-2 border-t">
                       <Label>Total Area</Label>
                       <div className="text-xl font-bold text-primary">
-                        {washroom.total_area?.toFixed(2) || 
-                         ((washroom.length * washroom.width) + (washroom.wall_area || 0)).toFixed(2)} sq ft
+                        {washroom.total_area?.toFixed(2) || '0.00'} sq ft
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Floor Area + Wall Area
@@ -372,35 +351,10 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                     </div>
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Floor Area (sq ft)</Label>
-                  <Input
-                    value={washroom.area.toFixed(2)}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor={`washroom-wall-area-${index}`}>Wall Area (sq ft)</Label>
+                  <Label>Ceiling Area (sq ft)</Label>
                   <Input
-                    id={`washroom-wall-area-${index}`}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={washroom.wall_area || 0}
-                    onChange={(e) => updateWashroomField(index, 'wall_area', parseFloat(e.target.value) || 0)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Auto-calculated: perimeter × height
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor={`washroom-ceiling-area-${index}`}>Ceiling Area (sq ft)</Label>
-                  <Input
-                    id={`washroom-ceiling-area-${index}`}
                     type="number"
                     min="0"
                     step="0.01"
