@@ -24,7 +24,7 @@ export interface WashroomWithAreas {
   width: number;
   height: number;
   floorArea: number;
-  wallArea: number;
+  wall_area: number;  // Changed from wallArea to wall_area
   ceilingArea: number;
   services: Record<string, boolean>;
 }
