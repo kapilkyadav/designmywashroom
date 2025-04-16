@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -80,34 +81,48 @@ export class QuotationService extends BaseService {
           const vendorItems = await VendorRateCardService.getItemsByIds(serviceIds);
           
           if (vendorItems && vendorItems.length > 0) {
+            console.log("Fetched vendor items:", vendorItems);
+            
             serviceDetailsMap = vendorItems.reduce((acc: Record<string, any>, item: any) => {
+              // Make sure we have the category info
+              const categoryName = item.category?.name || 'General';
+              console.log(`Processing item ${item.scope_of_work}: Category = ${categoryName}`);
+              
               acc[item.id] = {
                 name: item.scope_of_work,
                 unit: item.measuring_unit,
-                categoryName: item.category?.name || 'General',
+                categoryName: categoryName,
                 categoryId: item.category_id
               };
               return acc;
             }, {});
           } else {
-            // Fallback to direct query if the service method fails
+            // Fallback to direct query with explicit category join
             const { data: serviceItems } = await supabase
               .from('vendor_items')
-              .select('id, scope_of_work, measuring_unit, category_id, category:category_id(id, name)')
+              .select('id, scope_of_work, measuring_unit, category_id, category:vendor_categories!vendor_items_category_id_fkey(id, name)')
               .in('id', serviceIds);
               
             if (serviceItems) {
+              console.log("Fallback query fetched service items:", serviceItems);
+              
               serviceDetailsMap = serviceItems.reduce((acc: Record<string, any>, item: any) => {
+                // Access the name from the expanded category field
+                const categoryName = item.category?.name || 'General';
+                console.log(`Fallback processing ${item.scope_of_work}: Category = ${categoryName}`);
+                
                 acc[item.id] = {
                   name: item.scope_of_work,
                   unit: item.measuring_unit,
-                  categoryName: item.category?.name || 'General',
+                  categoryName: categoryName,
                   categoryId: item.category_id
                 };
                 return acc;
               }, {});
             }
           }
+          
+          console.log("Final service details map:", serviceDetailsMap);
         } catch (error) {
           console.error('Error fetching vendor items:', error);
           // Continue with empty service details map
@@ -116,6 +131,15 @@ export class QuotationService extends BaseService {
       
       // Add service names to the quotation data for easier access in the HTML generation
       sanitizedQuotationData.serviceDetailsMap = serviceDetailsMap;
+      
+      // Temporarily store data on window for debugging
+      if (typeof window !== 'undefined') {
+        (window as any).currentQuotationData = {
+          ...sanitizedQuotationData,
+          serviceIds,
+          serviceDetailsMap
+        };
+      }
       
       // Generate HTML for the quotation with washroom details
       const quotationHtml = await QuotationService.generateQuotationHtml(project, sanitizedQuotationData, washrooms || []);
@@ -365,9 +389,6 @@ export class QuotationService extends BaseService {
     // Group items by category for each washroom
     const washroomItemsByCategory: Record<string, Record<string, any[]>> = {};
 
-    // For debugging
-    console.log("Service details map:", quotationData.serviceDetailsMap);
-
     for (const washroom of washrooms) {
       const washroomItems = (quotationData.items || []).filter((item: any) => 
         item.washroomId === washroom.id || !item.washroomId
@@ -386,14 +407,10 @@ export class QuotationService extends BaseService {
           const firstServiceId = item.serviceDetails[0].serviceId;
           const serviceDetails = quotationData.serviceDetailsMap?.[firstServiceId];
           
-          // Debug each item's category assignment
-          console.log(`Item ${item.name} - Service ID: ${firstServiceId}`, { 
-            serviceDetails, 
-            fallbackCategory: item.category,
-            finalCategory: serviceDetails?.categoryName || item.category || 'Other Items'
-          });
-          
+          // Use the category name from the service details or fallback
           categoryName = serviceDetails?.categoryName || item.category || 'Other Items';
+          
+          console.log(`Final category for item ${item.name} (service ID: ${firstServiceId}): ${categoryName}`);
         } else {
           // For regular items
           categoryName = item.category || 'Other Items';
