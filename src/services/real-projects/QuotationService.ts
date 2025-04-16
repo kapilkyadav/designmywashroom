@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -64,11 +65,15 @@ export class QuotationService extends BaseService {
 
       // Create a map of service details with categories
       const serviceDetailsMap = serviceDetails.reduce((acc: Record<string, any>, item) => {
+        // Handle the category object correctly - it's an object, not an array
+        const categoryName = item.category ? item.category.name : 'Other Items';
+        const categoryId = item.category ? item.category.id : null;
+        
         acc[item.id] = {
           name: item.scope_of_work,
           unit: item.measuring_unit,
-          categoryName: item.category?.name || 'Other Items',
-          categoryId: item.category?.id
+          categoryName: categoryName,
+          categoryId: categoryId
         };
         return acc;
       }, {});
