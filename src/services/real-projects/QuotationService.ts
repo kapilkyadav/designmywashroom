@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -356,27 +357,53 @@ export class QuotationService extends BaseService {
         }
         
         .header {
-          text-align: center;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           padding: 20px 0;
           margin-bottom: 40px;
           border-bottom: 2px solid var(--border-color);
         }
         
-        .header img {
-          max-width: 200px;
-          margin-bottom: 20px;
+        .header-left {
+          display: flex;
+          align-items: center;
         }
         
-        .header h1 {
+        .header-left img {
+          max-width: 120px;
+          margin-right: 20px;
+        }
+        
+        .header-right {
+          text-align: right;
+        }
+        
+        .company-name {
+          font-size: 20px;
+          font-weight: 700;
+          margin-bottom: 5px;
           color: var(--primary-color);
-          font-size: 24px;
-          margin: 10px 0;
         }
         
-        .header h2 {
+        .company-address {
+          font-size: 12px;
+          margin-bottom: 5px;
+          color: #64748b;
+          max-width: 300px;
+        }
+        
+        .company-gst {
+          font-size: 12px;
+          font-weight: 600;
+          color: #64748b;
+        }
+        
+        .quotation-title {
+          text-align: center;
+          margin-top: 20px;
           color: var(--accent-color);
           font-size: 18px;
-          margin: 5px 0;
         }
         
         .info-grid {
@@ -470,7 +497,7 @@ export class QuotationService extends BaseService {
         }
         
         .footer img {
-          max-width: 120px;
+          max-width: 100px;
           margin-bottom: 15px;
         }
         
@@ -512,8 +539,17 @@ export class QuotationService extends BaseService {
     <body>
       <div class="container">
         <div class="header">
-          <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="Your Dream Space Logo" />
-          <h1>Your Dream Space</h1>
+          <div class="header-left">
+            <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="Your Dream Space Logo" />
+          </div>
+          <div class="header-right">
+            <div class="company-name">Purebath Interiotech Private Limited</div>
+            <div class="company-address">3rd Floor, Orchid Centre, Golf Course Road, near IILM Institute, Sector 53, Gurugram, Haryana 122002</div>
+            <div class="company-gst">GST No: 06AAPCP1844F1ZC</div>
+          </div>
+        </div>
+        
+        <div class="quotation-title">
           <h2>Quotation #${project.project_id}</h2>
         </div>
         
