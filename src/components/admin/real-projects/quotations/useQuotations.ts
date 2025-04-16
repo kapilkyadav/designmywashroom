@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RealProject, RealProjectService, ProjectQuotation } from '@/services/RealProjectService';
@@ -102,7 +101,28 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
       });
     }
   };
-  
+
+  const deleteQuotations = async (quotationIds: string[]) => {
+    try {
+      const promises = quotationIds.map(id => 
+        RealProjectService.deleteQuotation(id)
+      );
+      
+      await Promise.all(promises);
+      refetch();
+      onUpdate();
+      return true;
+    } catch (error: any) {
+      console.error('Error deleting quotations:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete quotations',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   return {
     quotations,
     isLoading,
@@ -117,6 +137,7 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     setInternalPricingEnabled,
     handleGenerateQuotation,
     viewQuotation,
-    downloadAsPdf
+    downloadAsPdf,
+    deleteQuotations
   };
 };

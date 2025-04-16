@@ -8,6 +8,7 @@ import QuotationsList from './quotations/QuotationsList';
 import GenerateQuotationDialog from './quotations/GenerateQuotationDialog';
 import ViewQuotationDialog from './quotations/ViewQuotationDialog';
 import { useQuotations } from './quotations/useQuotations';
+import { toast } from '@/hooks/use-toast';
 
 interface QuotationsTabProps {
   project: RealProject;
@@ -29,8 +30,21 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
     setInternalPricingEnabled,
     handleGenerateQuotation,
     viewQuotation,
-    downloadAsPdf
+    downloadAsPdf,
+    deleteQuotations
   } = useQuotations(project, onUpdate);
+
+  const handleDeleteQuotations = async (quotationIds: string[]) => {
+    if (!quotationIds.length) return;
+    
+    const success = await deleteQuotations(quotationIds);
+    if (success) {
+      toast({
+        title: "Quotations deleted",
+        description: `Successfully deleted ${quotationIds.length} quotation(s)`,
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -49,11 +63,11 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
             isLoading={isLoading}
             onViewQuotation={viewQuotation}
             onDownloadQuotation={downloadAsPdf}
+            onDeleteQuotations={handleDeleteQuotations}
           />
         </CardContent>
       </Card>
       
-      {/* Generate Quotation Dialog */}
       <GenerateQuotationDialog
         open={isQuoteDialogOpen}
         onOpenChange={setIsQuoteDialogOpen}
@@ -66,7 +80,6 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
         onInternalPricingChange={setInternalPricingEnabled}
       />
       
-      {/* View Quotation HTML Dialog */}
       <ViewQuotationDialog
         html={viewQuotationHtml}
         open={!!viewQuotationHtml}
