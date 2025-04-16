@@ -33,7 +33,7 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
     handleDeleteQuotations
   } = useQuotations(project, onUpdate);
 
-  // Add effect to debug category issues
+  // Enhanced debugging for category issues
   useEffect(() => {
     // Check the window object for the current quotation data when available
     const checkQuotationData = () => {
@@ -47,23 +47,29 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
             name: item.name,
             category: item.category,
             isCategory: item.isCategory,
-            serviceDetails: item.serviceDetails
+            serviceDetails: item.serviceDetails?.map((s: any) => ({
+              serviceId: s.serviceId,
+              categoryInMap: quotationData.serviceDetailsMap?.[s.serviceId]?.categoryName
+            }))
           })));
         }
         
         // Check service details map
         if (quotationData.serviceDetailsMap) {
-          console.log('Service details map:', quotationData.serviceDetailsMap);
+          console.log('Service details map (keys):', Object.keys(quotationData.serviceDetailsMap));
+          console.log('Service details map (full):', quotationData.serviceDetailsMap);
         }
       }
     };
     
-    // Check after dialog is opened
+    // Check after dialog is opened and when it's closed (quotation generated)
     if (isQuoteDialogOpen) {
-      // Wait a bit for data to be populated
       setTimeout(checkQuotationData, 1000);
+    } else if (quotations.length > 0) {
+      // Check if we have quotation data after a new one is generated
+      setTimeout(checkQuotationData, 500);
     }
-  }, [isQuoteDialogOpen]);
+  }, [isQuoteDialogOpen, quotations.length]);
 
   return (
     <div className="space-y-6">

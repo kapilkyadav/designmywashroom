@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -67,26 +66,44 @@ export class QuotationService extends BaseService {
         );
       }
       
-      // Fetch all service details to get names and categories
-      const serviceIds = sanitizedQuotationData.items
+      // Extract ALL service IDs from items to fetch service details
+      // It's important to get ALL IDs, not just from service items
+      const allServiceIds = sanitizedQuotationData.items
         .filter((item: any) => item.serviceDetails && item.serviceDetails.length > 0)
         .flatMap((item: any) => item.serviceDetails.map((service: any) => service.serviceId))
         .filter(Boolean);
       
+      console.log("All service IDs to fetch:", allServiceIds);
+      
+      // Create a map to store service details with proper category info
       let serviceDetailsMap: Record<string, any> = {};
       
-      if (serviceIds.length > 0) {
+      if (allServiceIds.length > 0) {
         try {
-          // Use the VendorRateCardService to get items with proper category details
-          const vendorItems = await VendorRateCardService.getItemsByIds(serviceIds);
+          // First attempt: Direct query with explicit join to vendor_categories
+          const { data: directQueryResults, error: directQueryError } = await supabase
+            .from('vendor_items')
+            .select(`
+              id, 
+              scope_of_work, 
+              measuring_unit, 
+              category_id, 
+              category:vendor_categories!vendor_items_category_id_fkey(id, name)
+            `)
+            .in('id', allServiceIds);
           
-          if (vendorItems && vendorItems.length > 0) {
-            console.log("Fetched vendor items:", vendorItems);
-            
-            serviceDetailsMap = vendorItems.reduce((acc: Record<string, any>, item: any) => {
-              // Make sure we have the category info
+          if (directQueryError) {
+            console.error("Direct query error:", directQueryError);
+            throw directQueryError;
+          }
+          
+          console.log("Direct query results:", directQueryResults);
+          
+          if (directQueryResults && directQueryResults.length > 0) {
+            // Process direct query results
+            serviceDetailsMap = directQueryResults.reduce((acc: Record<string, any>, item: any) => {
               const categoryName = item.category?.name || 'General';
-              console.log(`Processing item ${item.scope_of_work}: Category = ${categoryName}`);
+              console.log(`Direct query: Item ${item.scope_of_work} has category: ${categoryName}`);
               
               acc[item.id] = {
                 name: item.scope_of_work,
@@ -97,19 +114,15 @@ export class QuotationService extends BaseService {
               return acc;
             }, {});
           } else {
-            // Fallback to direct query with explicit category join
-            const { data: serviceItems } = await supabase
-              .from('vendor_items')
-              .select('id, scope_of_work, measuring_unit, category_id, category:vendor_categories!vendor_items_category_id_fkey(id, name)')
-              .in('id', serviceIds);
+            // Second attempt: Use the service to get items with category info
+            const vendorItems = await VendorRateCardService.getItemsByIds(allServiceIds);
+            
+            if (vendorItems && vendorItems.length > 0) {
+              console.log("Service returned vendor items:", vendorItems);
               
-            if (serviceItems) {
-              console.log("Fallback query fetched service items:", serviceItems);
-              
-              serviceDetailsMap = serviceItems.reduce((acc: Record<string, any>, item: any) => {
-                // Access the name from the expanded category field
+              serviceDetailsMap = vendorItems.reduce((acc: Record<string, any>, item: any) => {
                 const categoryName = item.category?.name || 'General';
-                console.log(`Fallback processing ${item.scope_of_work}: Category = ${categoryName}`);
+                console.log(`Service method: Item ${item.scope_of_work} has category: ${categoryName}`);
                 
                 acc[item.id] = {
                   name: item.scope_of_work,
@@ -125,18 +138,17 @@ export class QuotationService extends BaseService {
           console.log("Final service details map:", serviceDetailsMap);
         } catch (error) {
           console.error('Error fetching vendor items:', error);
-          // Continue with empty service details map
         }
       }
       
       // Add service names to the quotation data for easier access in the HTML generation
       sanitizedQuotationData.serviceDetailsMap = serviceDetailsMap;
       
-      // Temporarily store data on window for debugging
+      // Store on window for debugging
       if (typeof window !== 'undefined') {
         (window as any).currentQuotationData = {
           ...sanitizedQuotationData,
-          serviceIds,
+          allServiceIds,
           serviceDetailsMap
         };
       }
@@ -386,6 +398,9 @@ export class QuotationService extends BaseService {
 
     const grandTotal = subtotalBeforeGst + gstAmount;
 
+    // Debug the quotation data and service details map
+    console.log("Generating HTML with serviceDetailsMap:", quotationData.serviceDetailsMap);
+
     // Group items by category for each washroom
     const washroomItemsByCategory: Record<string, Record<string, any[]>> = {};
 
@@ -402,18 +417,28 @@ export class QuotationService extends BaseService {
         if (item.isCategory) {
           // For items that are already categories
           categoryName = item.name;
+          console.log(`Category item: ${item.name}`);
         } else if (item.serviceDetails && item.serviceDetails.length > 0) {
           // For items with service details, use the category from the service details
           const firstServiceId = item.serviceDetails[0].serviceId;
+          
+          // Get the proper category from the service details map
           const serviceDetails = quotationData.serviceDetailsMap?.[firstServiceId];
+          
+          // Debug the category lookup
+          console.log(`Looking for category of item ${item.name} with serviceId ${firstServiceId}:`, {
+            serviceDetailsFound: !!serviceDetails,
+            categoryFromMap: serviceDetails?.categoryName,
+            fallbackCategory: item.category,
+            finalCategory: serviceDetails?.categoryName || item.category || 'Other Items'
+          });
           
           // Use the category name from the service details or fallback
           categoryName = serviceDetails?.categoryName || item.category || 'Other Items';
-          
-          console.log(`Final category for item ${item.name} (service ID: ${firstServiceId}): ${categoryName}`);
         } else {
           // For regular items
           categoryName = item.category || 'Other Items';
+          console.log(`Regular item ${item.name} with category ${categoryName}`);
         }
         
         if (!washroomItemsByCategory[washroom.id][categoryName]) {
@@ -423,8 +448,17 @@ export class QuotationService extends BaseService {
         if (item.isCategory && item.serviceDetails && item.serviceDetails.length > 0) {
           // For category items with service details, add each service detail separately
           for (const service of item.serviceDetails) {
-            const serviceDetails = quotationData.serviceDetailsMap?.[service.serviceId] || {};
-            const serviceName = serviceDetails.name || service.name || `Service ${service.serviceId}`;
+            const serviceId = service.serviceId;
+            const serviceDetails = quotationData.serviceDetailsMap?.[serviceId] || {};
+            
+            console.log(`Service detail for ${item.name}:`, {
+              serviceId,
+              detailsFound: !!serviceDetails,
+              serviceName: serviceDetails.name || service.name,
+              serviceUnit: serviceDetails.unit || service.unit
+            });
+            
+            const serviceName = serviceDetails.name || service.name || `Service ${serviceId}`;
             const serviceUnit = serviceDetails.unit || service.unit || '';
             
             washroomItemsByCategory[washroom.id][categoryName].push({
@@ -453,6 +487,14 @@ export class QuotationService extends BaseService {
         }
       }
     }
+
+    // Log the final categorized items for debugging
+    console.log("Final washroom items by category:", 
+      Object.keys(washroomItemsByCategory).map(washroomId => ({
+        washroomId,
+        categories: Object.keys(washroomItemsByCategory[washroomId])
+      }))
+    );
 
     return `
       <!DOCTYPE html>
