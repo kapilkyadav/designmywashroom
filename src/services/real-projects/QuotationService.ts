@@ -78,8 +78,9 @@ export class QuotationService extends BaseService {
           } 
           // If category is an array with a first element that has name/id
           else if (Array.isArray(item.category) && item.category.length > 0) {
-            // Cast the array element to a specific shape to help TypeScript
-            const categoryItem = item.category[0] as { name?: string; id?: string };
+            // Type assertion for array element to overcome TypeScript's 'never' type issue
+            type CategoryItem = { name?: string; id?: string };
+            const categoryItem = item.category[0] as CategoryItem;
             categoryName = categoryItem.name || categoryName;
             categoryId = categoryItem.id || categoryId;
           }
