@@ -78,11 +78,12 @@ export class QuotationService extends BaseService {
           } 
           // If category is an array with a first element that has name/id
           else if (Array.isArray(item.category) && item.category.length > 0) {
-            // Type assertion for array element to overcome TypeScript's 'never' type issue
-            type CategoryItem = { name?: string; id?: string };
-            const categoryItem = item.category[0] as CategoryItem;
-            categoryName = categoryItem.name || categoryName;
-            categoryId = categoryItem.id || categoryId;
+            // Cast properly with index access to fix TypeScript 'never' type issue
+            const firstCategory = item.category[0];
+            if (firstCategory && typeof firstCategory === 'object') {
+              categoryName = 'name' in firstCategory ? (firstCategory.name as string) : categoryName;
+              categoryId = 'id' in firstCategory ? (firstCategory.id as string) : categoryId;
+            }
           }
         }
         
