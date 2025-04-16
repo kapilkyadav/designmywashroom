@@ -73,16 +73,19 @@ export class QuotationService extends BaseService {
         if (item.category) {
           // If category is an object with direct properties
           if (typeof item.category === 'object' && !Array.isArray(item.category)) {
-            categoryName = item.category.name || categoryName;
-            categoryId = item.category.id || categoryId;
+            // Use type assertion to tell TypeScript this is an object with name/id properties
+            const categoryObj = item.category as { name?: string; id?: string };
+            categoryName = categoryObj.name || categoryName;
+            categoryId = categoryObj.id || categoryId;
           } 
           // If category is an array with a first element that has name/id
           else if (Array.isArray(item.category) && item.category.length > 0) {
-            // Cast properly with index access to fix TypeScript 'never' type issue
+            // Use a type guard to check properties exist
             const firstCategory = item.category[0];
             if (firstCategory && typeof firstCategory === 'object') {
-              categoryName = 'name' in firstCategory ? (firstCategory.name as string) : categoryName;
-              categoryId = 'id' in firstCategory ? (firstCategory.id as string) : categoryId;
+              // Use 'in' operator to check if properties exist before accessing
+              categoryName = 'name' in firstCategory ? String(firstCategory.name) : categoryName;
+              categoryId = 'id' in firstCategory ? String(firstCategory.id) : categoryId;
             }
           }
         }
