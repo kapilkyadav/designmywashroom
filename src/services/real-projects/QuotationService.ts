@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -756,6 +755,30 @@ export class QuotationService extends BaseService {
         variant: "destructive",
       });
       return null;
+    }
+  }
+
+  /**
+   * Delete a quotation by ID
+   */
+  static async deleteQuotation(quotationId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('project_quotations')
+        .delete()
+        .eq('id', quotationId);
+      
+      if (error) throw error;
+      
+      return true;
+    } catch (error: any) {
+      console.error('Error deleting quotation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete quotation",
+        variant: "destructive",
+      });
+      return false;
     }
   }
 }

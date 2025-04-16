@@ -34,6 +34,7 @@ export class RealProjectService {
   static generateQuotation = QuotationService.generateQuotation;
   static getProjectQuotations = QuotationService.getProjectQuotations;
   static getQuotation = QuotationService.getQuotation;
+  static deleteQuotation = QuotationService.deleteQuotation; // Add the new method
   
   // Costing Service Methods
   static getExecutionServices = CostingService.getExecutionServices;
