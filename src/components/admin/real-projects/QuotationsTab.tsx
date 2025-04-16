@@ -29,7 +29,8 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
     setInternalPricingEnabled,
     handleGenerateQuotation,
     viewQuotation,
-    downloadAsPdf
+    downloadAsPdf,
+    handleDeleteQuotations
   } = useQuotations(project, onUpdate);
 
   return (
@@ -49,6 +50,7 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
             isLoading={isLoading}
             onViewQuotation={viewQuotation}
             onDownloadQuotation={downloadAsPdf}
+            onDeleteQuotations={handleDeleteQuotations}
           />
         </CardContent>
       </Card>
