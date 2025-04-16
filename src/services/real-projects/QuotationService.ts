@@ -651,6 +651,14 @@ export class QuotationService extends BaseService {
             margin-top: 30px;
           }
           
+          .project-summary {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+          }
+          
           @media print {
             body {
               -webkit-print-color-adjust: exact;
@@ -704,13 +712,36 @@ export class QuotationService extends BaseService {
             </div>
           </div>
           
+          <div class="project-summary">
+            <h3 class="section-title">Project Overview</h3>
+            <div class="bg-muted p-4 rounded-md mb-6">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 class="font-medium mb-2">Project Details</h4>
+                  <ul class="space-y-2 text-sm">
+                    <li>Project Type: ${project.project_type}</li>
+                    <li>Total Area: ${totalArea.toFixed(2)} sq ft</li>
+                    <li>Number of Washrooms: ${washrooms.length}</li>
+                    ${project.selected_brand ? `<li>Selected Brand: ${project.selected_brand}</li>` : ''}
+                  </ul>
+                </div>
+                <div>
+                  <h4 class="font-medium mb-2">Execution Timeline</h4>
+                  <ul class="space-y-2 text-sm">
+                    <li>Estimated Duration: 4-6 weeks</li>
+                    <li>Site Inspection: Within 48 hours</li>
+                    <li>Work Commencement: Post advance payment</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <div class="washrooms-section">
             <h3 class="section-title">Washroom Details & Scope of Work</h3>
             ${washrooms.map((washroom, index) => {
               const washroomArea = washroom.length * washroom.width;
               const categoriesForWashroom = washroomItemsByCategory[washroom.id] || {};
-              
-              // Sort categories according to defined order
               const sortedCategories = Object.keys(categoriesForWashroom).sort(sortCategories);
               
               return `
@@ -720,43 +751,47 @@ export class QuotationService extends BaseService {
                     <span>${washroomArea.toFixed(2)} sq ft</span>
                   </div>
                   <div class="washroom-content">
-                    <div>
+                    <div class="mb-4">
                       <strong>Dimensions:</strong> ${washroom.length}' × ${washroom.width}' × ${washroom.height}'
-                    </div>
-                    <div>
-                      <strong>Selected Brand:</strong> ${washroom.selected_brand || 'Not specified'}
+                      ${washroom.selected_brand ? `<br><strong>Selected Brand:</strong> ${washroom.selected_brand}` : ''}
                     </div>
                     
                     <table class="scope-table">
                       <thead>
                         <tr>
-                          <th style="width: 30%">Category</th>
-                          <th style="width: 35%">Item</th>
+                          <th style="width: 25%">Category</th>
+                          <th style="width: 40%">Item & Specification</th>
                           <th style="width: 17.5%; text-align: right;">MRP</th>
-                          <th style="width: 17.5%; text-align: right;">YDS Offer</th>
+                          <th style="width: 17.5%; text-align: right;">Special Price</th>
                         </tr>
                       </thead>
                       <tbody>
                         ${sortedCategories.map(category => {
                           const items = categoriesForWashroom[category];
-                          return items.map((item, itemIndex) => {
+                          let categoryTotal = 0;
+                          let categoryMrp = 0;
+                          
+                          const itemsHtml = items.map((item, itemIndex) => {
                             const serviceInfo = item.serviceDetails?.[0]?.serviceId ? 
                               quotationData.serviceDetailsMap[item.serviceDetails[0].serviceId] : null;
                             
                             const displayCategory = serviceInfo?.categoryName || category;
                             const displayName = serviceInfo?.name || item.name;
-                            const displayUnit = serviceInfo?.unit ? `(${serviceInfo.unit})` : '';
+                            const displayUnit = serviceInfo?.unit ? ` (${serviceInfo.unit})` : '';
                             
                             const itemAmount = parseFloat(item.amount) || 0;
                             const itemMrp = parseFloat(item.mrp) || 0;
+                            
+                            categoryTotal += itemAmount;
+                            categoryMrp += itemMrp;
                             
                             return `
                               <tr>
                                 <td>${itemIndex === 0 ? displayCategory : ''}</td>
                                 <td>
-                                  • ${displayName} ${displayUnit}
+                                  • ${displayName}${displayUnit}
                                   ${item.isBrandProduct && itemMrp > itemAmount ? 
-                                    `<br/><span style="color: #16a34a; font-size: 0.9em;">
+                                    `<br><span style="color: #16a34a; font-size: 0.9em;">
                                       ${Math.round((1 - (itemAmount / itemMrp)) * 100)}% off
                                     </span>` : 
                                     ''}
@@ -766,20 +801,21 @@ export class QuotationService extends BaseService {
                               </tr>
                             `;
                           }).join('');
+                          
+                          return `
+                            ${itemsHtml}
+                            <tr class="bg-muted/20">
+                              <td colspan="2" style="text-align: right; font-weight: 500;">
+                                ${category} Total:
+                              </td>
+                              <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryMrp)}</td>
+                              <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryTotal)}</td>
+                            </tr>
+                            <tr><td colspan="4" style="border: none; height: 8px;"></td></tr>
+                          `;
                         }).join('')}
                       </tbody>
                     </table>
-                    
-                    <div class="price-box">
-                      <div class="price-row">
-                        <span>Total MRP:</span>
-                        <span>₹${formatAmount(totalMrp)}</span>
-                      </div>
-                      <div class="price-row total">
-                        <span>YDS Special Price (before GST):</span>
-                        <span>₹${formatAmount(subtotalBeforeGst)}</span>
-                      </div>
-                    </div>
                   </div>
                 </div>
               `;
@@ -804,7 +840,37 @@ export class QuotationService extends BaseService {
           
           <div class="terms-section" style="margin-top: 30px;">
             <h3 class="section-title">Terms & Conditions</h3>
-            <div>${quotationData.terms || 'Standard terms and conditions apply.'}</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 class="font-medium mb-2">Payment Terms</h4>
+                <ul class="list-disc pl-4 space-y-1 text-sm">
+                  <li>50% advance payment to initiate work</li>
+                  <li>25% on completion of major works</li>
+                  <li>25% before handover</li>
+                  <li>All payments via bank transfer/UPI</li>
+                </ul>
+              </div>
+              <div>
+                <h4 class="font-medium mb-2">Warranty Information</h4>
+                <ul class="list-disc pl-4 space-y-1 text-sm">
+                  <li>1 year warranty on workmanship</li>
+                  <li>Brand warranty as per manufacturer</li>
+                  <li>Free service visits for 3 months</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div class="mt-4">
+              <h4 class="font-medium mb-2">Additional Terms</h4>
+              <div class="text-sm space-y-2">
+                ${quotationData.terms || `
+                  <p>1. This quotation is valid for 30 days from the date of issue.</p>
+                  <p>2. Prices are inclusive of material and labor unless specified otherwise.</p>
+                  <p>3. Any additional work beyond the scope will be charged extra.</p>
+                  <p>4. Timeline may vary based on site conditions and availability of materials.</p>
+                `}
+              </div>
+            </div>
           </div>
           
           <div class="footer">
