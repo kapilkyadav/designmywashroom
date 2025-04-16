@@ -29,8 +29,8 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
   
   const [isSaving, setIsSaving] = useState(false);
   
-  // Use our new custom hook for product costs
-  const { productCost, logisticsCost } = useProductCosts(project.selected_brand);
+  // Use our product costs hook with the whole project to calculate across all washrooms
+  const { productCost, logisticsCost } = useProductCosts(project);
   
   // Execution services total
   const executionServicesTotal = executionTotal + vendorTotal + additionalTotal;
