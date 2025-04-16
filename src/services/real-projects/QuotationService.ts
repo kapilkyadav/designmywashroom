@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -779,6 +778,31 @@ export class QuotationService extends BaseService {
       toast({
         title: "Error",
         description: "Failed to fetch quotation",
+        variant: "destructive",
+      });
+      return null;
+    }
+  }
+  
+  /**
+   * Get a quotation by its quotation number
+   */
+  static async getQuotationByNumber(quotationNumber: string): Promise<ProjectQuotation | null> {
+    try {
+      const { data, error } = await supabase
+        .from('project_quotations')
+        .select('*')
+        .eq('quotation_number', quotationNumber)
+        .single();
+      
+      if (error) throw error;
+      
+      return data as ProjectQuotation;
+    } catch (error: any) {
+      console.error('Error fetching quotation by number:', error);
+      toast({
+        title: "Error",
+        description: `Failed to fetch quotation ${quotationNumber}`,
         variant: "destructive",
       });
       return null;
