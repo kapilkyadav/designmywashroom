@@ -4,7 +4,6 @@ import { format } from 'date-fns';
 import { BaseService } from './BaseService';
 import { ProjectQuotation, RealProject, Washroom } from './types';
 import { PdfService } from '@/services/PdfService';
-import { VendorRateCardService } from '@/services/VendorRateCardService';
 
 export class QuotationService extends BaseService {
   /**
@@ -15,7 +14,7 @@ export class QuotationService extends BaseService {
     quotationData: Record<string, any>
   ): Promise<{ success: boolean, quotation: ProjectQuotation | null }> {
     try {
-      // Get the project details to include in the quotation
+      // Get the project details and washrooms
       const { data: project, error: projectError } = await supabase
         .from('real_projects')
         .select('*')
@@ -24,139 +23,102 @@ export class QuotationService extends BaseService {
       
       if (projectError) throw projectError;
       
-      // Get washrooms for this project
       const { data: washrooms, error: washroomsError } = await supabase
         .from('project_washrooms')
         .select('*')
         .eq('project_id', projectId);
       
       if (washroomsError) throw washroomsError;
+
+      // Extract ALL service IDs from service_details of washrooms
+      const allServiceIds = washrooms
+        .flatMap(washroom => {
+          const serviceDetails = washroom.service_details || {};
+          return Object.values(serviceDetails)
+            .flatMap((category: any) => category.map((service: any) => service.serviceId))
+            .filter(Boolean);
+        });
       
-      // Ensure quotationData has valid values
-      const sanitizedQuotationData: {
-        totalAmount: number;
-        items: any[];
-        margins: Record<string, number>;
-        gstRate: number;
-        internalPricing: boolean;
-        internalPricingDetails?: Record<string, any>;
-        serviceDetailsMap?: Record<string, any>;
-      } = {
+      console.log('Service IDs from washrooms:', allServiceIds);
+
+      // Fetch service details with categories in a single query
+      const { data: serviceDetails, error: serviceError } = await supabase
+        .from('vendor_items')
+        .select(`
+          id,
+          scope_of_work,
+          measuring_unit,
+          category:vendor_categories!vendor_items_category_id_fkey (
+            id,
+            name
+          )
+        `)
+        .in('id', allServiceIds);
+
+      if (serviceError) {
+        console.error('Error fetching service details:', serviceError);
+        throw serviceError;
+      }
+
+      console.log('Fetched service details:', serviceDetails);
+
+      // Create a map of service details with categories
+      const serviceDetailsMap = serviceDetails.reduce((acc: Record<string, any>, item) => {
+        acc[item.id] = {
+          name: item.scope_of_work,
+          unit: item.measuring_unit,
+          categoryName: item.category?.name || 'Other Items',
+          categoryId: item.category?.id
+        };
+        return acc;
+      }, {});
+
+      console.log('Service details map:', serviceDetailsMap);
+
+      // Update quotation data with service details
+      const sanitizedQuotationData = {
         ...quotationData,
         totalAmount: parseFloat(quotationData.totalAmount) || 0,
-        items: (quotationData.items || []).map((item: any) => ({
-          ...item,
-          amount: parseFloat(item.amount) || 0
-        })),
-        // Add internal pricing data if provided
+        items: (quotationData.items || []).map((item: any) => {
+          if (item.serviceDetails && item.serviceDetails.length > 0) {
+            const serviceId = item.serviceDetails[0].serviceId;
+            const serviceInfo = serviceDetailsMap[serviceId];
+            return {
+              ...item,
+              amount: parseFloat(item.amount) || 0,
+              category: serviceInfo?.categoryName || 'Other Items'
+            };
+          }
+          return {
+            ...item,
+            amount: parseFloat(item.amount) || 0
+          };
+        }),
         margins: quotationData.margins || {},
-        gstRate: quotationData.gstRate || 18, // Default 18% GST
+        gstRate: quotationData.gstRate || 18,
         internalPricing: quotationData.internalPricing || false,
-        internalPricingDetails: quotationData.internalPricingDetails || undefined,
-        serviceDetailsMap: quotationData.serviceDetailsMap || {}
+        serviceDetailsMap
       };
-      
-      // Calculate internal pricing if enabled
-      if (sanitizedQuotationData.internalPricing) {
-        sanitizedQuotationData.internalPricingDetails = QuotationService.calculateInternalPricing(
-          washrooms || [],
-          sanitizedQuotationData.items,
-          sanitizedQuotationData.margins,
-          sanitizedQuotationData.gstRate
-        );
-      }
-      
-      // Extract ALL service IDs from items to fetch service details
-      // It's important to get ALL IDs, not just from service items
-      const allServiceIds = sanitizedQuotationData.items
-        .filter((item: any) => item.serviceDetails && item.serviceDetails.length > 0)
-        .flatMap((item: any) => item.serviceDetails.map((service: any) => service.serviceId))
-        .filter(Boolean);
-      
-      console.log("All service IDs to fetch:", allServiceIds);
-      
-      // Create a map to store service details with proper category info
-      let serviceDetailsMap: Record<string, any> = {};
-      
-      if (allServiceIds.length > 0) {
-        try {
-          // First attempt: Direct query with explicit join to vendor_categories
-          const { data: directQueryResults, error: directQueryError } = await supabase
-            .from('vendor_items')
-            .select(`
-              id, 
-              scope_of_work, 
-              measuring_unit, 
-              category_id, 
-              category:vendor_categories!vendor_items_category_id_fkey(id, name)
-            `)
-            .in('id', allServiceIds);
-          
-          if (directQueryError) {
-            console.error("Direct query error:", directQueryError);
-            throw directQueryError;
-          }
-          
-          console.log("Direct query results:", directQueryResults);
-          
-          if (directQueryResults && directQueryResults.length > 0) {
-            // Process direct query results
-            serviceDetailsMap = directQueryResults.reduce((acc: Record<string, any>, item: any) => {
-              const categoryName = item.category?.name || 'General';
-              console.log(`Direct query: Item ${item.scope_of_work} has category: ${categoryName}`);
-              
-              acc[item.id] = {
-                name: item.scope_of_work,
-                unit: item.measuring_unit,
-                categoryName: categoryName,
-                categoryId: item.category_id
-              };
-              return acc;
-            }, {});
-          } else {
-            // Second attempt: Use the service to get items with category info
-            const vendorItems = await VendorRateCardService.getItemsByIds(allServiceIds);
-            
-            if (vendorItems && vendorItems.length > 0) {
-              console.log("Service returned vendor items:", vendorItems);
-              
-              serviceDetailsMap = vendorItems.reduce((acc: Record<string, any>, item: any) => {
-                const categoryName = item.category?.name || 'General';
-                console.log(`Service method: Item ${item.scope_of_work} has category: ${categoryName}`);
-                
-                acc[item.id] = {
-                  name: item.scope_of_work,
-                  unit: item.measuring_unit,
-                  categoryName: categoryName,
-                  categoryId: item.category_id
-                };
-                return acc;
-              }, {});
-            }
-          }
-          
-          console.log("Final service details map:", serviceDetailsMap);
-        } catch (error) {
-          console.error('Error fetching vendor items:', error);
-        }
-      }
-      
-      // Add service names to the quotation data for easier access in the HTML generation
-      sanitizedQuotationData.serviceDetailsMap = serviceDetailsMap;
-      
-      // Store on window for debugging
+
+      // Store data for debugging
       if (typeof window !== 'undefined') {
         (window as any).currentQuotationData = {
-          ...sanitizedQuotationData,
+          washrooms,
           allServiceIds,
-          serviceDetailsMap
+          serviceDetails,
+          serviceDetailsMap,
+          sanitizedQuotationData
         };
       }
-      
-      // Generate HTML for the quotation with washroom details
-      const quotationHtml = await QuotationService.generateQuotationHtml(project, sanitizedQuotationData, washrooms || []);
-      
-      // Get the current count of quotations for this project to create a unique sequence number
+
+      // Generate HTML for the quotation
+      const quotationHtml = await QuotationService.generateQuotationHtml(
+        project, 
+        sanitizedQuotationData,
+        washrooms || []
+      );
+
+      // Get quotation count and generate number
       const { count, error: countError } = await supabase
         .from('project_quotations')
         .select('*', { count: 'exact', head: true })
@@ -164,11 +126,10 @@ export class QuotationService extends BaseService {
         
       if (countError) throw countError;
       
-      // Create a quotation number with sequence to make it unique
       const sequenceNumber = (count || 0) + 1;
       const quotationNumber = `QUO-${project.project_id}-${format(new Date(), 'yyyyMMdd')}-${sequenceNumber}`;
       
-      // Get the current user's session
+      // Get current user
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData?.session?.user?.id;
       
@@ -189,7 +150,7 @@ export class QuotationService extends BaseService {
       
       if (quotationError) throw quotationError;
       
-      // Update the project with the quotation date
+      // Update project
       await supabase
         .from('real_projects')
         .update({
@@ -214,7 +175,7 @@ export class QuotationService extends BaseService {
       return { success: false, quotation: null };
     }
   }
-  
+
   /**
    * Calculate internal pricing with margins and GST for each washroom
    * This is for internal team use only and won't be shown to clients
@@ -323,7 +284,7 @@ export class QuotationService extends BaseService {
       }
     };
   }
-  
+
   /**
    * Helper function to generate HTML for quotation
    */
@@ -824,7 +785,7 @@ export class QuotationService extends BaseService {
       </html>
     `;
   }
-  
+
   /**
    * Get all quotations for a project
    */
@@ -849,7 +810,7 @@ export class QuotationService extends BaseService {
       return [];
     }
   }
-  
+
   /**
    * Get a single quotation by ID
    */
@@ -874,7 +835,7 @@ export class QuotationService extends BaseService {
       return null;
     }
   }
-  
+
   /**
    * Get a quotation by its quotation number
    */
