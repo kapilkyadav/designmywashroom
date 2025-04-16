@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { Trash } from 'lucide-react';
 import { WashroomWithAreas } from '../../types';
 
@@ -47,7 +49,7 @@ const WashroomCard: React.FC<WashroomCardProps> = ({
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
             <Label htmlFor={`length-${index}`}>Length (feet)*</Label>
             <Input
@@ -85,20 +87,34 @@ const WashroomCard: React.FC<WashroomCardProps> = ({
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2 bg-muted/40 p-3 rounded-md">
+        <Separator className="my-4" />
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <Label className="text-xs text-muted-foreground">Floor Area</Label>
-            <p className="font-medium">{washroom.floorArea.toFixed(2)} sq. ft.</p>
+            <Label>Floor Area</Label>
+            <Input
+              value={`${(washroom.length * washroom.width).toFixed(2)} sq ft`}
+              disabled
+              className="bg-muted"
+            />
           </div>
           
           <div>
-            <Label className="text-xs text-muted-foreground">Wall Area</Label>
-            <p className="font-medium">{washroom.wallArea.toFixed(2)} sq. ft.</p>
+            <Label>Wall Area</Label>
+            <Input
+              value={`${washroom.wall_area?.toFixed(2) || '0.00'} sq ft`}
+              disabled
+              className="bg-muted"
+            />
           </div>
           
           <div>
-            <Label className="text-xs text-muted-foreground">Ceiling Area</Label>
-            <p className="font-medium">{washroom.ceilingArea.toFixed(2)} sq. ft.</p>
+            <Label>Total Area (Floor + Wall)</Label>
+            <Input
+              value={`${((washroom.length * washroom.width) + (washroom.wall_area || 0)).toFixed(2)} sq ft`}
+              disabled
+              className="bg-muted font-medium"
+            />
           </div>
         </div>
       </CardContent>

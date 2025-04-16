@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './BaseService';
 import { Washroom, NewWashroom } from './types';
@@ -134,7 +133,7 @@ export class WashroomService extends BaseService {
   /**
    * Helper method to calculate washroom areas
    */
-  static calculateWashroomAreas<T extends Pick<Washroom, 'length' | 'width' | 'height' | 'wall_area' | 'ceiling_area' | 'wallArea' | 'ceilingArea'>>(washroom: T): T & { area: number, wall_area: number, ceiling_area: number } {
+  static calculateWashroomAreas<T extends Pick<Washroom, 'length' | 'width' | 'height' | 'wall_area' | 'ceiling_area' | 'wallArea' | 'ceilingArea'>>(washroom: T): T & { area: number, wall_area: number, ceiling_area: number, total_area: number } {
     // Calculate floor area
     const floorArea = washroom.length * washroom.width;
     
@@ -149,11 +148,15 @@ export class WashroomService extends BaseService {
     // Set ceiling area to match floor area if not manually set
     const ceilingArea = washroom.ceiling_area || floorArea;
     
+    // Calculate total area (Floor Area + Wall Area)
+    const totalArea = floorArea + wallArea;
+    
     return {
       ...washroom,
       area: floorArea,
       wall_area: wallArea,
-      ceiling_area: ceilingArea
+      ceiling_area: ceilingArea,
+      total_area: totalArea
     };
   }
 }
