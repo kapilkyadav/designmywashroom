@@ -133,11 +133,11 @@ export class WashroomService extends BaseService {
   /**
    * Helper method to calculate washroom areas
    */
-  static calculateWashroomAreas<T extends Pick<Washroom, 'length' | 'width' | 'height' | 'wall_area' | 'ceiling_area' | 'wallArea' | 'ceilingArea'>>(washroom: T): T & { area: number, wall_area: number, ceiling_area: number, total_area: number } {
+  static calculateWashroomAreas<T extends Pick<Washroom, 'length' | 'width' | 'height' | 'wall_area' | 'area'>>(washroom: T): T & { total_area: number } {
     // Calculate floor area
-    const floorArea = washroom.length * washroom.width;
+    const area = washroom.length * washroom.width;
     
-    // Calculate wall area if not manually set or dimensions changed
+    // Calculate wall area if not manually set
     let wallArea = washroom.wall_area || 0;
     if (washroom.length > 0 && washroom.width > 0 && washroom.height > 0) {
       // Perimeter × height = wall area
@@ -145,18 +145,53 @@ export class WashroomService extends BaseService {
       wallArea = perimeter * Number(washroom.height);
     }
     
-    // Set ceiling area to match floor area if not manually set
-    const ceilingArea = washroom.ceiling_area || floorArea;
-    
     // Calculate total area (Floor Area + Wall Area)
-    const totalArea = floorArea + wallArea;
+    const totalArea = area + wallArea;
     
     return {
       ...washroom,
-      area: floorArea,
+      area,
       wall_area: wallArea,
-      ceiling_area: ceilingArea,
       total_area: totalArea
     };
+  }
+
+  /**
+   * Update existing project washrooms with total area
+   */
+  static async updateExistingWashroomTotalAreas(projectId?: string): Promise<boolean> {
+    try {
+      // Fetch washrooms, optionally filtered by project
+      let query = supabase
+        .from('project_washrooms')
+        .select('*');
+      
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
+      
+      const { data: washrooms, error: fetchError } = await query;
+      
+      if (fetchError) throw fetchError;
+      
+      // Update each washroom with calculated total area
+      for (const washroom of washrooms || []) {
+        const calculatedWashroom = this.calculateWashroomAreas(washroom);
+        
+        const { error: updateError } = await supabase
+          .from('project_washrooms')
+          .update({ 
+            total_area: calculatedWashroom.total_area,
+            wall_area: calculatedWashroom.wall_area
+          })
+          .eq('id', washroom.id);
+        
+        if (updateError) throw updateError;
+      }
+      
+      return true;
+    } catch (error: any) {
+      return this.handleError(error, 'Failed to update washroom total areas');
+    }
   }
 }
