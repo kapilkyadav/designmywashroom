@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RealProject } from '@/services/RealProjectService';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -10,6 +10,7 @@ import CostSummary from './CostSummary';
 import CostTable from './CostTable';
 import { useCostingState } from './useCostingState';
 import { CostItem } from './types';
+import { ProductService } from '@/services/ProductService';
 
 interface CostingTabProps {
   project: RealProject;
@@ -31,6 +32,35 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
   } = useCostingState(project);
   
   const [isSaving, setIsSaving] = useState(false);
+  const [productCost, setProductCost] = useState(0);
+  const [logisticsCost, setLogisticsCost] = useState(0);
+  
+  // Calculate product cost and logistics cost when component mounts or when project changes
+  useEffect(() => {
+    const calculateProductCosts = async () => {
+      try {
+        if (project.selected_brand) {
+          // Get products for the selected brand
+          const products = await ProductService.getProductsByBrandId(project.selected_brand);
+          
+          // Calculate total product cost
+          const brandProductTotal = products.reduce((sum, product) => {
+            return sum + (product.client_price || 0);
+          }, 0);
+          
+          setProductCost(brandProductTotal);
+          
+          // Calculate logistics cost (7.5% of product cost)
+          const logistics = brandProductTotal * 0.075;
+          setLogisticsCost(logistics);
+        }
+      } catch (error) {
+        console.error('Error calculating product costs:', error);
+      }
+    };
+    
+    calculateProductCosts();
+  }, [project.selected_brand]);
   
   const removeItem = (id: string, category: string) => {
     if (category === 'execution') {
@@ -75,12 +105,17 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
         return acc;
       }, {} as Record<string, any>);
       
+      // Calculate total including product and logistics costs
+      const finalTotal = grandTotal + productCost + logisticsCost;
+      
       await project.updateCosts({
         execution_costs: executionCostsObj,
         vendor_rates: vendorRatesObj,
         additional_costs: additionalCostsObj,
         washrooms: project.washrooms || [], // Add the missing washrooms property
-        final_quotation_amount: grandTotal
+        final_quotation_amount: finalTotal,
+        product_cost: productCost,
+        logistics_cost: logisticsCost
       });
       
       onUpdate();
@@ -88,6 +123,9 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
       setIsSaving(false);
     }
   };
+
+  // Calculate final total including product and logistics costs
+  const finalTotal = grandTotal + productCost + logisticsCost;
 
   return (
     <div className="space-y-6">
@@ -114,7 +152,9 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
               vendorTotal={vendorTotal}
               additionalTotal={additionalTotal}
               originalEstimate={project.original_estimate || 0}
-              grandTotal={grandTotal}
+              grandTotal={finalTotal}
+              productCost={productCost}
+              logisticsCost={logisticsCost}
             />
             
             <div className="mt-6">

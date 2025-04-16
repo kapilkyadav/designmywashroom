@@ -7,6 +7,8 @@ interface CostSummaryProps {
   additionalTotal: number;
   originalEstimate: number;
   grandTotal: number;
+  productCost?: number;
+  logisticsCost?: number;
 }
 
 const CostSummary: React.FC<CostSummaryProps> = ({
@@ -14,7 +16,9 @@ const CostSummary: React.FC<CostSummaryProps> = ({
   vendorTotal,
   additionalTotal,
   originalEstimate,
-  grandTotal
+  grandTotal,
+  productCost = 0,
+  logisticsCost = 0
 }) => {
   // Safe formatting function
   const formatNumber = (amount: number | null | undefined): string => {
@@ -45,6 +49,16 @@ const CostSummary: React.FC<CostSummaryProps> = ({
         <div className="flex justify-between py-2 border-b">
           <span>Additional Costs</span>
           <span>₹{formatNumber(additionalTotal)}</span>
+        </div>
+
+        <div className="flex justify-between py-2 border-b">
+          <span>Product Costs</span>
+          <span>₹{formatNumber(productCost)}</span>
+        </div>
+        
+        <div className="flex justify-between py-2 border-b">
+          <span>Logistics & Creative Services (7.5%)</span>
+          <span>₹{formatNumber(logisticsCost)}</span>
         </div>
         
         <div className="flex justify-between pt-4 font-bold">
