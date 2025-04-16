@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { RealProject, RealProjectService } from '@/services/RealProjectService';
 import { Button } from '@/components/ui/button';
@@ -169,6 +170,14 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
     
     return result;
   };
+
+  // Calculate total area safely (floor + wall)
+  const totalArea = 
+    (typeof costSummary.floor_area === 'number' ? costSummary.floor_area : 0) + 
+    (typeof costSummary.wall_area === 'number' ? costSummary.wall_area : 0);
+
+  // Format the total area - ensure it's a number before formatting
+  const formattedTotalArea = isNaN(totalArea) ? '0.00' : totalArea.toFixed(2);
   
   return (
     <div className="space-y-6">
@@ -182,7 +191,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
             <div className="text-center">
               <h4 className="text-sm font-medium text-muted-foreground">Total Area</h4>
               <p className="text-2xl font-semibold mt-1">
-                {(costSummary.floor_area + costSummary.wall_area)?.toFixed(2) || 0} sq ft
+                {formattedTotalArea} sq ft
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 (Floor Area + Wall Area)
@@ -196,7 +205,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
             <div className="text-center">
               <h4 className="text-sm font-medium text-muted-foreground">Combined Tiling Rate</h4>
               <p className="text-2xl font-semibold mt-1">
-                ₹{costSummary.combined_tiling_rate?.toFixed(2) || 0}/sq ft
+                ₹{costSummary.combined_tiling_rate?.toFixed(2) || '0.00'}/sq ft
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 (₹{tilingRates.per_tile_cost} + ₹{tilingRates.tile_laying_cost})
@@ -210,7 +219,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
             <div className="text-center">
               <h4 className="text-sm font-medium text-muted-foreground">Final Quotation Amount</h4>
               <p className="text-2xl font-semibold mt-1 text-primary">
-                ₹{costSummary.final_quotation_amount?.toLocaleString('en-IN') || 0}
+                ₹{costSummary.final_quotation_amount?.toLocaleString('en-IN') || '0'}
               </p>
             </div>
           </CardContent>
@@ -235,19 +244,19 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
               <TableRow>
                 <TableCell className="font-medium">Execution Services</TableCell>
                 <TableCell className="text-right">
-                  ₹{costSummary.execution_services_total?.toLocaleString('en-IN') || 0}
+                  ₹{costSummary.execution_services_total?.toLocaleString('en-IN') || '0'}
                 </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Product Costs</TableCell>
                 <TableCell className="text-right">
-                  ₹{costSummary.product_costs_total?.toLocaleString('en-IN') || 0}
+                  ₹{costSummary.product_costs_total?.toLocaleString('en-IN') || '0'}
                 </TableCell>
               </TableRow>
               <TableRow className="font-semibold">
                 <TableCell>Final Quotation Amount</TableCell>
                 <TableCell className="text-right">
-                  ₹{costSummary.final_quotation_amount?.toLocaleString('en-IN') || 0}
+                  ₹{costSummary.final_quotation_amount?.toLocaleString('en-IN') || '0'}
                 </TableCell>
               </TableRow>
             </TableBody>

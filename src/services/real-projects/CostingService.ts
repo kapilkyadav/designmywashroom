@@ -117,7 +117,8 @@ export class CostingService extends BaseService {
       
       // Calculate costs for each washroom
       let totalTilingCost = 0;
-      let totalArea = 0;
+      let floorAreaTotal = 0;
+      let wallAreaTotal = 0;
       let executionServicesTotal = 0;
       let productCostsTotal = 0;
       const washroomCosts: Record<string, { executionServices: number, productCosts: number, totalCost: number }> = {};
@@ -161,8 +162,14 @@ export class CostingService extends BaseService {
       // Process each washroom
       for (let i = 0; i < washrooms.length; i++) {
         const washroom = washrooms[i];
-        const area = washroom.length * washroom.width;
-        totalArea += area;
+        
+        // Calculate floor area
+        const floorArea = Number(washroom.length || 0) * Number(washroom.width || 0);
+        floorAreaTotal += floorArea;
+        
+        // Calculate wall area
+        const wallArea = Number(washroom.wall_area || 0);
+        wallAreaTotal += wallArea;
         
         let washroomExecutionCost = 0;
         let washroomProductCost = 0;
@@ -170,7 +177,7 @@ export class CostingService extends BaseService {
         // Calculate tiling cost if tiling service is selected
         if (washroom.services && Object.entries(washroom.services).some(([id, selected]) => 
           selected && serviceMeasurements[id]?.toLowerCase().includes('tile'))) {
-          const washroomTilingCost = area * combinedTilingRate;
+          const washroomTilingCost = floorArea * combinedTilingRate;
           totalTilingCost += washroomTilingCost;
           washroomExecutionCost += washroomTilingCost;
         }
@@ -188,8 +195,8 @@ export class CostingService extends BaseService {
               // Adjust cost based on measurement unit
               if (measurementUnit.includes('sqft') || measurementUnit.includes('sft') || 
                   measurementUnit.includes('sq ft') || measurementUnit.includes('square')) {
-                // Per square foot pricing
-                serviceCost = serviceRate * area;
+                // Per square foot pricing - use the sum of floor and wall area
+                serviceCost = serviceRate * (floorArea + wallArea);
               }
               // For "bathroom" or "nos" (number), use the flat rate
               
@@ -228,7 +235,9 @@ export class CostingService extends BaseService {
         tiling_cost: totalTilingCost,
         execution_services_total: executionServicesTotal,
         product_costs_total: productCostsTotal,
-        total_area: totalArea,
+        floor_area: floorAreaTotal,
+        wall_area: wallAreaTotal,
+        total_area: floorAreaTotal + wallAreaTotal,
         combined_tiling_rate: combinedTilingRate,
         final_quotation_amount: finalQuotationAmount,
         service_rates: serviceRates,
@@ -242,7 +251,11 @@ export class CostingService extends BaseService {
         description: error.message,
         variant: "destructive",
       });
-      return {};
+      return {
+        floor_area: 0,
+        wall_area: 0,
+        total_area: 0
+      };
     }
   }
 
