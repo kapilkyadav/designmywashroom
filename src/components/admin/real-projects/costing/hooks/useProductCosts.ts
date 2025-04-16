@@ -18,8 +18,8 @@ export const useProductCosts = (project: RealProject) => {
         
         // Process each washroom that has a selected brand
         for (const washroom of washrooms) {
-          if (washroom.selected_brand_id) {
-            const products = await ProductService.getProductsByBrandId(washroom.selected_brand_id);
+          if (washroom.selected_brand) {
+            const products = await ProductService.getProductsByBrandId(washroom.selected_brand);
             // Sum up quotation_price for this washroom's products
             const washroomProductTotal = products.reduce((sum, product) => {
               return sum + (product.quotation_price || 0);
