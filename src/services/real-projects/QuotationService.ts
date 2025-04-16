@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -78,7 +79,7 @@ export class QuotationService extends BaseService {
         // Fetch service details from vendor_items
         const { data: serviceItems } = await supabase
           .from('vendor_items')
-          .select('id, scope_of_work, measuring_unit, category:vendor_categories(id, name)')
+          .select('id, scope_of_work, measuring_unit, category:category_id(id, name)')
           .in('id', serviceIds);
           
         if (serviceItems) {
@@ -352,55 +353,55 @@ export class QuotationService extends BaseService {
       washroomItemsByCategory[washroom.id] = {};
       
       for (const item of washroomItems) {
+        let categoryName;
+        
         if (item.isCategory) {
           // For items that are already categories
-          const categoryName = item.name;
-          if (!washroomItemsByCategory[washroom.id][categoryName]) {
-            washroomItemsByCategory[washroom.id][categoryName] = [];
-          }
-          
-          // If the category has service details, add them individually
-          if (item.serviceDetails && item.serviceDetails.length > 0) {
-            for (const service of item.serviceDetails) {
-              const serviceDetails = quotationData.serviceDetailsMap[service.serviceId] || {};
-              const serviceName = serviceDetails.name || service.name || `Service ${service.serviceId}`;
-              const serviceUnit = serviceDetails.unit || service.unit || '';
-              
-              washroomItemsByCategory[washroom.id][categoryName].push({
-                name: serviceName,
-                unit: serviceUnit,
-                description: '',
-                amount: service.cost,
-                mrp: service.cost * 1.2, // Apply markup only for services
-                isService: true
-              });
-            }
-          } else {
-            // Add the category itself as an item
-            washroomItemsByCategory[washroom.id][categoryName].push(item);
-          }
+          categoryName = item.name;
+        } else if (item.serviceDetails && item.serviceDetails.length > 0) {
+          // For items with service details, use the category from the service details
+          const firstServiceId = item.serviceDetails[0].serviceId;
+          const serviceDetails = quotationData.serviceDetailsMap[firstServiceId];
+          categoryName = serviceDetails?.categoryName || item.category || 'Other Items';
         } else {
           // For regular items
-          const categoryName = item.category || 'Other Items';
-          if (!washroomItemsByCategory[washroom.id][categoryName]) {
-            washroomItemsByCategory[washroom.id][categoryName] = [];
-          }
-
-          if (item.isBrandProduct) {
-            // For brand products, use actual MRP and client_price directly
+          categoryName = item.category || 'Other Items';
+        }
+        
+        if (!washroomItemsByCategory[washroom.id][categoryName]) {
+          washroomItemsByCategory[washroom.id][categoryName] = [];
+        }
+        
+        if (item.isCategory && item.serviceDetails && item.serviceDetails.length > 0) {
+          // For category items with service details, add each service detail separately
+          for (const service of item.serviceDetails) {
+            const serviceDetails = quotationData.serviceDetailsMap[service.serviceId] || {};
+            const serviceName = serviceDetails.name || service.name || `Service ${service.serviceId}`;
+            const serviceUnit = serviceDetails.unit || service.unit || '';
+            
             washroomItemsByCategory[washroom.id][categoryName].push({
-              ...item,
-              mrp: item.mrp,
-              amount: item.client_price
-            });
-          } else {
-            // For services, apply standard markup
-            washroomItemsByCategory[washroom.id][categoryName].push({
-              ...item,
-              mrp: item.amount * 1.2,
-              amount: item.amount
+              name: serviceName,
+              unit: serviceUnit,
+              description: '',
+              amount: service.cost,
+              mrp: service.cost * 1.2, // Apply markup only for services
+              isService: true
             });
           }
+        } else if (item.isBrandProduct) {
+          // For brand products, use actual MRP and client_price directly
+          washroomItemsByCategory[washroom.id][categoryName].push({
+            ...item,
+            mrp: item.mrp,
+            amount: item.client_price
+          });
+        } else {
+          // For services, apply standard markup
+          washroomItemsByCategory[washroom.id][categoryName].push({
+            ...item,
+            mrp: item.amount * 1.2,
+            amount: item.amount
+          });
         }
       }
     }
