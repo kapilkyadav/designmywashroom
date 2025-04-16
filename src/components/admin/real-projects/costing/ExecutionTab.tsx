@@ -106,7 +106,10 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
         vendor_rates: project.vendor_rates || {},
         additional_costs: project.additional_costs || {},
         washrooms: project.washrooms || [],
-        final_quotation_amount: costSummary.final_quotation_amount || 0
+        final_quotation_amount: costSummary.final_quotation_amount || 0,
+        // Add the missing parameters with their current values from the project or default to 0
+        product_cost: project.product_cost || 0,
+        logistics_cost: project.logistics_cost || 0
       });
       
       toast({
