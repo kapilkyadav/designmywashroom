@@ -245,4 +245,27 @@ export class CostingService extends BaseService {
       return {};
     }
   }
+
+  /**
+   * Get first vendor item with detailed information for discussion
+   */
+  static async getFirstVendorItemForDiscussion(): Promise<any> {
+    try {
+      const { data: items, error } = await supabase
+        .from('vendor_items')
+        .select(`
+          *,
+          category:vendor_categories(name),
+          rate_cards:vendor_rate_cards(*)
+        `)
+        .order('sl_no')
+        .limit(1);
+
+      if (error) throw error;
+      return items?.[0] || null;
+    } catch (error: any) {
+      console.error('Error fetching first vendor item:', error);
+      return null;
+    }
+  }
 }
