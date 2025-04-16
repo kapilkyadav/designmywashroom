@@ -1,11 +1,6 @@
 import { supabase } from '@/lib/supabase';
-import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { BaseService } from './BaseService';
-import { ProjectQuotation, RealProject, Washroom } from './types';
-import { PdfService } from '@/services/PdfService';
-import { VendorRateCardService } from '@/services/VendorRateCardService';
-import { FixtureService } from '@/services/FixtureService';
+import { RealProject, ProjectQuotation, Washroom } from './types';
 
 export class QuotationService extends BaseService {
   /**
@@ -307,15 +302,15 @@ export class QuotationService extends BaseService {
 
           if (fixtures) {
             fixtures.forEach(fixture => {
-              // Add fixture as an item
+              // Add fixture as an item WITHOUT additional taxes
               washroomItems.push({
                 washroomId: washroom.id,
                 name: fixture.name,
                 description: `Fixture for ${washroom.name}`,
                 mrp: fixture.mrp,
-                amount: fixture.client_price, // Using client_price as YDS Offer price
+                amount: fixture.client_price, // Using client_price as direct price
                 isBrandProduct: true,
-                applyGst: true
+                applyGst: false // Explicitly set to false for fixtures
               });
             });
           }
@@ -326,6 +321,7 @@ export class QuotationService extends BaseService {
         subtotalBeforeGst += parseFloat(item.amount) || 0;
         totalMrp += parseFloat(item.mrp) || 0;
 
+        // Only apply GST to items marked as applying GST (execution services)
         if (item.applyGst !== false) {
           const amountForGst = parseFloat(item.amount) || 0;
           gstAmount += amountForGst * (quotationData.gstRate || 18) / 100;
