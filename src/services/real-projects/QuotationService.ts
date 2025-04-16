@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -324,15 +323,7 @@ export class QuotationService extends BaseService {
 
     const grandTotal = subtotalBeforeGst + gstAmount;
 
-    // Generate the HTML template
-    return `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Quotation ${project.project_id}</title>
-      <style>
+    const existingStyles = `
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
         :root {
@@ -534,21 +525,79 @@ export class QuotationService extends BaseService {
             background-color: var(--secondary-color) !important;
           }
         }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <div class="header-left">
-            <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="Your Dream Space Logo" />
+      `;
+
+    // Update the CSS for the header section
+    const cssUpdates = `
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 0;
+        margin-bottom: 40px;
+        border-bottom: 2px solid var(--border-color);
+      }
+      
+      .header-left {
+        display: flex;
+        align-items: center;
+      }
+      
+      .header-left img {
+        max-width: 120px;
+        margin-right: 20px;
+      }
+      
+      .header-right {
+        text-align: right;
+      }
+      
+      .company-name {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 5px;
+        color: var(--primary-color);
+      }
+      
+      .company-address {
+        font-size: 12px;
+        margin-bottom: 5px;
+        color: #64748b;
+        max-width: 300px;
+      }
+      
+      .company-gst {
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+      }
+    `;
+
+    // Replace the existing CSS in the style block with these updates
+    const htmlTemplate = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Quotation ${project.project_id}</title>
+        <style>
+          ${existingStyles.replace(/\.header\s*{[^}]+}/s, cssUpdates)}
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="header-left">
+              <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="Your Dream Space Logo" />
+            </div>
+            <div class="header-right">
+              <div class="company-name">Purebath Interiotech Private Limited</div>
+              <div class="company-address">3rd Floor, Orchid Centre, Golf Course Road, near IILM Institute, Sector 53, Gurugram, Haryana 122002</div>
+              <div class="company-gst">GST No: 06AAPCP1844F1ZC</div>
+            </div>
           </div>
-          <div class="header-right">
-            <div class="company-name">Purebath Interiotech Private Limited</div>
-            <div class="company-address">3rd Floor, Orchid Centre, Golf Course Road, near IILM Institute, Sector 53, Gurugram, Haryana 122002</div>
-            <div class="company-gst">GST No: 06AAPCP1844F1ZC</div>
-          </div>
-        </div>
-        
+          
         <div class="quotation-title">
           <h2>Quotation #${project.project_id}</h2>
         </div>
@@ -697,7 +746,9 @@ export class QuotationService extends BaseService {
     </body>
     </html>
   `;
-}
+
+    return htmlTemplate;
+  }
 
   /**
    * Get all quotations for a project
