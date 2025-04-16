@@ -400,6 +400,7 @@ export type Database = {
           selected_brand: string | null
           service_details: Json | null
           services: Json | null
+          total_area: number | null
           updated_at: string
           wall_area: number | null
           width: number
@@ -416,6 +417,7 @@ export type Database = {
           selected_brand?: string | null
           service_details?: Json | null
           services?: Json | null
+          total_area?: number | null
           updated_at?: string
           wall_area?: number | null
           width: number
@@ -432,6 +434,7 @@ export type Database = {
           selected_brand?: string | null
           service_details?: Json | null
           services?: Json | null
+          total_area?: number | null
           updated_at?: string
           wall_area?: number | null
           width?: number

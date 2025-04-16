@@ -1,4 +1,3 @@
-
 import { ProjectService } from './ProjectService';
 import { ConversionService } from './ConversionService';
 import { WashroomService } from './WashroomService';
@@ -23,6 +22,7 @@ export class RealProjectService {
   static getProjectWashrooms = WashroomService.getProjectWashrooms;
   static updateProjectWashrooms = WashroomService.updateProjectWashrooms;
   static calculateWashroomAreas = WashroomService.calculateWashroomAreas;
+  static updateExistingWashroomTotalAreas = WashroomService.updateExistingWashroomTotalAreas;
   
   // Conversion Service Methods
   static getConvertibleRecords = ConversionService.getConvertibleRecords;
@@ -34,7 +34,7 @@ export class RealProjectService {
   static generateQuotation = QuotationService.generateQuotation;
   static getProjectQuotations = QuotationService.getProjectQuotations;
   static getQuotation = QuotationService.getQuotation;
-  static deleteQuotation = QuotationService.deleteQuotation; // Add the new method
+  static deleteQuotation = QuotationService.deleteQuotation;
   
   // Costing Service Methods
   static getExecutionServices = CostingService.getExecutionServices;
@@ -51,3 +51,6 @@ export class RealProjectService {
 
 // Update the BaseService RealProjectService reference to resolve circular dependency
 BaseRealProjectService.updateRealProject = ProjectService.updateRealProject;
+
+// Run the update for all existing washrooms
+WashroomService.updateExistingWashroomTotalAreas();
