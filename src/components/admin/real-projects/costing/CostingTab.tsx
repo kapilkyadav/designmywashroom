@@ -30,7 +30,7 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
   const [isSaving, setIsSaving] = useState(false);
   
   // Use our product costs hook with the whole project to calculate across all washrooms
-  const { productCost, logisticsCost, isLoading: isLoadingProducts } = useProductCosts(project);
+  const { productCost, logisticsCost, isLoading: isLoadingProducts, error: productCostError } = useProductCosts(project);
   
   console.log("Product cost in CostingTab:", productCost);
   console.log("Logistics cost in CostingTab:", logisticsCost);
@@ -111,6 +111,14 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
 
   return (
     <div className="space-y-6">
+      {productCostError && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {productCostError}
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {project.original_estimate ? (
         <Alert>
           <AlertDescription className="flex justify-between items-center">

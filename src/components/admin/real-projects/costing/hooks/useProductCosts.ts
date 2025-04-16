@@ -32,10 +32,16 @@ export const useProductCosts = (project: RealProject) => {
             // If it's not a UUID format, we might need to fetch the brand ID first
             if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brandId)) {
               // This is a fallback in case selected_brand is a name rather than ID
-              console.log(`Treating ${brandId} as a brand name, need to get ID`);
-              // Note: You would need to implement this function in ProductService
-              // For now we'll skip this washroom if it's not an ID
-              continue;
+              console.log(`Treating ${brandId} as a brand name, finding its ID`);
+              const brand = await ProductService.getBrandByName(brandId);
+              
+              if (brand) {
+                console.log(`Found brand ID ${brand.id} for brand name ${brandId}`);
+                brandId = brand.id;
+              } else {
+                console.log(`Could not find brand ID for brand name ${brandId}`);
+                continue;
+              }
             }
             
             // Fetch products for this brand

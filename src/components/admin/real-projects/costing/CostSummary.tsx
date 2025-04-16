@@ -69,6 +69,13 @@ const CostSummary: React.FC<CostSummaryProps> = ({
           <span>Total Amount (with GST)</span>
           <span>₹{formatNumber(grandTotal)}</span>
         </div>
+        
+        {originalEstimate > 0 && (
+          <div className="mt-2 pt-2 border-t text-sm text-muted-foreground flex justify-between">
+            <span>Original Estimate:</span>
+            <span>₹{formatNumber(originalEstimate)}</span>
+          </div>
+        )}
       </div>
     </>
   );
