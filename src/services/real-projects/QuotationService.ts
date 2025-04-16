@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -740,37 +739,33 @@ export class QuotationService extends BaseService {
                       <tbody>
                         ${sortedCategories.map(category => {
                           const items = categoriesForWashroom[category];
-                          const categoryTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-                          const categoryMrp = items.reduce((sum, item) => sum + (parseFloat(item.mrp) || 0), 0);
-                          
                           return items.map((item, itemIndex) => {
+                            const serviceInfo = item.serviceDetails?.[0]?.serviceId ? 
+                              quotationData.serviceDetailsMap[item.serviceDetails[0].serviceId] : null;
+                            
+                            const displayCategory = serviceInfo?.categoryName || category;
+                            const displayName = serviceInfo?.name || item.name;
+                            const displayUnit = serviceInfo?.unit ? `(${serviceInfo.unit})` : '';
+                            
                             const itemAmount = parseFloat(item.amount) || 0;
                             const itemMrp = parseFloat(item.mrp) || 0;
-                            const itemUnit = item.unit || '';
-                            const discountPercentage = item.isBrandProduct && itemMrp > 0 ? 
-                              Math.round((1 - (itemAmount / itemMrp)) * 100) : 0;
                             
                             return `
                               <tr>
-                                <td>${itemIndex === 0 ? category : ''}</td>
+                                <td>${itemIndex === 0 ? displayCategory : ''}</td>
                                 <td>
-                                  • ${item.name} ${itemUnit ? `(${itemUnit})` : ''}
-                                  ${item.isBrandProduct && discountPercentage > 0 ? 
-                                    `<br/><span style="color: #16a34a; font-size: 0.9em;">${discountPercentage}% off</span>` : 
+                                  • ${displayName} ${displayUnit}
+                                  ${item.isBrandProduct && itemMrp > itemAmount ? 
+                                    `<br/><span style="color: #16a34a; font-size: 0.9em;">
+                                      ${Math.round((1 - (itemAmount / itemMrp)) * 100)}% off
+                                    </span>` : 
                                     ''}
                                 </td>
                                 <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
                                 <td style="text-align: right;">₹${formatAmount(itemAmount)}</td>
                               </tr>
                             `;
-                          }).join('') + `
-                            <tr>
-                              <td colspan="2" style="text-align: right; font-weight: 500;">Category Total:</td>
-                              <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryMrp)}</td>
-                              <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryTotal)}</td>
-                            </tr>
-                            <tr><td colspan="4" style="border: none; height: 10px;"></td></tr>
-                          `;
+                          }).join('');
                         }).join('')}
                       </tbody>
                     </table>
