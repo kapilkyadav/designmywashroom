@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -69,13 +70,16 @@ export class QuotationService extends BaseService {
         if (item.category) {
           // If category is a direct object
           if (!Array.isArray(item.category) && typeof item.category === 'object') {
-            categoryName = item.category.name || categoryName;
-            categoryId = item.category.id || categoryId;
+            // Use optional chaining to safely access properties
+            categoryName = item.category?.name || categoryName;
+            categoryId = item.category?.id || categoryId;
           } 
           // If category is an array with at least one item
           else if (Array.isArray(item.category) && item.category.length > 0) {
-            categoryName = item.category[0]?.name || categoryName;
-            categoryId = item.category[0]?.id || categoryId;
+            // Use optional chaining to safely access properties
+            const firstCategory = item.category[0];
+            categoryName = firstCategory?.name || categoryName;
+            categoryId = firstCategory?.id || categoryId;
           }
         }
         
