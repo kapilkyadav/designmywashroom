@@ -27,6 +27,7 @@ const AdminRealProjectDetail = () => {
       if (project?.selected_brand) {
         try {
           const brand = await BrandService.getBrandById(project.selected_brand);
+          console.log('Fetched brand:', brand);
           setBrandName(brand.name);
         } catch (error) {
           console.error('Error fetching brand name:', error);

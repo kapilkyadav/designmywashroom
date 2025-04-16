@@ -25,7 +25,10 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
     queryKey: ['vendor-items-with-categories'],
     queryFn: async () => {
       const items = await VendorRateCardService.getItems();
-      // Enhance items with more category information if needed
+      
+      // Log for debugging to make sure categories are properly included
+      console.log("Fetched vendor items with categories:", items);
+      
       return items;
     },
   });
@@ -34,6 +37,8 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
   const services: ServiceItem[] = vendorItems.map((item: VendorItem) => {
     // Extract category name from item.category object or use a default
     const categoryName = item.category?.name || "Uncategorized";
+    
+    console.log(`Processing item ${item.id} - ${item.scope_of_work} with category:`, item.category);
     
     return {
       id: item.id,
@@ -108,17 +113,29 @@ export function useWashroomScope(initialWashrooms: WashroomWithAreas[]) {
     return selectedCount > 0 && selectedCount < servicesInCategory.length;
   };
 
+  // Get service name by ID for display purposes
+  const getServiceNameById = (serviceId: string): string => {
+    return serviceDetailsMap[serviceId]?.name || serviceId;
+  };
+
+  // Get category name for a service
+  const getCategoryForService = (serviceId: string): string => {
+    return serviceDetailsMap[serviceId]?.category || 'Uncategorized';
+  };
+
   return {
     activeTab,
     setActiveTab,
     washroomsWithScope,
     services,
     servicesByCategory,
-    serviceDetailsMap, // Add this to expose the mapping
+    serviceDetailsMap,
     isLoading,
     handleServiceChange,
     handleSelectAllInCategory,
     areAllServicesInCategorySelected,
     areSomeServicesInCategorySelected,
+    getServiceNameById,
+    getCategoryForService
   };
 }

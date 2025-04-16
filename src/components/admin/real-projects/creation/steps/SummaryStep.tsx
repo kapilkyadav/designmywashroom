@@ -19,6 +19,7 @@ interface SummaryStepProps {
 const SummaryStep: React.FC<SummaryStepProps> = ({ projectInfo, washrooms }) => {
   const [brandName, setBrandName] = useState<string>("");
   const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
+  const [serviceCategoryMap, setServiceCategoryMap] = useState<Record<string, string>>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -66,13 +67,17 @@ const SummaryStep: React.FC<SummaryStepProps> = ({ projectInfo, washrooms }) => 
         // Fetch vendor items for these IDs
         const items = await VendorRateCardService.getItemsByIds(Array.from(serviceIds));
         
-        // Create a mapping of ID to service name
+        // Create a mapping of ID to service name and category
         const namesMap: Record<string, string> = {};
+        const categoryMap: Record<string, string> = {};
+        
         items.forEach(item => {
           namesMap[item.id] = item.scope_of_work;
+          categoryMap[item.id] = item.category?.name || "Uncategorized";
         });
         
         setServiceNames(namesMap);
+        setServiceCategoryMap(categoryMap);
       } catch (error) {
         console.error('Error fetching service names:', error);
       }
@@ -90,6 +95,26 @@ const SummaryStep: React.FC<SummaryStepProps> = ({ projectInfo, washrooms }) => 
       }
     });
     return count;
+  };
+
+  // Group services by category for better display
+  const getServicesGroupedByCategory = (washroomIndex: number) => {
+    const washroom = washrooms[washroomIndex];
+    if (!washroom?.services) return {};
+    
+    const groupedServices: Record<string, string[]> = {};
+    
+    Object.entries(washroom.services)
+      .filter(([_, isSelected]) => isSelected)
+      .forEach(([serviceId]) => {
+        const category = serviceCategoryMap[serviceId] || "Uncategorized";
+        if (!groupedServices[category]) {
+          groupedServices[category] = [];
+        }
+        groupedServices[category].push(serviceNames[serviceId] || serviceId);
+      });
+    
+    return groupedServices;
   };
 
   return (
@@ -167,47 +192,56 @@ const SummaryStep: React.FC<SummaryStepProps> = ({ projectInfo, washrooms }) => 
               </div>
               
               <div className="space-y-4">
-                {washrooms.map((washroom, index) => (
-                  <div key={index} className="border rounded-md p-3">
-                    <h5 className="font-semibold mb-2">{washroom.name}</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                      <div>
-                        <span className="text-xs text-muted-foreground block">Dimensions</span>
-                        <div className="flex items-center gap-1">
-                          <Ruler className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-sm">
-                            {washroom.length}' × {washroom.width}' × {washroom.height}'
-                          </span>
+                {washrooms.map((washroom, index) => {
+                  const groupedServices = getServicesGroupedByCategory(index);
+                  
+                  return (
+                    <div key={index} className="border rounded-md p-3">
+                      <h5 className="font-semibold mb-2">{washroom.name}</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                        <div>
+                          <span className="text-xs text-muted-foreground block">Dimensions</span>
+                          <div className="flex items-center gap-1">
+                            <Ruler className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-sm">
+                              {washroom.length}' × {washroom.width}' × {washroom.height}'
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block">Floor Area</span>
+                          <span className="text-sm">{washroom.floorArea.toFixed(2)} sq. ft.</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block">Wall Area</span>
+                          <span className="text-sm">{washroom.wallArea.toFixed(2)} sq. ft.</span>
                         </div>
                       </div>
+                      
                       <div>
-                        <span className="text-xs text-muted-foreground block">Floor Area</span>
-                        <span className="text-sm">{washroom.floorArea.toFixed(2)} sq. ft.</span>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground block">Wall Area</span>
-                        <span className="text-sm">{washroom.wallArea.toFixed(2)} sq. ft.</span>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <span className="text-xs text-muted-foreground block mb-1">Services Selected</span>
-                      <div className="flex flex-wrap gap-1">
-                        {washroom.services && Object.keys(washroom.services).filter(key => washroom.services[key]).length > 0 ? (
-                          Object.entries(washroom.services)
-                            .filter(([_, isSelected]) => isSelected)
-                            .map(([serviceId]) => (
-                              <Badge key={serviceId} variant="outline" className="text-xs">
-                                {serviceNames[serviceId] || serviceId}
-                              </Badge>
-                            ))
+                        <span className="text-xs text-muted-foreground block mb-1">Services Selected</span>
+                        {Object.keys(groupedServices).length > 0 ? (
+                          <div className="space-y-2">
+                            {Object.entries(groupedServices).map(([category, services]) => (
+                              <div key={category} className="border-l-2 border-primary/30 pl-2">
+                                <p className="text-xs font-medium">{category}</p>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {services.map((serviceName, i) => (
+                                    <Badge key={i} variant="outline" className="text-xs">
+                                      {serviceName}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-xs italic text-muted-foreground">No services selected</span>
                         )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
             
