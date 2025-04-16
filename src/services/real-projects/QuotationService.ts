@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -366,6 +365,9 @@ export class QuotationService extends BaseService {
     // Group items by category for each washroom
     const washroomItemsByCategory: Record<string, Record<string, any[]>> = {};
 
+    // For debugging
+    console.log("Service details map:", quotationData.serviceDetailsMap);
+
     for (const washroom of washrooms) {
       const washroomItems = (quotationData.items || []).filter((item: any) => 
         item.washroomId === washroom.id || !item.washroomId
@@ -382,7 +384,15 @@ export class QuotationService extends BaseService {
         } else if (item.serviceDetails && item.serviceDetails.length > 0) {
           // For items with service details, use the category from the service details
           const firstServiceId = item.serviceDetails[0].serviceId;
-          const serviceDetails = quotationData.serviceDetailsMap[firstServiceId];
+          const serviceDetails = quotationData.serviceDetailsMap?.[firstServiceId];
+          
+          // Debug each item's category assignment
+          console.log(`Item ${item.name} - Service ID: ${firstServiceId}`, { 
+            serviceDetails, 
+            fallbackCategory: item.category,
+            finalCategory: serviceDetails?.categoryName || item.category || 'Other Items'
+          });
+          
           categoryName = serviceDetails?.categoryName || item.category || 'Other Items';
         } else {
           // For regular items
@@ -396,7 +406,7 @@ export class QuotationService extends BaseService {
         if (item.isCategory && item.serviceDetails && item.serviceDetails.length > 0) {
           // For category items with service details, add each service detail separately
           for (const service of item.serviceDetails) {
-            const serviceDetails = quotationData.serviceDetailsMap[service.serviceId] || {};
+            const serviceDetails = quotationData.serviceDetailsMap?.[service.serviceId] || {};
             const serviceName = serviceDetails.name || service.name || `Service ${service.serviceId}`;
             const serviceUnit = serviceDetails.unit || service.unit || '';
             

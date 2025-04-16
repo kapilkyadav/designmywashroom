@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { RealProject } from '@/services/RealProjectService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,6 +32,38 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
     downloadAsPdf,
     handleDeleteQuotations
   } = useQuotations(project, onUpdate);
+
+  // Add effect to debug category issues
+  useEffect(() => {
+    // Check the window object for the current quotation data when available
+    const checkQuotationData = () => {
+      const quotationData = (window as any).currentQuotationData;
+      if (quotationData) {
+        console.log('Current quotation data:', quotationData);
+        
+        // Check if items have proper category info
+        if (quotationData.items) {
+          console.log('Items with categories:', quotationData.items.map((item: any) => ({
+            name: item.name,
+            category: item.category,
+            isCategory: item.isCategory,
+            serviceDetails: item.serviceDetails
+          })));
+        }
+        
+        // Check service details map
+        if (quotationData.serviceDetailsMap) {
+          console.log('Service details map:', quotationData.serviceDetailsMap);
+        }
+      }
+    };
+    
+    // Check after dialog is opened
+    if (isQuoteDialogOpen) {
+      // Wait a bit for data to be populated
+      setTimeout(checkQuotationData, 1000);
+    }
+  }, [isQuoteDialogOpen]);
 
   return (
     <div className="space-y-6">
