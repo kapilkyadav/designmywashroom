@@ -1,16 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { RealProject } from '@/services/real-projects/types';
-import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Loader2, Save } from 'lucide-react';
-import AddCostItemForm from './AddCostItemForm';
-import CostSummary from './CostSummary';
-import CostTable from './CostTable';
-import { useCostingState } from './useCostingState';
 import { CostItem } from './types';
-import { ProductService } from '@/services/ProductService';
+import { useCostingState } from './useCostingState';
+import { useProductCosts } from './hooks/useProductCosts';
+import CostFormCard from './CostFormCard';
+import CostSummaryCard from './CostSummaryCard';
+import CostTables from './CostTables';
 
 interface CostingTabProps {
   project: RealProject;
@@ -31,35 +28,9 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
   } = useCostingState(project);
   
   const [isSaving, setIsSaving] = useState(false);
-  const [productCost, setProductCost] = useState(0);
-  const [logisticsCost, setLogisticsCost] = useState(0);
   
-  useEffect(() => {
-    const calculateProductCosts = async () => {
-      try {
-        if (project.selected_brand) {
-          const products = await ProductService.getProductsByBrandId(project.selected_brand);
-          const brandProductTotal = products.reduce((sum, product) => {
-            return sum + (product.quotation_price || 0);
-          }, 0);
-          setProductCost(brandProductTotal);
-          
-          // Calculate logistics cost as 7.5% of product cost
-          const logistics = brandProductTotal * 0.075;
-          setLogisticsCost(logistics);
-        } else {
-          setProductCost(0);
-          setLogisticsCost(0);
-        }
-      } catch (error) {
-        console.error('Error calculating product costs:', error);
-        setProductCost(0);
-        setLogisticsCost(0);
-      }
-    };
-    
-    calculateProductCosts();
-  }, [project.selected_brand]);
+  // Use our new custom hook for product costs
+  const { productCost, logisticsCost } = useProductCosts(project.selected_brand);
   
   // Execution services total
   const executionServicesTotal = executionTotal + vendorTotal + additionalTotal;
@@ -143,65 +114,27 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
       ) : null}
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardContent className="pt-6">
-            <AddCostItemForm onAddItem={addNewItem} />
-          </CardContent>
-        </Card>
+        <CostFormCard onAddItem={addNewItem} />
         
-        <Card>
-          <CardContent className="pt-6">
-            <CostSummary 
-              executionTotal={executionTotal}
-              vendorTotal={vendorTotal}
-              additionalTotal={additionalTotal}
-              originalEstimate={project.original_estimate || 0}
-              grandTotal={finalTotal}
-              productCost={productCost}
-              logisticsCost={logisticsCost}
-            />
-            
-            <div className="mt-6">
-              <Button className="w-full" onClick={handleSave} disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save All Changes
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <CostSummaryCard 
+          executionTotal={executionTotal}
+          vendorTotal={vendorTotal}
+          additionalTotal={additionalTotal}
+          originalEstimate={project.original_estimate || 0}
+          grandTotal={finalTotal}
+          productCost={productCost}
+          logisticsCost={logisticsCost}
+          isSaving={isSaving}
+          onSave={handleSave}
+        />
       </div>
       
-      <div className="space-y-8 mt-8">
-        <CostTable 
-          items={executionCosts} 
-          title="Execution Costs" 
-          description="Costs related to project execution and labor" 
-          onRemoveItem={(id) => removeItem(id, 'execution')}
-        />
-        
-        <CostTable 
-          items={vendorRates} 
-          title="Vendor Rates" 
-          description="Costs from vendors and material suppliers" 
-          onRemoveItem={(id) => removeItem(id, 'vendor')}
-        />
-        
-        <CostTable 
-          items={additionalCosts} 
-          title="Additional Costs" 
-          description="Any extra costs associated with the project" 
-          onRemoveItem={(id) => removeItem(id, 'additional')}
-        />
-      </div>
+      <CostTables 
+        executionCosts={executionCosts}
+        vendorRates={vendorRates}
+        additionalCosts={additionalCosts}
+        onRemoveItem={removeItem}
+      />
     </div>
   );
 };
