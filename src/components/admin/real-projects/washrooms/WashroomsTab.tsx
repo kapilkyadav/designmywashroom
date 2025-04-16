@@ -13,6 +13,7 @@ import { Plus, Trash2, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { VendorRateCardService } from '@/services/VendorRateCardService';
 import { BrandService } from '@/services/BrandService';
+import { FixtureService } from '@/services/FixtureService';
 
 interface WashroomsTabProps {
   project: RealProject;
@@ -49,7 +50,21 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     }
     servicesByCategory[category].push(service);
   });
-  
+
+  const { data: fixtures = [] } = useQuery({
+    queryKey: ['fixtures'],
+    queryFn: () => FixtureService.getAllFixtures(),
+  });
+
+  const fixturesByCategory = fixtures.reduce((acc, fixture) => {
+    const category = fixture.category || 'Uncategorized';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(fixture);
+    return acc;
+  }, {} as Record<string, any[]>);
+
   useEffect(() => {
     if (project.washrooms && project.washrooms.length > 0) {
       const updatedWashrooms = project.washrooms.map(washroom => {
@@ -77,12 +92,12 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
       setWashrooms([defaultWashroom]);
     }
   }, [project]);
-  
+
   const calculateWallArea = (length: number, width: number, height: number): number => {
     const perimeter = 2 * (Number(length) + Number(width));
     return perimeter * Number(height);
   };
-  
+
   const calculateWashroomAreas = (washroom: Washroom): Washroom => {
     const floorArea = Number(washroom.length) * Number(washroom.width);
     
@@ -100,7 +115,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
       ceiling_area: ceilingArea
     };
   };
-  
+
   const addWashroom = () => {
     const newWashroom: Washroom = {
       id: `temp-${Date.now()}`,
@@ -118,7 +133,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     
     setWashrooms([...washrooms, newWashroom]);
   };
-  
+
   const removeWashroom = (index: number) => {
     if (washrooms.length <= 1) {
       toast({
@@ -140,7 +155,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     
     setWashrooms(updatedWashrooms);
   };
-  
+
   const updateWashroomField = (index: number, field: keyof Washroom, value: any) => {
     const updatedWashrooms = [...washrooms];
     (updatedWashrooms[index] as Record<string, any>)[field] = value;
@@ -151,7 +166,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     
     setWashrooms(updatedWashrooms);
   };
-  
+
   const updateWashroomService = (index: number, serviceKey: string, checked: boolean) => {
     const updatedWashrooms = [...washrooms];
     if (!updatedWashrooms[index].services) {
@@ -175,7 +190,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     
     setWashrooms(updatedWashrooms);
   };
-  
+
   const updateServiceDetail = (washroomIndex: number, serviceId: string, field: keyof ServiceDetail, value: any) => {
     const updatedWashrooms = [...washrooms];
     
@@ -191,7 +206,16 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     
     setWashrooms(updatedWashrooms);
   };
-  
+
+  const updateWashroomFixture = (washroomIndex: number, fixtureId: string, checked: boolean) => {
+    const updatedWashrooms = [...washrooms];
+    if (!updatedWashrooms[washroomIndex].fixtures) {
+      updatedWashrooms[washroomIndex].fixtures = {};
+    }
+    updatedWashrooms[washroomIndex].fixtures![fixtureId] = checked;
+    setWashrooms(updatedWashrooms);
+  };
+
   const saveWashrooms = async () => {
     setIsUpdating(true);
     
@@ -222,7 +246,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
       setIsUpdating(false);
     }
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -373,6 +397,40 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                               <Label htmlFor={`service-${washroom.id}-${service.id}`}>
                                 {service.scope_of_work || service.name || "Unnamed Service"}
                                 {service.measuring_unit && <span className="text-xs text-muted-foreground ml-1">({service.measuring_unit})</span>}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {Object.keys(fixturesByCategory).length > 0 && (
+                <div className="mt-6">
+                  <h5 className="font-medium mb-3">Fixtures</h5>
+                  <div className="space-y-4">
+                    {Object.entries(fixturesByCategory).map(([category, categoryFixtures]) => (
+                      <div key={category} className="border p-3 rounded-md">
+                        <h6 className="font-medium mb-2">{category}</h6>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {categoryFixtures.map(fixture => (
+                            <div key={fixture.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`fixture-${washroom.id}-${fixture.id}`}
+                                checked={washroom.fixtures?.[fixture.id] || false}
+                                onCheckedChange={(checked) => 
+                                  updateWashroomFixture(index, fixture.id, !!checked)
+                                }
+                              />
+                              <Label htmlFor={`fixture-${washroom.id}-${fixture.id}`}>
+                                {fixture.name}
+                                {fixture.category && (
+                                  <span className="text-xs text-muted-foreground ml-1">
+                                    ({fixture.category})
+                                  </span>
+                                )}
                               </Label>
                             </div>
                           ))}

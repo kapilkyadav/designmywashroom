@@ -73,8 +73,9 @@ export interface Washroom {
   ceiling_area?: number;
   ceilingArea?: number; // For compatibility with form data
   services?: Record<string, boolean>;
-  selected_brand?: string; // Field for brand selection per washroom
-  service_details?: Record<string, ServiceDetail>; // Field for service-specific details
+  selected_brand?: string;
+  service_details?: Record<string, ServiceDetail>;
+  fixtures?: Record<string, boolean>; // Added fixtures field
   created_at?: string;
 }
 
