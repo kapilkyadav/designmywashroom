@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -631,7 +632,8 @@ export class QuotationService extends BaseService {
             const floorArea = washroom.length * washroom.width;
             const wallArea = washroom.wall_area || 0;
             const ceilingArea = washroom.ceiling_area || 0;
-            const totalWashroomArea = floorArea + wallArea + ceilingArea;
+            // Calculate total washroom area as floor area + wall area only (not including ceiling)
+            const totalWashroomArea = floorArea + wallArea;
             
             return `
               <div class="washroom-card">
