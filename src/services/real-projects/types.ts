@@ -1,4 +1,3 @@
-
 // Base interface for real projects
 export interface RealProject {
   id: string;
@@ -33,7 +32,15 @@ export interface RealProject {
   product_cost?: number;
   logistics_cost?: number;
   // Methods added during extension
-  updateCosts: (data: Partial<RealProject>) => Promise<boolean>;
+  updateCosts(data: {
+    execution_costs: Record<string, any>;
+    vendor_rates: Record<string, any>;
+    additional_costs: Record<string, any>;
+    washrooms: Washroom[];
+    final_quotation_amount: number;
+    product_cost: number;
+    logistics_cost: number;
+  }): Promise<boolean>;
 }
 
 // Filter options for fetching real projects
