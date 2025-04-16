@@ -5,6 +5,7 @@ import { BaseService } from './BaseService';
 import { ProjectQuotation, RealProject, Washroom } from './types';
 import { PdfService } from '@/services/PdfService';
 import { VendorRateCardService } from '@/services/VendorRateCardService';
+import { FixtureService } from '@/services/FixtureService';
 
 export class QuotationService extends BaseService {
   /**
@@ -286,31 +287,51 @@ export class QuotationService extends BaseService {
     let totalMrp = 0;
 
     // First pass to calculate totals
-    washrooms.forEach(washroom => {
+    for (const washroom of washrooms) {
       const washroomItems = (quotationData.items || []).filter((item: any) => 
         item.washroomId === washroom.id || !item.washroomId
       );
+
+      // Add fixtures pricing
+      if (washroom.fixtures) {
+        const fixtureIds = Object.entries(washroom.fixtures)
+          .filter(([_, selected]) => selected)
+          .map(([id]) => id);
+
+        // If there are selected fixtures, fetch their details
+        if (fixtureIds.length > 0) {
+          const { data: fixtures } = await supabase
+            .from('fixtures')
+            .select('*')
+            .in('id', fixtureIds);
+
+          if (fixtures) {
+            fixtures.forEach(fixture => {
+              // Add fixture as an item
+              washroomItems.push({
+                washroomId: washroom.id,
+                name: fixture.name,
+                description: `Fixture for ${washroom.name}`,
+                mrp: fixture.mrp,
+                amount: fixture.client_price, // Using client_price as YDS Offer price
+                isBrandProduct: true,
+                applyGst: true
+              });
+            });
+          }
+        }
+      }
       
       washroomItems.forEach((item: any) => {
-        // For brand products, use direct values
-        if (item.isBrandProduct) {
-          subtotalBeforeGst += parseFloat(item.client_price) || 0;
-          totalMrp += parseFloat(item.mrp) || 0;
-        } else {
-          // For services, apply margin
-          const itemAmount = parseFloat(item.amount) || 0;
-          subtotalBeforeGst += itemAmount;
-          totalMrp += itemAmount * 1.2; // 20% markup for services only
-        }
+        subtotalBeforeGst += parseFloat(item.amount) || 0;
+        totalMrp += parseFloat(item.mrp) || 0;
 
         if (item.applyGst !== false) {
-          const amountForGst = item.isBrandProduct ? 
-            (parseFloat(item.client_price) || 0) : 
-            (parseFloat(item.amount) || 0);
+          const amountForGst = parseFloat(item.amount) || 0;
           gstAmount += amountForGst * (quotationData.gstRate || 18) / 100;
         }
       });
-    });
+    }
 
     const grandTotal = subtotalBeforeGst + gstAmount;
 
