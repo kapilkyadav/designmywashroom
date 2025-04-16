@@ -875,4 +875,13 @@ export class QuotationService extends BaseService {
       
       return true;
     } catch (error: any) {
-      console
+      console.error('Error deleting quotation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete quotation",
+        variant: "destructive",
+      });
+      return false;
+    }
+  }
+}
