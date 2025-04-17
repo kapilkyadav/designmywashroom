@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -67,7 +66,6 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
       washroomData.forEach(w => { initialMargins[w.id] = 0 });
       setMargins(initialMargins);
       
-      // Calculate costs after loading washroom data
       await calculateCosts(washroomData);
     } catch (error) {
       console.error('Error loading washrooms:', error);
@@ -88,18 +86,15 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
       const items: any[] = [];
       const serviceCategories: Record<string, any> = {};
       
-      // Load fixtures if available in the project
       const fixtures: any[] = [];
-      // Check if selected_fixtures exists in project.project_details
+      
       if (project.project_details && project.project_details.selected_fixtures) {
         try {
-          // Fetch fixture details
           const fixtureIds = Object.keys(project.project_details.selected_fixtures || {}).filter(id => 
             project.project_details?.selected_fixtures?.[id] === true
           );
           
           if (fixtureIds.length > 0) {
-            // Use Promise.all with multiple individual getFixtureById calls since getFixturesByIds is not available
             const fixtureDetails = await Promise.all(
               fixtureIds.map(id => FixtureService.getFixtureById(id))
             );
@@ -128,11 +123,9 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
               const measurementUnit = costData.service_measurements[serviceId] || '';
               const serviceDetails = costData.service_details?.[serviceId] || {};
               
-              // Get service name and category
               const serviceName = serviceDetails.name || `Service ${serviceId}`;
               const serviceCategory = serviceDetails.category || 'General';
               
-              // Create category entry if it doesn't exist
               if (!serviceCategories[serviceCategory]) {
                 serviceCategories[serviceCategory] = {
                   washroomId: washroom.id,
@@ -152,10 +145,9 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
                 measurementUnit.toLowerCase().includes('square')
               ) {
                 const area = washroom.length * washroom.width;
-                serviceCost = serviceRate * area;
+                serviceCost = Number((serviceRate * area).toFixed(2));
               }
               
-              // Add to the category's services
               serviceCategories[serviceCategory].services.push({
                 serviceId,
                 name: serviceName,
@@ -163,25 +155,23 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
                 unit: measurementUnit
               });
               
-              // Add to the category's total
               serviceCategories[serviceCategory].totalAmount += serviceCost;
             }
           });
         }
         
-        // Add each service category as an item
         Object.values(serviceCategories).forEach((category: any) => {
           if (category.totalAmount > 0) {
             items.push({
               washroomId: category.washroomId,
               name: category.name,
               description: category.description,
-              mrp: category.totalAmount * 1.2,
-              amount: category.totalAmount,
+              mrp: Number((category.totalAmount * 1.2).toFixed(2)),
+              amount: Number(category.totalAmount.toFixed(2)),
               isCategory: true,
               serviceDetails: category.services,
-              applyGst: true, // Apply GST to execution services
-              isExecutionService: true // Mark as execution service
+              applyGst: true,
+              isExecutionService: true
             });
           }
         });
@@ -193,28 +183,29 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
               washroomId: washroom.id,
               name: `${washroom.selected_brand} Products`,
               description: `Complete set of ${washroom.selected_brand} products for ${washroom.name}`,
-              mrp: brandCost * 1.2,
-              amount: brandCost,
-              isBrandProduct: true, // Mark as brand product
-              applyGst: false // Don't apply GST to product costs as they already include tax
+              mrp: Number((brandCost * 1.2).toFixed(2)),
+              amount: Number(brandCost.toFixed(2)),
+              isBrandProduct: true,
+              applyGst: false
             });
           }
         }
       });
       
-      // Add fixtures to the items array
       fixtures.forEach(fixture => {
         items.push({
           name: fixture.name,
           description: `${fixture.category} - ${fixture.name}`,
-          mrp: fixture.mrp,
-          amount: fixture.amount,
-          isFixture: true, // Mark as fixture
-          applyGst: true // Apply GST to fixtures
+          mrp: Number(fixture.mrp.toFixed(2)),
+          amount: Number(fixture.amount.toFixed(2)),
+          isFixture: true,
+          applyGst: true
         });
       });
       
-      const calculatedTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+      const calculatedTotal = Number(
+        items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)
+      );
       
       setQuotationItems(items);
       setTotalAmount(calculatedTotal);
@@ -306,7 +297,6 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
                   <p>Total items: {quotationItems.length}</p>
                   <p>Total amount: ₹{totalAmount.toLocaleString('en-IN')}</p>
                   
-                  {/* Show cost breakdown by type */}
                   <div className="mt-4 p-4 bg-gray-50 rounded-md">
                     <h4 className="text-md font-medium mb-2">Cost Breakdown</h4>
                     <div className="space-y-2">
