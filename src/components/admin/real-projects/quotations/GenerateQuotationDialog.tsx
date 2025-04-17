@@ -90,15 +90,19 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
       
       // Load fixtures if available in the project
       const fixtures: any[] = [];
-      if (project.selected_fixtures) {
+      // Check if selected_fixtures exists in project.project_details
+      if (project.project_details && project.project_details.selected_fixtures) {
         try {
           // Fetch fixture details
-          const fixtureIds = Object.keys(project.selected_fixtures || {}).filter(id => 
-            project.selected_fixtures?.[id] === true
+          const fixtureIds = Object.keys(project.project_details.selected_fixtures || {}).filter(id => 
+            project.project_details?.selected_fixtures?.[id] === true
           );
           
           if (fixtureIds.length > 0) {
-            const fixtureDetails = await FixtureService.getFixturesByIds(fixtureIds);
+            // Use Promise.all with multiple individual getFixtureById calls since getFixturesByIds is not available
+            const fixtureDetails = await Promise.all(
+              fixtureIds.map(id => FixtureService.getFixtureById(id))
+            );
             
             fixtureDetails.forEach(fixture => {
               fixtures.push({
