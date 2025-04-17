@@ -26,7 +26,7 @@ const CostSummary: React.FC<CostSummaryProps> = ({
     return amount.toLocaleString('en-IN');
   };
   
-  // Total of all execution services costs
+  // Total of all execution services costs (this represents the base cost without margin)
   const executionServicesTotal = executionTotal + vendorTotal + additionalTotal;
   
   // Calculate subtotal (execution services + product + logistics)

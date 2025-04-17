@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RealProject, RealProjectService, ProjectQuotation } from '@/services/RealProjectService';
@@ -14,7 +15,9 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     'This quotation is valid for 30 days from the date of issue.'
   );
   
-  // State for internal pricing
+  // State for internal pricing - determines whether to apply margins to client-facing quotes
+  // When true, margins are applied to the client-facing quotation
+  // When false, only base costs (without margins) are used in the client-facing quotation
   const [internalPricingEnabled, setInternalPricingEnabled] = useState(false);
   
   const { data: quotations = [], isLoading, refetch } = useQuery({
@@ -34,6 +37,7 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
       }
       
       // Make sure internalPricingEnabled is included in the quotation data
+      // This flag controls whether margins are applied to the client-facing quotation
       quotationData.internalPricing = internalPricingEnabled;
       
       const result = await RealProjectService.generateQuotation(

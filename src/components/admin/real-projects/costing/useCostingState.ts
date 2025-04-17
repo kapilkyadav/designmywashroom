@@ -27,12 +27,13 @@ export const useCostingState = (project: RealProject) => {
   const [vendorRates, setVendorRates] = useState<CostItem[]>(initialVendorRates);
   const [additionalCosts, setAdditionalCosts] = useState<CostItem[]>(initialAdditionalCosts);
 
-  // Calculate totals
+  // Calculate base totals (without margins)
   const executionTotal = useMemo(() => executionCosts.reduce((sum, item) => sum + item.amount, 0), [executionCosts]);
   const vendorTotal = useMemo(() => vendorRates.reduce((sum, item) => sum + item.amount, 0), [vendorRates]);
   const additionalTotal = useMemo(() => additionalCosts.reduce((sum, item) => sum + item.amount, 0), [additionalCosts]);
   
-  // Grand total calculation
+  // Grand total calculation - note that this represents the total without applying any margins
+  // The GST and final quotation calculations happen in CostingTab.tsx
   const grandTotal = useMemo(() => 
     executionTotal + vendorTotal + additionalTotal + (project.original_estimate || 0), 
     [executionTotal, vendorTotal, additionalTotal, project.original_estimate]
