@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -24,6 +24,9 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Washroom } from '@/services/real-projects/types';
+import { Button } from '@/components/ui/button';
+import { InfoCircle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface InternalPricingProps {
   washrooms: Washroom[];
@@ -54,6 +57,26 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
   internalPricingDetails
 }) => {
   const [localMargins, setLocalMargins] = useState<Record<string, number>>(margins || {});
+  const [useUniformMargin, setUseUniformMargin] = useState<boolean>(false);
+  const [uniformMargin, setUniformMargin] = useState<number>(0);
+  
+  // Initialize margins for all washrooms if not already present
+  useEffect(() => {
+    const initializedMargins = { ...localMargins };
+    let hasUpdates = false;
+    
+    washrooms.forEach(washroom => {
+      if (initializedMargins[washroom.id] === undefined) {
+        initializedMargins[washroom.id] = 0;
+        hasUpdates = true;
+      }
+    });
+    
+    if (hasUpdates) {
+      setLocalMargins(initializedMargins);
+      onMarginsChange(initializedMargins);
+    }
+  }, [washrooms]);
   
   const handleMarginChange = (washroomId: string, value: string) => {
     const numValue = parseFloat(value) || 0;
@@ -65,6 +88,21 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
   const handleGstRateChange = (value: string) => {
     const numValue = parseFloat(value) || 0;
     onGstRateChange(numValue);
+  };
+  
+  const handleUniformMarginChange = (value: string) => {
+    const numValue = parseFloat(value) || 0;
+    setUniformMargin(numValue);
+  };
+  
+  const applyUniformMargin = () => {
+    const newMargins: Record<string, number> = {};
+    washrooms.forEach(washroom => {
+      newMargins[washroom.id] = uniformMargin;
+    });
+    
+    setLocalMargins(newMargins);
+    onMarginsChange(newMargins);
   };
   
   return (
@@ -93,7 +131,21 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
         <>
           <Card className="border border-indigo-100 shadow-sm bg-white">
             <CardHeader className="pb-2 bg-indigo-50 rounded-t-lg">
-              <CardTitle className="text-md text-indigo-800">Margin Settings</CardTitle>
+              <CardTitle className="text-md text-indigo-800 flex items-center justify-between">
+                <span>Margin Settings</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full">
+                        <InfoCircle className="h-4 w-4 text-indigo-600" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm">
+                      <p>Margins are applied only to execution services, not to brand products or fixtures.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               <div className="space-y-3">
@@ -111,23 +163,53 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                   />
                 </div>
                 
-                {washrooms.map((washroom) => (
-                  <div key={washroom.id} className="flex items-center space-x-4">
-                    <Label htmlFor={`margin-${washroom.id}`} className="min-w-32 text-gray-700">
-                      {washroom.name} Margin (%)
-                    </Label>
+                {/* Quick margin setting for all washrooms */}
+                <div className="flex items-center space-x-4 mb-4 p-3 bg-indigo-50/50 rounded-md">
+                  <Label htmlFor="uniform-margin" className="min-w-32 font-medium text-indigo-800">
+                    Set margin for all washrooms
+                  </Label>
+                  <div className="flex space-x-2">
                     <Input 
-                      id={`margin-${washroom.id}`} 
+                      id="uniform-margin" 
                       type="number" 
                       min="0" 
                       max="100" 
                       step="0.01"
-                      value={localMargins[washroom.id] || 0}
-                      onChange={(e) => handleMarginChange(washroom.id, e.target.value)}
+                      value={uniformMargin}
+                      onChange={(e) => handleUniformMarginChange(e.target.value)}
                       className="max-w-24 border-indigo-200 focus:border-indigo-500 focus:ring-indigo-400"
                     />
+                    <Button 
+                      size="sm" 
+                      onClick={applyUniformMargin}
+                      variant="secondary"
+                      className="bg-indigo-100 hover:bg-indigo-200 text-indigo-800"
+                    >
+                      Apply
+                    </Button>
                   </div>
-                ))}
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-indigo-800 mb-2">Individual Washroom Margins</div>
+                  {washrooms.map((washroom) => (
+                    <div key={washroom.id} className="flex items-center space-x-4 py-2 border-b border-indigo-50">
+                      <Label htmlFor={`margin-${washroom.id}`} className="min-w-32 text-gray-700">
+                        {washroom.name} Margin (%)
+                      </Label>
+                      <Input 
+                        id={`margin-${washroom.id}`} 
+                        type="number" 
+                        min="0" 
+                        max="100" 
+                        step="0.01"
+                        value={localMargins[washroom.id] || 0}
+                        onChange={(e) => handleMarginChange(washroom.id, e.target.value)}
+                        className="max-w-24 border-indigo-200 focus:border-indigo-500 focus:ring-indigo-400"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -179,7 +261,21 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                     </div>
                     
                     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-md shadow-sm border border-indigo-100">
-                      <h4 className="font-medium mb-3 text-indigo-800">Project Summary</h4>
+                      <h4 className="font-medium mb-3 text-indigo-800 flex items-center">
+                        <span>Project Summary</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full ml-1">
+                                <InfoCircle className="h-4 w-4 text-indigo-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm">
+                              <p>Average Margin is the weighted average of margins across all washrooms, calculated as: ((Total With Margin - Total Base Price) / Total Base Price) * 100</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </h4>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="text-sm text-gray-700">Base Price:</div>
                         <div className="text-right font-medium text-gray-800">₹{formatAmount(internalPricingDetails.projectSummary.totalBasePrice)}</div>
