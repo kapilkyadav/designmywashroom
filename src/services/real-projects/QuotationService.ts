@@ -596,7 +596,7 @@ export class QuotationService extends BaseService {
         font-size: 12px;
         margin-bottom: 5px;
         color: #64748b;
-        max-width: 300px;
+        max-width: 349px;
       }
       
       .company-gst {
