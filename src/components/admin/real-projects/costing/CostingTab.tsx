@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { RealProject } from '@/services/real-projects/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -44,11 +43,16 @@ const CostingTab: React.FC<CostingTabProps> = ({ project, onUpdate }) => {
   // Calculate subtotal (execution + product + logistics)
   const subtotal = executionServicesTotal + productCost + logisticsCost;
   
+  // Apply a fixed margin percentage (for consistency with CostSummary component)
+  const marginPercentage = 1.52; // 1.52%
+  const marginAmount = subtotal * (marginPercentage / 100);
+  const priceWithMargin = subtotal + marginAmount;
+  
   // GST is 18% of execution services only (not on product/logistics)
   const gstAmount = executionServicesTotal * 0.18; // 18% GST
   
   // Final total with GST
-  const finalTotal = subtotal + gstAmount;
+  const finalTotal = priceWithMargin + gstAmount;
   
   const removeItem = (id: string, category: string) => {
     if (category === 'execution') {

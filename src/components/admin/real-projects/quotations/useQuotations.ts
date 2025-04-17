@@ -20,6 +20,9 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
   // When false, only base costs (without margins) are used in the client-facing quotation
   const [internalPricingEnabled, setInternalPricingEnabled] = useState(false);
   
+  // Default margin percentage (same as in CostSummary for consistency)
+  const [marginPercentage, setMarginPercentage] = useState(1.52);
+  
   const { data: quotations = [], isLoading, refetch } = useQuery({
     queryKey: ['project-quotations', project.id],
     queryFn: () => RealProjectService.getProjectQuotations(project.id),
@@ -36,9 +39,10 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
         throw new Error('Quotation data not found');
       }
       
-      // Make sure internalPricingEnabled is included in the quotation data
+      // Make sure internalPricingEnabled and marginPercentage are included in the quotation data
       // This flag controls whether margins are applied to the client-facing quotation
       quotationData.internalPricing = internalPricingEnabled;
+      quotationData.marginPercentage = marginPercentage;
       
       const result = await RealProjectService.generateQuotation(
         project.id, 
@@ -139,6 +143,8 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
     setQuotationTerms,
     internalPricingEnabled,
     setInternalPricingEnabled,
+    marginPercentage,
+    setMarginPercentage,
     handleGenerateQuotation,
     viewQuotation,
     downloadAsPdf,

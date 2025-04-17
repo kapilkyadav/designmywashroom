@@ -32,42 +32,42 @@ const CostSummary: React.FC<CostSummaryProps> = ({
   // Calculate subtotal (execution services + product + logistics)
   const subtotal = executionServicesTotal + productCost + logisticsCost;
   
+  // For demo purposes, applying a fixed margin percentage (can be made dynamic later)
+  const marginPercentage = 1.52; // 1.52%
+  const marginAmount = subtotal * (marginPercentage / 100);
+  const priceWithMargin = subtotal + marginAmount;
+  
   // GST is 18% of execution services only (not on product/logistics)
   const gstAmount = executionServicesTotal * 0.18; // 18% GST
   
   return (
     <>
-      <h3 className="text-lg font-medium">Price Summary</h3>
+      <h3 className="text-lg font-medium">Project Summary</h3>
       
       <div className="mt-4 space-y-4">
         <div className="flex justify-between py-2 border-b">
-          <span>Execution Services Cost</span>
-          <span>₹{formatNumber(executionServicesTotal)}</span>
-        </div>
-        
-        <div className="flex justify-between py-2 border-b">
-          <span>Product Cost</span>
-          <span>₹{formatNumber(productCost)}</span>
-        </div>
-        
-        <div className="flex justify-between py-2 border-b">
-          <span>Logistics and Creative Service (7.5%)</span>
-          <span>₹{formatNumber(logisticsCost)}</span>
-        </div>
-        
-        <div className="flex justify-between py-2 border-b">
-          <span>Subtotal (before GST)</span>
+          <span>Base Price:</span>
           <span>₹{formatNumber(subtotal)}</span>
         </div>
         
         <div className="flex justify-between py-2 border-b">
-          <span>GST (18%)</span>
+          <span>Average Margin ({marginPercentage}%):</span>
+          <span>₹{formatNumber(marginAmount)}</span>
+        </div>
+        
+        <div className="flex justify-between py-2 border-b">
+          <span>Price with Margin:</span>
+          <span>₹{formatNumber(priceWithMargin)}</span>
+        </div>
+        
+        <div className="flex justify-between py-2 border-b">
+          <span>GST (18%):</span>
           <span>₹{formatNumber(gstAmount)}</span>
         </div>
         
         <div className="flex justify-between pt-4 font-bold">
-          <span>Total Amount (with GST)</span>
-          <span>₹{formatNumber(grandTotal)}</span>
+          <span>Grand Total:</span>
+          <span>₹{formatNumber(priceWithMargin + gstAmount)}</span>
         </div>
         
         {originalEstimate > 0 && (
@@ -76,6 +76,34 @@ const CostSummary: React.FC<CostSummaryProps> = ({
             <span>₹{formatNumber(originalEstimate)}</span>
           </div>
         )}
+      </div>
+      
+      <div className="mt-6 space-y-4">
+        <div className="text-sm text-muted-foreground">
+          <h4 className="font-medium text-foreground">Cost Breakdown</h4>
+          <div className="mt-2 space-y-1">
+            <div className="flex justify-between">
+              <span>Execution Services:</span>
+              <span>₹{formatNumber(executionTotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Vendor Services:</span>
+              <span>₹{formatNumber(vendorTotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Additional Services:</span>
+              <span>₹{formatNumber(additionalTotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Product Cost:</span>
+              <span>₹{formatNumber(productCost)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Logistics Cost:</span>
+              <span>₹{formatNumber(logisticsCost)}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );
