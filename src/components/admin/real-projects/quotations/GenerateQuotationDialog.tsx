@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -173,7 +172,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
               isCategory: true,
               serviceDetails: category.services,
               applyGst: true,
-              isExecutionService: true, // Mark as execution service explicitly
+              isExecutionService: true,
               isBrandProduct: false,
               isFixture: false
             });
@@ -230,14 +229,26 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
     if (!internalPricingEnabled) return;
     
     try {
-      const details = QuotationService.calculateInternalPricing(
+      const itemsWithMargins = QuotationService.applyMarginsToItems(
         washrooms,
         items,
+        margins
+      );
+      
+      const details = QuotationService.calculateInternalPricing(
+        washrooms,
+        itemsWithMargins,
         margins,
         gstRate
       );
       
+      setQuotationItems(itemsWithMargins);
       setInternalPricingDetails(details);
+      
+      const newTotalAmount = Number(
+        itemsWithMargins.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)
+      );
+      setTotalAmount(newTotalAmount);
     } catch (error) {
       console.error('Error calculating internal pricing:', error);
     }
@@ -249,6 +260,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
     if (enabled) {
       calculateInternalPricing(quotationItems);
     } else {
+      calculateCosts(washrooms);
       setInternalPricingDetails(undefined);
     }
   };

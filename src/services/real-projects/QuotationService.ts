@@ -56,6 +56,14 @@ export class QuotationService extends BaseService {
       
       // Calculate internal pricing if enabled
       if (sanitizedQuotationData.internalPricing) {
+        // Apply margins to execution services
+        sanitizedQuotationData.items = QuotationService.applyMarginsToItems(
+          washrooms || [],
+          sanitizedQuotationData.items,
+          sanitizedQuotationData.margins
+        );
+        
+        // Calculate internal pricing details after applying margins
         sanitizedQuotationData.internalPricingDetails = QuotationService.calculateInternalPricing(
           washrooms || [],
           sanitizedQuotationData.items,
@@ -154,6 +162,81 @@ export class QuotationService extends BaseService {
       });
       return { success: false, quotation: null };
     }
+  }
+  
+  /**
+   * Apply margins to execution service items
+   */
+  static applyMarginsToItems(
+    washrooms: Washroom[],
+    items: any[],
+    margins: Record<string, number>
+  ): any[] {
+    return items.map(item => {
+      const washroomId = item.washroomId;
+      const isExecutionService = item.isExecutionService && !item.isBrandProduct && !item.isFixture;
+      
+      // Only apply margin to execution services
+      if (isExecutionService && washroomId && margins[washroomId]) {
+        const marginPercentage = margins[washroomId];
+        const baseAmount = parseFloat(item.amount) || 0;
+        const marginAmount = baseAmount * (marginPercentage / 100);
+        
+        // Update the amount with margin included
+        return {
+          ...item,
+          baseAmount: baseAmount, // Store original amount for reference
+          amount: baseAmount + marginAmount,
+          appliedMargin: marginPercentage // Store applied margin for reference
+        };
+      }
+      
+      // For items with no washroom ID, check if there's a uniform margin in the margins object
+      if (isExecutionService && !washroomId && margins['uniform']) {
+        const marginPercentage = margins['uniform'];
+        const baseAmount = parseFloat(item.amount) || 0;
+        const marginAmount = baseAmount * (marginPercentage / 100);
+        
+        return {
+          ...item,
+          baseAmount: baseAmount,
+          amount: baseAmount + marginAmount,
+          appliedMargin: marginPercentage
+        };
+      }
+      
+      // For service details with margin, we need to update each service
+      if (isExecutionService && item.serviceDetails && item.serviceDetails.length > 0 && washroomId && margins[washroomId]) {
+        const marginPercentage = margins[washroomId];
+        // Calculate the total with margin for all services
+        let totalWithMargin = 0;
+        
+        const updatedServiceDetails = item.serviceDetails.map((service: any) => {
+          const serviceCost = parseFloat(service.cost) || 0;
+          const serviceMarginAmount = serviceCost * (marginPercentage / 100);
+          const serviceWithMargin = serviceCost + serviceMarginAmount;
+          
+          totalWithMargin += serviceWithMargin;
+          
+          return {
+            ...service,
+            baseCost: serviceCost,
+            cost: serviceWithMargin,
+            appliedMargin: marginPercentage
+          };
+        });
+        
+        return {
+          ...item,
+          baseAmount: parseFloat(item.amount) || 0,
+          amount: totalWithMargin,
+          serviceDetails: updatedServiceDetails,
+          appliedMargin: marginPercentage
+        };
+      }
+      
+      return item;
+    });
   }
   
   /**
@@ -762,15 +845,23 @@ export class QuotationService extends BaseService {
                                 const serviceName = quotationData.serviceDetailsMap[service.serviceId]?.name || service.serviceId;
                                 const categoryName = quotationData.serviceDetailsMap[service.serviceId]?.categoryName || '';
                                 const unit = quotationData.serviceDetailsMap[service.serviceId]?.unit || '';
+                                const serviceCost = parseFloat(service.cost) || 0;
+                                // Use baseCost if available (original cost before margin)
+                                const displayCost = service.baseCost !== undefined ? service.baseCost : serviceCost;
+                                // Use a 20% markup for MRP display if needed
+                                const serviceMrp = displayCost * 1.2;
                                 
                                 return `
                                   <tr>
                                     <td>${categoryName}</td>
                                     <td style="padding-left: 24px;">
                                       • ${serviceName} ${unit ? `(${unit})` : ''}
+                                      ${service.appliedMargin ? 
+                                        `<br/><span style="color: #4338ca; font-size: 0.9em;">Includes ${service.appliedMargin}% margin</span>` : 
+                                        ''}
                                     </td>
-                                    <td style="text-align: right;">₹${formatAmount(service.cost * 1.2)}</td>
-                                    <td style="text-align: right;">₹${formatAmount(service.cost)}</td>
+                                    <td style="text-align: right;">₹${formatAmount(serviceMrp)}</td>
+                                    <td style="text-align: right;">₹${formatAmount(serviceCost)}</td>
                                   </tr>
                                 `;
                               }).join('');
@@ -783,6 +874,9 @@ export class QuotationService extends BaseService {
                                     • ${item.name} ${itemUnit ? `(${itemUnit})` : ''}
                                     ${item.isBrandProduct && discountPercentage > 0 ? 
                                       `<br/><span style="color: #16a34a; font-size: 0.9em;">${discountPercentage}% off</span>` : 
+                                      ''}
+                                    ${item.appliedMargin ? 
+                                      `<br/><span style="color: #4338ca; font-size: 0.9em;">Includes ${item.appliedMargin}% margin</span>` : 
                                       ''}
                                   </td>
                                   <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
@@ -880,7 +974,7 @@ export class QuotationService extends BaseService {
 
     return htmlTemplate;
   }
-
+  
   /**
    * Get all quotations for a project
    */
