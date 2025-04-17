@@ -110,6 +110,12 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
     onMarginsChange(newMargins);
   };
   
+  // Helper to get actual margin percentage used in calculations
+  const getMarginDisplay = (washroomId: string): string => {
+    const marginValue = localMargins[washroomId];
+    return marginValue !== undefined ? marginValue.toFixed(2) : '0.00';
+  };
+  
   return (
     <div className="space-y-4 border p-4 rounded-md bg-gradient-to-br from-purple-50 to-indigo-50">
       <div className="flex items-center justify-between">
@@ -208,7 +214,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                         min="0" 
                         max="100" 
                         step="0.01"
-                        value={localMargins[washroom.id] || 0}
+                        value={localMargins[washroom.id] !== undefined ? localMargins[washroom.id] : 0}
                         onChange={(e) => handleMarginChange(washroom.id, e.target.value)}
                         className="max-w-24 border-indigo-200 focus:border-indigo-500 focus:ring-indigo-400"
                       />
@@ -251,14 +257,14 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                               totalPrice: 0
                             };
                             
-                            // Get the actual user-defined margin percentage directly from localMargins
-                            const userMarginPercentage = localMargins[washroom.id] !== undefined ? localMargins[washroom.id] : 0;
+                            // Display the user-specified margin percentage
+                            const userMarginPercentage = getMarginDisplay(washroom.id);
                             
                             return (
                               <TableRow key={washroom.id} className="hover:bg-indigo-50/30">
                                 <TableCell className="font-medium text-gray-800">{washroom.name}</TableCell>
                                 <TableCell className="text-right text-gray-800">₹{formatAmount(pricing.basePrice)}</TableCell>
-                                <TableCell className="text-right text-gray-800">{userMarginPercentage.toFixed(2)}%</TableCell>
+                                <TableCell className="text-right text-gray-800">{userMarginPercentage}%</TableCell>
                                 <TableCell className="text-right text-gray-800">₹{formatAmount(pricing.priceWithMargin)}</TableCell>
                                 <TableCell className="text-right text-gray-800">₹{formatAmount(pricing.gstAmount)}</TableCell>
                                 <TableCell className="text-right font-medium text-indigo-700">₹{formatAmount(pricing.totalPrice)}</TableCell>
