@@ -271,7 +271,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-sm">
-                              <p>Average Margin is the weighted average of margins across all washrooms, calculated as: ((Total With Margin - Total Base Price) / Total Base Price) * 100</p>
+                              <p>Complete Margin is the total margin amount calculated based on the margin percentages for each washroom's execution services.</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -280,7 +280,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                         <div className="text-sm text-gray-700">Base Price:</div>
                         <div className="text-right font-medium text-gray-800">₹{formatAmount(internalPricingDetails.projectSummary.totalBasePrice)}</div>
                         
-                        <div className="text-sm text-gray-700">Average Margin ({internalPricingDetails.projectSummary.averageMargin.toFixed(2)}%):</div>
+                        <div className="text-sm text-gray-700">Complete Margin ({internalPricingDetails.projectSummary.averageMargin.toFixed(2)}%):</div>
                         <div className="text-right font-medium text-gray-800">₹{formatAmount(internalPricingDetails.projectSummary.totalWithMargin - internalPricingDetails.projectSummary.totalBasePrice)}</div>
                         
                         <div className="text-sm text-gray-700">Price with Margin:</div>

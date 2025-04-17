@@ -46,26 +46,26 @@ const CostSummary: React.FC<CostSummaryProps> = ({
       
       <div className="mt-4 space-y-4">
         <div className="flex justify-between py-2 border-b">
-          <span>Base Price:</span>
-          <span>₹{formatNumber(subtotal)}</span>
+          <span className="text-gray-800">Base Price:</span>
+          <span className="text-gray-800">₹{formatNumber(subtotal)}</span>
         </div>
         
         <div className="flex justify-between py-2 border-b">
-          <span>Average Margin ({marginPercentage}%):</span>
-          <span>₹{formatNumber(marginAmount)}</span>
+          <span className="text-gray-800">Complete Margin ({marginPercentage}%):</span>
+          <span className="text-gray-800">₹{formatNumber(marginAmount)}</span>
         </div>
         
         <div className="flex justify-between py-2 border-b">
-          <span>Price with Margin:</span>
-          <span>₹{formatNumber(priceWithMargin)}</span>
+          <span className="text-gray-800">Price with Margin:</span>
+          <span className="text-gray-800">₹{formatNumber(priceWithMargin)}</span>
         </div>
         
         <div className="flex justify-between py-2 border-b">
-          <span>GST (18%):</span>
-          <span>₹{formatNumber(gstAmount)}</span>
+          <span className="text-gray-800">GST (18%):</span>
+          <span className="text-gray-800">₹{formatNumber(gstAmount)}</span>
         </div>
         
-        <div className="flex justify-between pt-4 font-bold">
+        <div className="flex justify-between pt-4 font-bold text-gray-900">
           <span>Grand Total:</span>
           <span>₹{formatNumber(priceWithMargin + gstAmount)}</span>
         </div>
@@ -83,24 +83,24 @@ const CostSummary: React.FC<CostSummaryProps> = ({
           <h4 className="font-medium text-foreground">Cost Breakdown</h4>
           <div className="mt-2 space-y-1">
             <div className="flex justify-between">
-              <span>Execution Services:</span>
-              <span>₹{formatNumber(executionTotal)}</span>
+              <span className="text-gray-700">Execution Services:</span>
+              <span className="text-gray-700">₹{formatNumber(executionTotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Vendor Services:</span>
-              <span>₹{formatNumber(vendorTotal)}</span>
+              <span className="text-gray-700">Vendor Services:</span>
+              <span className="text-gray-700">₹{formatNumber(vendorTotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Additional Services:</span>
-              <span>₹{formatNumber(additionalTotal)}</span>
+              <span className="text-gray-700">Additional Services:</span>
+              <span className="text-gray-700">₹{formatNumber(additionalTotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Product Cost:</span>
-              <span>₹{formatNumber(productCost)}</span>
+              <span className="text-gray-700">Product Cost:</span>
+              <span className="text-gray-700">₹{formatNumber(productCost)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Logistics Cost:</span>
-              <span>₹{formatNumber(logisticsCost)}</span>
+              <span className="text-gray-700">Logistics Cost:</span>
+              <span className="text-gray-700">₹{formatNumber(logisticsCost)}</span>
             </div>
           </div>
         </div>
