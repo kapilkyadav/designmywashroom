@@ -279,18 +279,25 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                           </Tooltip>
                         </TooltipProvider>
                       </h4>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="text-sm text-gray-700">Base Price:</div>
-                        <div className="text-right font-medium text-gray-800">₹{formatAmount(internalPricingDetails.projectSummary.totalBasePrice)}</div>
+                      <div className="grid grid-cols-2 gap-2 text-gray-800">
+                        {/* Split Base Price into two components */}
+                        <div className="text-sm text-gray-700">Execution Services Base Price:</div>
+                        <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.executionServicesBasePrice || 0)}</div>
+                        
+                        <div className="text-sm text-gray-700">Product & Fixtures Price:</div>
+                        <div className="text-right font-medium">₹{formatAmount((internalPricingDetails.projectSummary.totalBasePrice || 0) - (internalPricingDetails.projectSummary.executionServicesBasePrice || 0))}</div>
+                        
+                        <div className="text-sm text-gray-700 border-t border-indigo-100 pt-1">Total Base Price:</div>
+                        <div className="text-right font-medium border-t border-indigo-100 pt-1">₹{formatAmount(internalPricingDetails.projectSummary.totalBasePrice)}</div>
                         
                         <div className="text-sm text-gray-700">Complete Margin:</div>
-                        <div className="text-right font-medium text-gray-800">₹{formatAmount(internalPricingDetails.projectSummary.totalWithMargin - internalPricingDetails.projectSummary.totalBasePrice)}</div>
+                        <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.totalWithMargin - internalPricingDetails.projectSummary.totalBasePrice)}</div>
                         
                         <div className="text-sm text-gray-700">Price with Margin:</div>
-                        <div className="text-right font-medium text-gray-800">₹{formatAmount(internalPricingDetails.projectSummary.totalWithMargin)}</div>
+                        <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.totalWithMargin)}</div>
                         
                         <div className="text-sm text-gray-700">GST ({gstRate}%):</div>
-                        <div className="text-right font-medium text-gray-800">₹{formatAmount(internalPricingDetails.projectSummary.totalGST)}</div>
+                        <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.totalGST)}</div>
                         
                         <div className="text-sm border-t pt-1 font-semibold text-indigo-900">Grand Total:</div>
                         <div className="text-right border-t pt-1 font-semibold text-indigo-900">₹{formatAmount(internalPricingDetails.projectSummary.grandTotal)}</div>

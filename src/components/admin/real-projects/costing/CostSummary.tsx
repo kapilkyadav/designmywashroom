@@ -46,7 +46,17 @@ const CostSummary: React.FC<CostSummaryProps> = ({
       
       <div className="mt-4 space-y-4">
         <div className="flex justify-between py-2 border-b">
-          <span className="text-gray-800">Base Price:</span>
+          <span className="text-gray-800">Execution Services Base Price:</span>
+          <span className="text-gray-800">₹{formatNumber(executionServicesTotal)}</span>
+        </div>
+        
+        <div className="flex justify-between py-2 border-b">
+          <span className="text-gray-800">Product & Logistics Price:</span>
+          <span className="text-gray-800">₹{formatNumber(productCost + logisticsCost)}</span>
+        </div>
+        
+        <div className="flex justify-between py-2 border-b font-medium">
+          <span className="text-gray-800">Total Base Price:</span>
           <span className="text-gray-800">₹{formatNumber(subtotal)}</span>
         </div>
         

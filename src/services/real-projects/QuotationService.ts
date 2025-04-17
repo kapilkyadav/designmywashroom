@@ -267,6 +267,7 @@ export class QuotationService extends BaseService {
       
       let washroomBasePrice = 0;
       let washroomMarginAmount = 0;
+      let washroomExecutionBasePrice = 0; // Track execution services base price separately
       const itemizedPricing: any[] = [];
       
       // Calculate pricing for each item
@@ -274,6 +275,7 @@ export class QuotationService extends BaseService {
         if (item.isExecutionService && !item.isBrandProduct && !item.isFixture) {
           const itemBasePrice = parseFloat(item.baseAmount || item.amount) || 0;
           totalExecutionBeforeMargin += itemBasePrice;
+          washroomExecutionBasePrice += itemBasePrice; // Add to washroom execution base price
           
           const marginPercentage = margins[washroom.id] || 0;
           const itemMarginAmount = itemBasePrice * (marginPercentage / 100);
@@ -330,6 +332,7 @@ export class QuotationService extends BaseService {
       // Store pricing details for this washroom
       washroomPricing[washroom.id] = {
         basePrice: washroomBasePrice,
+        executionBasePrice: washroomExecutionBasePrice, // Add execution base price to washroom pricing
         marginAmount: washroomMarginAmount,
         marginPercentage: margins[washroom.id] || 0, // Use the exact margin set by user
         priceWithMargin,
@@ -364,6 +367,7 @@ export class QuotationService extends BaseService {
       washroomPricing,
       projectSummary: {
         totalBasePrice: projectTotalBasePrice,
+        executionServicesBasePrice: totalExecutionBeforeMargin, // Add execution services base price to summary
         totalWithMargin: projectTotalWithMargin,
         totalGST: projectTotalGST,
         grandTotal: projectGrandTotal,
