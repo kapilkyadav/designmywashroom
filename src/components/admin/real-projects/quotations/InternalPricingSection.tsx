@@ -25,7 +25,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Washroom } from '@/services/real-projects/types';
 import { Button } from '@/components/ui/button';
-import { InfoCircle } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface InternalPricingProps {
@@ -137,7 +137,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full">
-                        <InfoCircle className="h-4 w-4 text-indigo-600" />
+                        <Info className="h-4 w-4 text-indigo-600" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-sm">
@@ -267,7 +267,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full ml-1">
-                                <InfoCircle className="h-4 w-4 text-indigo-600" />
+                                <Info className="h-4 w-4 text-indigo-600" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-sm">
