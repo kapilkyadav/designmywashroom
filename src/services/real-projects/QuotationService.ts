@@ -331,7 +331,7 @@ export class QuotationService extends BaseService {
       washroomPricing[washroom.id] = {
         basePrice: washroomBasePrice,
         marginAmount: washroomMarginAmount,
-        marginPercentage: washroomBasePrice > 0 ? (washroomMarginAmount / washroomBasePrice) * 100 : 0,
+        marginPercentage: margins[washroom.id] || 0, // Use the exact margin set by user
         priceWithMargin,
         gstableAmount,
         gstPercentage: gstRate,
@@ -353,6 +353,12 @@ export class QuotationService extends BaseService {
       marginDifference: totalExecutionWithMargin - totalExecutionBeforeMargin
     });
 
+    // Calculate the accurate margin percentage from the actual amounts
+    const marginAmount = projectTotalWithMargin - projectTotalBasePrice;
+    const actualMarginPercentage = projectTotalBasePrice > 0 
+      ? (marginAmount / projectTotalBasePrice) * 100 
+      : 0;
+
     // Overall project pricing summary
     return {
       washroomPricing,
@@ -361,9 +367,8 @@ export class QuotationService extends BaseService {
         totalWithMargin: projectTotalWithMargin,
         totalGST: projectTotalGST,
         grandTotal: projectGrandTotal,
-        averageMargin: projectTotalBasePrice > 0 
-          ? ((projectTotalWithMargin - projectTotalBasePrice) / projectTotalBasePrice) * 100 
-          : 0
+        marginAmount: marginAmount,
+        actualMarginPercentage: actualMarginPercentage 
       }
     };
   }

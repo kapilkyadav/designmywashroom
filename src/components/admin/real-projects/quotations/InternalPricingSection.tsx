@@ -227,12 +227,12 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                       <Table>
                         <TableHeader className="bg-indigo-50">
                           <TableRow>
-                            <TableHead>Washroom</TableHead>
-                            <TableHead className="text-right">Base Price</TableHead>
-                            <TableHead className="text-right">Margin %</TableHead>
-                            <TableHead className="text-right">With Margin</TableHead>
-                            <TableHead className="text-right">GST</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
+                            <TableHead className="text-indigo-800">Washroom</TableHead>
+                            <TableHead className="text-right text-indigo-800">Base Price</TableHead>
+                            <TableHead className="text-right text-indigo-800">Margin %</TableHead>
+                            <TableHead className="text-right text-indigo-800">With Margin</TableHead>
+                            <TableHead className="text-right text-indigo-800">GST</TableHead>
+                            <TableHead className="text-right text-indigo-800">Total</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -245,13 +245,16 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                               totalPrice: 0
                             };
                             
+                            // Get the actual user-defined margin percentage directly from localMargins
+                            const userMarginPercentage = localMargins[washroom.id] || 0;
+                            
                             return (
                               <TableRow key={washroom.id} className="hover:bg-indigo-50/30">
-                                <TableCell className="font-medium">{washroom.name}</TableCell>
-                                <TableCell className="text-right">₹{formatAmount(pricing.basePrice)}</TableCell>
-                                <TableCell className="text-right">{pricing.marginPercentage.toFixed(2)}%</TableCell>
-                                <TableCell className="text-right">₹{formatAmount(pricing.priceWithMargin)}</TableCell>
-                                <TableCell className="text-right">₹{formatAmount(pricing.gstAmount)}</TableCell>
+                                <TableCell className="font-medium text-gray-800">{washroom.name}</TableCell>
+                                <TableCell className="text-right text-gray-800">₹{formatAmount(pricing.basePrice)}</TableCell>
+                                <TableCell className="text-right text-gray-800">{userMarginPercentage.toFixed(2)}%</TableCell>
+                                <TableCell className="text-right text-gray-800">₹{formatAmount(pricing.priceWithMargin)}</TableCell>
+                                <TableCell className="text-right text-gray-800">₹{formatAmount(pricing.gstAmount)}</TableCell>
                                 <TableCell className="text-right font-medium text-indigo-700">₹{formatAmount(pricing.totalPrice)}</TableCell>
                               </TableRow>
                             );
@@ -280,7 +283,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                         <div className="text-sm text-gray-700">Base Price:</div>
                         <div className="text-right font-medium text-gray-800">₹{formatAmount(internalPricingDetails.projectSummary.totalBasePrice)}</div>
                         
-                        <div className="text-sm text-gray-700">Complete Margin ({internalPricingDetails.projectSummary.averageMargin.toFixed(2)}%):</div>
+                        <div className="text-sm text-gray-700">Complete Margin:</div>
                         <div className="text-right font-medium text-gray-800">₹{formatAmount(internalPricingDetails.projectSummary.totalWithMargin - internalPricingDetails.projectSummary.totalBasePrice)}</div>
                         
                         <div className="text-sm text-gray-700">Price with Margin:</div>

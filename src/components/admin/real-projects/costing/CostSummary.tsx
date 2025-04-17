@@ -79,7 +79,7 @@ const CostSummary: React.FC<CostSummaryProps> = ({
       </div>
       
       <div className="mt-6 space-y-4">
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-gray-700">
           <h4 className="font-medium text-foreground">Cost Breakdown</h4>
           <div className="mt-2 space-y-1">
             <div className="flex justify-between">
