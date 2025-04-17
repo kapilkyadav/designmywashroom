@@ -78,6 +78,11 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
     }
   }, [washrooms]);
   
+  // Update local margins when prop margins change
+  useEffect(() => {
+    setLocalMargins(margins);
+  }, [margins]);
+  
   const handleMarginChange = (washroomId: string, value: string) => {
     const numValue = parseFloat(value) || 0;
     const newMargins = { ...localMargins, [washroomId]: numValue };
@@ -240,6 +245,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                             const pricing = internalPricingDetails.washroomPricing[washroom.id] || {
                               basePrice: 0,
                               marginPercentage: 0,
+                              marginAmount: 0,
                               priceWithMargin: 0,
                               gstAmount: 0,
                               totalPrice: 0
@@ -291,7 +297,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                         <div className="text-right font-medium border-t border-indigo-100 pt-1">₹{formatAmount(internalPricingDetails.projectSummary.totalBasePrice)}</div>
                         
                         <div className="text-sm text-gray-700">Complete Margin:</div>
-                        <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.totalWithMargin - internalPricingDetails.projectSummary.totalBasePrice)}</div>
+                        <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.marginAmount || 0)}</div>
                         
                         <div className="text-sm text-gray-700">Price with Margin:</div>
                         <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.totalWithMargin)}</div>

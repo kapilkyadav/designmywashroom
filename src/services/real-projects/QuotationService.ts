@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -251,12 +252,14 @@ export class QuotationService extends BaseService {
   ): Record<string, any> {
     let totalExecutionBeforeMargin = 0;
     let totalExecutionWithMargin = 0;
+    let totalExecutionMarginAmount = 0;
 
     const washroomPricing: Record<string, any> = {};
     let projectTotalBasePrice = 0;
     let projectTotalWithMargin = 0;
     let projectTotalGST = 0;
     let projectGrandTotal = 0;
+    let projectTotalMarginAmount = 0;
     
     // Process each washroom
     washrooms.forEach(washroom => {
@@ -274,15 +277,18 @@ export class QuotationService extends BaseService {
       washroomItems.forEach(item => {
         if (item.isExecutionService && !item.isBrandProduct && !item.isFixture) {
           const itemBasePrice = parseFloat(item.baseAmount || item.amount) || 0;
-          totalExecutionBeforeMargin += itemBasePrice;
           washroomExecutionBasePrice += itemBasePrice; // Add to washroom execution base price
+          totalExecutionBeforeMargin += itemBasePrice;
           
+          // Apply margin to execution services
           const marginPercentage = margins[washroom.id] || 0;
           const itemMarginAmount = itemBasePrice * (marginPercentage / 100);
+          totalExecutionMarginAmount += itemMarginAmount;
+          washroomMarginAmount += itemMarginAmount;
           totalExecutionWithMargin += (itemBasePrice + itemMarginAmount);
         }
         
-        const itemBasePrice = parseFloat(item.amount) || 0;
+        const itemBasePrice = parseFloat(item.baseAmount || item.amount) || 0;
         let itemMarginAmount = 0;
         
         // Only apply margin if it's an execution service (not a brand product or fixture)
@@ -294,7 +300,6 @@ export class QuotationService extends BaseService {
         const itemTotalPrice = itemBasePrice + itemMarginAmount;
         
         washroomBasePrice += itemBasePrice;
-        washroomMarginAmount += itemMarginAmount;
         
         itemizedPricing.push({
           itemName: item.name,
@@ -308,12 +313,13 @@ export class QuotationService extends BaseService {
       });
       
       const priceWithMargin = washroomBasePrice + washroomMarginAmount;
+      projectTotalMarginAmount += washroomMarginAmount;
       
       // Apply GST only to items that need GST
       const gstableAmount = washroomItems
         .filter(item => item.applyGst !== false)
         .reduce((sum, item) => {
-          const itemBasePrice = parseFloat(item.amount) || 0;
+          const itemBasePrice = parseFloat(item.baseAmount || item.amount) || 0;
           let itemTotalWithMargin = itemBasePrice;
           
           // Only apply margin to execution services
@@ -332,15 +338,15 @@ export class QuotationService extends BaseService {
       // Store pricing details for this washroom
       washroomPricing[washroom.id] = {
         basePrice: washroomBasePrice,
-        executionBasePrice: washroomExecutionBasePrice, // Add execution base price to washroom pricing
+        executionBasePrice: washroomExecutionBasePrice,
         marginAmount: washroomMarginAmount,
-        marginPercentage: margins[washroom.id] || 0, // Use the exact margin set by user
+        marginPercentage: margins[washroom.id] || 0,
         priceWithMargin,
         gstableAmount,
         gstPercentage: gstRate,
         gstAmount,
         totalPrice,
-        itemizedPricing // Add itemized pricing details
+        itemizedPricing
       };
       
       // Add to project totals
@@ -353,26 +359,24 @@ export class QuotationService extends BaseService {
     console.log('Execution Services Analysis:', {
       beforeMargin: totalExecutionBeforeMargin,
       afterMargin: totalExecutionWithMargin,
-      marginDifference: totalExecutionWithMargin - totalExecutionBeforeMargin
+      marginDifference: totalExecutionWithMargin - totalExecutionBeforeMargin,
+      marginAmount: totalExecutionMarginAmount,
+      appliedMargins: margins
     });
-
-    // Calculate the accurate margin percentage from the actual amounts
-    const marginAmount = projectTotalWithMargin - projectTotalBasePrice;
-    const actualMarginPercentage = projectTotalBasePrice > 0 
-      ? (marginAmount / projectTotalBasePrice) * 100 
-      : 0;
 
     // Overall project pricing summary
     return {
       washroomPricing,
       projectSummary: {
         totalBasePrice: projectTotalBasePrice,
-        executionServicesBasePrice: totalExecutionBeforeMargin, // Add execution services base price to summary
+        executionServicesBasePrice: totalExecutionBeforeMargin,
         totalWithMargin: projectTotalWithMargin,
         totalGST: projectTotalGST,
         grandTotal: projectGrandTotal,
-        marginAmount: marginAmount,
-        actualMarginPercentage: actualMarginPercentage 
+        marginAmount: projectTotalMarginAmount,
+        actualMarginPercentage: totalExecutionBeforeMargin > 0 
+          ? (totalExecutionMarginAmount / totalExecutionBeforeMargin) * 100 
+          : 0
       }
     };
   }
