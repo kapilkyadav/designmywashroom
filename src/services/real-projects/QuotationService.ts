@@ -280,16 +280,25 @@ export class QuotationService extends BaseService {
     let subtotalBeforeGst = 0;
     let gstAmount = 0;
     let totalMrp = 0;
+    
+    // Initialize separate cost categories
+    let totalExecutionServicesCost = 0;
     let totalProductCost = 0;
+    let totalFixturesCost = 0;
     
     // First pass to calculate totals and organize items by category
     const itemsByCategory: Record<string, any[]> = {};
     
     // Process all items together first to calculate global totals
     (quotationData.items || []).forEach((item: any) => {
-      // Track product costs separately
+      // Track different types of costs separately
       if (item.isBrandProduct) {
         totalProductCost += parseFloat(item.amount) || 0;
+      } else if (item.isFixture) {
+        totalFixturesCost += parseFloat(item.amount) || 0;
+      } else {
+        // Execution services (everything else)
+        totalExecutionServicesCost += parseFloat(item.amount) || 0;
       }
       
       // Add to category grouping
@@ -315,6 +324,30 @@ export class QuotationService extends BaseService {
     subtotalBeforeGst += logisticsServiceCharge;
 
     const grandTotal = subtotalBeforeGst + gstAmount;
+
+    // Store all cost details in a structured format for easier access
+    const costBreakdown = {
+      executionServices: {
+        title: "Execution Services",
+        amount: totalExecutionServicesCost,
+        applyGst: true
+      },
+      brandProducts: {
+        title: "Selected Brand Products",
+        amount: totalProductCost,
+        applyGst: false
+      },
+      fixtures: {
+        title: "Fixtures",
+        amount: totalFixturesCost,
+        applyGst: true
+      },
+      logistics: {
+        title: "Logistics and Creative Service (7.5%)",
+        amount: logisticsServiceCharge,
+        applyGst: false
+      }
+    };
 
     const existingStyles = `
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -571,6 +604,19 @@ export class QuotationService extends BaseService {
         font-weight: 600;
         color: #64748b;
       }
+      
+      /* Cost breakdown styles */
+      .cost-category {
+        margin-bottom: 8px;
+      }
+      
+      .cost-category-title {
+        font-weight: 500;
+      }
+      
+      .cost-category-amount {
+        text-align: right;
+      }
     `;
 
     // Replace the existing CSS in the style block with these updates
@@ -771,14 +817,36 @@ export class QuotationService extends BaseService {
         
         <div class="summary-box">
           <h3 class="section-title">Price Summary</h3>
-          <div class="price-row">
-            <span>Product Cost:</span>
-            <span>₹${formatAmount(totalProductCost)}</span>
+          
+          <!-- Detailed cost breakdown by type -->
+          ${costBreakdown.executionServices.amount > 0 ? `
+          <div class="price-row cost-category">
+            <span class="cost-category-title">Execution Services:</span>
+            <span class="cost-category-amount">₹${formatAmount(costBreakdown.executionServices.amount)}</span>
           </div>
-          <div class="price-row">
-            <span>Logistics and Creative Service (7.5%):</span>
-            <span>₹${formatAmount(logisticsServiceCharge)}</span>
+          ` : ''}
+          
+          ${costBreakdown.brandProducts.amount > 0 ? `
+          <div class="price-row cost-category">
+            <span class="cost-category-title">Product Cost:</span>
+            <span class="cost-category-amount">₹${formatAmount(costBreakdown.brandProducts.amount)}</span>
           </div>
+          ` : ''}
+          
+          ${costBreakdown.fixtures.amount > 0 ? `
+          <div class="price-row cost-category">
+            <span class="cost-category-title">Fixtures:</span>
+            <span class="cost-category-amount">₹${formatAmount(costBreakdown.fixtures.amount)}</span>
+          </div>
+          ` : ''}
+          
+          ${costBreakdown.logistics.amount > 0 ? `
+          <div class="price-row cost-category">
+            <span class="cost-category-title">Logistics and Creative Service (7.5%):</span>
+            <span class="cost-category-amount">₹${formatAmount(costBreakdown.logistics.amount)}</span>
+          </div>
+          ` : ''}
+          
           <div class="price-row">
             <span>Subtotal (before GST):</span>
             <span>₹${formatAmount(subtotalBeforeGst)}</span>

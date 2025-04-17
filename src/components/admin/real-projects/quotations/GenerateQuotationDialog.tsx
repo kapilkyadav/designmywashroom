@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { RealProject, RealProjectService } from '@/services/RealProjectService';
 import { QuotationService } from '@/services/real-projects/QuotationService';
+import { FixtureService } from '@/services/FixtureService';
 import InternalPricingSection from './InternalPricingSection';
 
 interface GenerateQuotationDialogProps {
@@ -87,6 +88,34 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
       const items: any[] = [];
       const serviceCategories: Record<string, any> = {};
       
+      // Load fixtures if available in the project
+      const fixtures: any[] = [];
+      if (project.selected_fixtures) {
+        try {
+          // Fetch fixture details
+          const fixtureIds = Object.keys(project.selected_fixtures || {}).filter(id => 
+            project.selected_fixtures?.[id] === true
+          );
+          
+          if (fixtureIds.length > 0) {
+            const fixtureDetails = await FixtureService.getFixturesByIds(fixtureIds);
+            
+            fixtureDetails.forEach(fixture => {
+              fixtures.push({
+                id: fixture.id,
+                name: fixture.name,
+                category: fixture.category,
+                mrp: fixture.mrp,
+                amount: fixture.client_price > 0 ? fixture.client_price : fixture.mrp * 0.9,
+                isFixture: true
+              });
+            });
+          }
+        } catch (error) {
+          console.error('Error loading fixtures:', error);
+        }
+      }
+      
       washroomData.forEach(washroom => {
         if (washroom.services) {
           Object.entries(washroom.services).forEach(([serviceId, isSelected]) => {
@@ -147,7 +176,8 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
               amount: category.totalAmount,
               isCategory: true,
               serviceDetails: category.services,
-              applyGst: true // Apply GST to execution services
+              applyGst: true, // Apply GST to execution services
+              isExecutionService: true // Mark as execution service
             });
           }
         });
@@ -161,10 +191,23 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
               description: `Complete set of ${washroom.selected_brand} products for ${washroom.name}`,
               mrp: brandCost * 1.2,
               amount: brandCost,
+              isBrandProduct: true, // Mark as brand product
               applyGst: false // Don't apply GST to product costs as they already include tax
             });
           }
         }
+      });
+      
+      // Add fixtures to the items array
+      fixtures.forEach(fixture => {
+        items.push({
+          name: fixture.name,
+          description: `${fixture.category} - ${fixture.name}`,
+          mrp: fixture.mrp,
+          amount: fixture.amount,
+          isFixture: true, // Mark as fixture
+          applyGst: true // Apply GST to fixtures
+        });
       });
       
       const calculatedTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
@@ -258,6 +301,37 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
                   <h3 className="text-lg font-medium mb-2">Quotation Summary</h3>
                   <p>Total items: {quotationItems.length}</p>
                   <p>Total amount: ₹{totalAmount.toLocaleString('en-IN')}</p>
+                  
+                  {/* Show cost breakdown by type */}
+                  <div className="mt-4 p-4 bg-gray-50 rounded-md">
+                    <h4 className="text-md font-medium mb-2">Cost Breakdown</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Execution Services:</span>
+                        <span>₹{quotationItems
+                          .filter(item => item.isExecutionService)
+                          .reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
+                          .toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Brand Products:</span>
+                        <span>₹{quotationItems
+                          .filter(item => item.isBrandProduct)
+                          .reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
+                          .toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Fixtures:</span>
+                        <span>₹{quotationItems
+                          .filter(item => item.isFixture)
+                          .reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
+                          .toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
                 <div>
