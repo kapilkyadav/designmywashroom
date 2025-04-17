@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -106,7 +107,8 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
                 category: fixture.category,
                 mrp: fixture.mrp,
                 amount: fixture.client_price > 0 ? fixture.client_price : fixture.mrp * 0.9,
-                isFixture: true
+                isFixture: true,
+                applyGst: true
               });
             });
           }
@@ -171,7 +173,9 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
               isCategory: true,
               serviceDetails: category.services,
               applyGst: true,
-              isExecutionService: true
+              isExecutionService: true, // Mark as execution service explicitly
+              isBrandProduct: false,
+              isFixture: false
             });
           }
         });
@@ -186,6 +190,8 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
               mrp: Number((brandCost * 1.2).toFixed(2)),
               amount: Number(brandCost.toFixed(2)),
               isBrandProduct: true,
+              isExecutionService: false,
+              isFixture: false,
               applyGst: false
             });
           }
@@ -199,6 +205,8 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
           mrp: Number(fixture.mrp.toFixed(2)),
           amount: Number(fixture.amount.toFixed(2)),
           isFixture: true,
+          isExecutionService: false,
+          isBrandProduct: false,
           applyGst: true
         });
       });

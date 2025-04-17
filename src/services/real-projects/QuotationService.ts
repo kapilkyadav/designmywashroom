@@ -188,8 +188,8 @@ export class QuotationService extends BaseService {
         const itemBasePrice = parseFloat(item.amount) || 0;
         let itemMarginAmount = 0;
         
-        // Only apply margin if it's a service (not a brand product)
-        if (!item.isBrandProduct && item.serviceDetails) {
+        // Only apply margin if it's an execution service (not a brand product or fixture)
+        if (item.isExecutionService && !item.isBrandProduct && !item.isFixture) {
           const marginPercentage = margins[washroom.id] || 0;
           itemMarginAmount = itemBasePrice * (marginPercentage / 100);
         }
@@ -204,7 +204,9 @@ export class QuotationService extends BaseService {
           basePrice: itemBasePrice,
           marginAmount: itemMarginAmount,
           totalPrice: itemTotalPrice,
-          isBrandProduct: item.isBrandProduct || false
+          isBrandProduct: item.isBrandProduct || false,
+          isFixture: item.isFixture || false,
+          isExecutionService: item.isExecutionService || false
         });
       });
       
@@ -217,8 +219,8 @@ export class QuotationService extends BaseService {
           const itemBasePrice = parseFloat(item.amount) || 0;
           let itemTotalWithMargin = itemBasePrice;
           
-          // Only apply margin to non-brand products
-          if (!item.isBrandProduct && item.serviceDetails) {
+          // Only apply margin to execution services
+          if (item.isExecutionService && !item.isBrandProduct && !item.isFixture) {
             const marginPercentage = margins[washroom.id] || 0;
             const itemMarginAmount = itemBasePrice * (marginPercentage / 100);
             itemTotalWithMargin += itemMarginAmount;
