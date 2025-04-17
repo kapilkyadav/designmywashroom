@@ -249,6 +249,9 @@ export class QuotationService extends BaseService {
     margins: Record<string, number>,
     gstRate: number
   ): Record<string, any> {
+    let totalExecutionBeforeMargin = 0;
+    let totalExecutionWithMargin = 0;
+
     const washroomPricing: Record<string, any> = {};
     let projectTotalBasePrice = 0;
     let projectTotalWithMargin = 0;
@@ -268,6 +271,15 @@ export class QuotationService extends BaseService {
       
       // Calculate pricing for each item
       washroomItems.forEach(item => {
+        if (item.isExecutionService && !item.isBrandProduct && !item.isFixture) {
+          const itemBasePrice = parseFloat(item.baseAmount || item.amount) || 0;
+          totalExecutionBeforeMargin += itemBasePrice;
+          
+          const marginPercentage = margins[washroom.id] || 0;
+          const itemMarginAmount = itemBasePrice * (marginPercentage / 100);
+          totalExecutionWithMargin += (itemBasePrice + itemMarginAmount);
+        }
+        
         const itemBasePrice = parseFloat(item.amount) || 0;
         let itemMarginAmount = 0;
         
@@ -334,7 +346,13 @@ export class QuotationService extends BaseService {
       projectTotalGST += gstAmount;
       projectGrandTotal += totalPrice;
     });
-    
+
+    console.log('Execution Services Analysis:', {
+      beforeMargin: totalExecutionBeforeMargin,
+      afterMargin: totalExecutionWithMargin,
+      marginDifference: totalExecutionWithMargin - totalExecutionBeforeMargin
+    });
+
     // Overall project pricing summary
     return {
       washroomPricing,
@@ -855,197 +873,3 @@ export class QuotationService extends BaseService {
                                   <tr>
                                     <td>${categoryName}</td>
                                     <td style="padding-left: 24px;">
-                                      • ${serviceName} ${unit ? `(${unit})` : ''}
-                                      ${service.appliedMargin ? 
-                                        `<br/><span style="color: #4338ca; font-size: 0.9em;">Includes ${service.appliedMargin}% margin</span>` : 
-                                        ''}
-                                    </td>
-                                    <td style="text-align: right;">₹${formatAmount(serviceMrp)}</td>
-                                    <td style="text-align: right;">₹${formatAmount(serviceCost)}</td>
-                                  </tr>
-                                `;
-                              }).join('');
-                            } else {
-                              // Brand products
-                              return `
-                                <tr>
-                                  <td>${item.description || ''}</td>
-                                  <td style="padding-left: 24px;">
-                                    • ${item.name} ${itemUnit ? `(${itemUnit})` : ''}
-                                    ${item.isBrandProduct && discountPercentage > 0 ? 
-                                      `<br/><span style="color: #16a34a; font-size: 0.9em;">${discountPercentage}% off</span>` : 
-                                      ''}
-                                    ${item.appliedMargin ? 
-                                      `<br/><span style="color: #4338ca; font-size: 0.9em;">Includes ${item.appliedMargin}% margin</span>` : 
-                                      ''}
-                                  </td>
-                                  <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
-                                  <td style="text-align: right;">₹${formatAmount(itemAmount)}</td>
-                                </tr>
-                              `;
-                            }
-                          }).join('')}
-                          <tr>
-                            <td colspan="2" style="text-align: right; font-weight: 500;">Category Total:</td>
-                            <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryMrp)}</td>
-                            <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryTotal)}</td>
-                          </tr>
-                        `;
-                      }).join('')}
-                    </tbody>
-                  </table>
-                  
-                  <div class="price-box">
-                    <div class="price-row">
-                      <span>Total MRP:</span>
-                      <span>₹${formatAmount(totalMrp)}</span>
-                    </div>
-                    <div class="price-row total">
-                      <span>YDS Special Price (before GST):</span>
-                      <span>₹${formatAmount(subtotalBeforeGst)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-        
-        <div class="summary-box">
-          <h3 class="section-title">Price Summary</h3>
-          
-          <!-- Detailed cost breakdown by type -->
-          ${costBreakdown.executionServices.amount > 0 ? `
-          <div class="price-row cost-category">
-            <span class="cost-category-title">Execution Services:</span>
-            <span class="cost-category-amount">₹${formatAmount(costBreakdown.executionServices.amount)}</span>
-          </div>
-          ` : ''}
-          
-          ${costBreakdown.brandProducts.amount > 0 ? `
-          <div class="price-row cost-category">
-            <span class="cost-category-title">Product Cost:</span>
-            <span class="cost-category-amount">₹${formatAmount(costBreakdown.brandProducts.amount)}</span>
-          </div>
-          ` : ''}
-          
-          ${costBreakdown.fixtures.amount > 0 ? `
-          <div class="price-row cost-category">
-            <span class="cost-category-title">Fixtures:</span>
-            <span class="cost-category-amount">₹${formatAmount(costBreakdown.fixtures.amount)}</span>
-          </div>
-          ` : ''}
-          
-          ${costBreakdown.logistics.amount > 0 ? `
-          <div class="price-row cost-category">
-            <span class="cost-category-title">Logistics and Creative Service (7.5%):</span>
-            <span class="cost-category-amount">₹${formatAmount(costBreakdown.logistics.amount)}</span>
-          </div>
-          ` : ''}
-          
-          <div class="price-row">
-            <span>Subtotal (before GST):</span>
-            <span>₹${formatAmount(subtotalBeforeGst)}</span>
-          </div>
-          <div class="price-row">
-            <span>GST (${quotationData.gstRate || 18}%):</span>
-            <span>₹${formatAmount(gstAmount)}</span>
-          </div>
-          <div class="price-row total">
-            <span>Total Amount (with GST):</span>
-            <span>₹${formatAmount(grandTotal)}</span>
-          </div>
-        </div>
-        
-        <div class="terms-section" style="margin-top: 30px;">
-          <h3 class="section-title">Terms & Conditions</h3>
-          <div>${quotationData.terms || 'Standard terms and conditions apply.'}</div>
-        </div>
-        
-        <div class="footer">
-          <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="Your Dream Space Logo" />
-          <p>This is a computer-generated quotation and doesn't require a signature.</p>
-          <p>Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-
-    return htmlTemplate;
-  }
-  
-  /**
-   * Get all quotations for a project
-   */
-  static async getProjectQuotations(projectId: string): Promise<ProjectQuotation[]> {
-    try {
-      const { data, error } = await supabase
-        .from('project_quotations')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      return data as ProjectQuotation[];
-    } catch (error: any) {
-      console.error('Error fetching quotations:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch quotations",
-        variant: "destructive",
-      });
-      return [];
-    }
-  }
-  
-  /**
-   * Get a single quotation by ID
-   */
-  static async getQuotation(quotationId: string): Promise<ProjectQuotation | null> {
-    try {
-      const { data, error } = await supabase
-        .from('project_quotations')
-        .select('*')
-        .eq('id', quotationId)
-        .single();
-      
-      if (error) throw error;
-      
-      return data as ProjectQuotation;
-    } catch (error: any) {
-      console.error('Error fetching quotation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch quotation",
-        variant: "destructive",
-      });
-      return null;
-    }
-  }
-
-  /**
-   * Delete a quotation by ID
-   */
-  static async deleteQuotation(quotationId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('project_quotations')
-        .delete()
-        .eq('id', quotationId);
-      
-      if (error) throw error;
-      
-      return true;
-    } catch (error: any) {
-      console.error('Error deleting quotation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete quotation",
-        variant: "destructive",
-      });
-      return false;
-    }
-  }
-}
