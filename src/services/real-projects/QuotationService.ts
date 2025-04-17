@@ -275,7 +275,8 @@ export class QuotationService extends BaseService {
       return isNaN(numValue) ? '0' : numValue.toLocaleString('en-IN');
     };
     
-    // Calculate subtotals and GST
+    // Calculate subtotals, product cost, and other values outside of washroom loops
+    // This ensures all items are included regardless of washroom association
     let subtotalBeforeGst = 0;
     let gstAmount = 0;
     let totalMrp = 0;
@@ -284,34 +285,29 @@ export class QuotationService extends BaseService {
     // First pass to calculate totals and organize items by category
     const itemsByCategory: Record<string, any[]> = {};
     
-    for (const washroom of washrooms) {
-      const washroomItems = (quotationData.items || []).filter((item: any) => 
-        item.washroomId === washroom.id || !item.washroomId
-      );
+    // Process all items together first to calculate global totals
+    (quotationData.items || []).forEach((item: any) => {
+      // Track product costs separately
+      if (item.isBrandProduct) {
+        totalProductCost += parseFloat(item.amount) || 0;
+      }
       
-      washroomItems.forEach((item: any) => {
-        // Track product costs separately
-        if (item.isBrandProduct) {
-          totalProductCost += parseFloat(item.amount) || 0;
-        }
-        
-        // Add to category grouping
-        const category = item.serviceDetails?.[0]?.categoryName || 'General';
-        if (!itemsByCategory[category]) {
-          itemsByCategory[category] = [];
-        }
-        itemsByCategory[category].push(item);
-        
-        subtotalBeforeGst += parseFloat(item.amount) || 0;
-        totalMrp += parseFloat(item.mrp) || 0;
+      // Add to category grouping
+      const category = item.serviceDetails?.[0]?.categoryName || 'General';
+      if (!itemsByCategory[category]) {
+        itemsByCategory[category] = [];
+      }
+      itemsByCategory[category].push(item);
+      
+      subtotalBeforeGst += parseFloat(item.amount) || 0;
+      totalMrp += parseFloat(item.mrp) || 0;
 
-        // Only apply GST to items marked as applying GST (execution services)
-        if (item.applyGst !== false) {
-          const amountForGst = parseFloat(item.amount) || 0;
-          gstAmount += amountForGst * (quotationData.gstRate || 18) / 100;
-        }
-      });
-    }
+      // Only apply GST to items marked as applying GST (execution services)
+      if (item.applyGst !== false) {
+        const amountForGst = parseFloat(item.amount) || 0;
+        gstAmount += amountForGst * (quotationData.gstRate || 18) / 100;
+      }
+    });
 
     // Calculate logistics and creative service charge (7.5% of product cost)
     const logisticsServiceCharge = totalProductCost * 0.075;
@@ -694,6 +690,10 @@ export class QuotationService extends BaseService {
                         const washroomItems = items.filter(item => item.washroomId === washroom.id);
                         const categoryTotal = washroomItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
                         const categoryMrp = washroomItems.reduce((sum, item) => sum + (parseFloat(item.mrp) || 0), 0);
+                        
+                        if (washroomItems.length === 0) {
+                          return ''; // Skip categories with no items for this washroom
+                        }
                         
                         return `
                           <tr>
