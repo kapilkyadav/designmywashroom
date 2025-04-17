@@ -46,8 +46,9 @@ export class QuotationService extends BaseService {
           ...item,
           amount: parseFloat(item.amount) || 0
         })),
+        // Add internal pricing data if provided
         margins: quotationData.margins || {},
-        gstRate: quotationData.gstRate || 18,
+        gstRate: quotationData.gstRate || 18, // Default 18% GST
         internalPricing: quotationData.internalPricing || false,
         internalPricingDetails: quotationData.internalPricingDetails || undefined,
         serviceDetailsMap: quotationData.serviceDetailsMap || {}
@@ -55,24 +56,20 @@ export class QuotationService extends BaseService {
       
       // Calculate internal pricing if enabled
       if (sanitizedQuotationData.internalPricing) {
-        // Apply margins to execution services - only for internal pricing calculation, not client-facing
-        const itemsWithMargins = QuotationService.applyMarginsToItems(
+        // Apply margins to execution services
+        sanitizedQuotationData.items = QuotationService.applyMarginsToItems(
           washrooms || [],
           sanitizedQuotationData.items,
           sanitizedQuotationData.margins
         );
         
-        // Important: For internal pricing details only, don't modify the original items
+        // Calculate internal pricing details after applying margins
         sanitizedQuotationData.internalPricingDetails = QuotationService.calculateInternalPricing(
           washrooms || [],
-          itemsWithMargins, // Use the items with margins only for calculations
+          sanitizedQuotationData.items,
           sanitizedQuotationData.margins,
           sanitizedQuotationData.gstRate
         );
-        
-        // Don't update the actual items with margins for client-facing quotation
-        // Remove this line to prevent the margin from affecting the client quotation
-        // sanitizedQuotationData.items = itemsWithMargins;
       }
       
       // Fetch all service details to get names
@@ -105,7 +102,7 @@ export class QuotationService extends BaseService {
       // Add service names to the quotation data for easier access in the HTML generation
       sanitizedQuotationData.serviceDetailsMap = serviceDetailsMap;
       
-      // Generate HTML for the quotation with washroom details - using original items without margins for client view
+      // Generate HTML for the quotation with washroom details
       const quotationHtml = await QuotationService.generateQuotationHtml(project, sanitizedQuotationData, washrooms || []);
       
       // Get the current count of quotations for this project to create a unique sequence number
@@ -168,18 +165,14 @@ export class QuotationService extends BaseService {
   }
   
   /**
-   * Apply margins to execution service items - FOR INTERNAL PRICING ONLY
-   * This doesn't affect the client-facing quotation
+   * Apply margins to execution service items
    */
   static applyMarginsToItems(
     washrooms: Washroom[],
     items: any[],
     margins: Record<string, number>
   ): any[] {
-    // Create a deep copy of items to avoid modifying the original
-    const itemsCopy = JSON.parse(JSON.stringify(items));
-    
-    return itemsCopy.map(item => {
+    return items.map(item => {
       const washroomId = item.washroomId;
       const isExecutionService = item.isExecutionService && !item.isBrandProduct && !item.isFixture;
       
@@ -354,14 +347,13 @@ export class QuotationService extends BaseService {
       projectGrandTotal += totalPrice;
     });
 
-    console.log('Execution Services Analysis (INTERNAL ONLY):', {
+    console.log('Execution Services Analysis:', {
       beforeMargin: totalExecutionBeforeMargin,
       afterMargin: totalExecutionWithMargin,
-      marginDifference: totalExecutionWithMargin - totalExecutionBeforeMargin,
-      note: 'These margins are for internal calculation only and do not affect client quotation'
+      marginDifference: totalExecutionWithMargin - totalExecutionBeforeMargin
     });
 
-    // Overall project pricing summary (for internal reference only)
+    // Overall project pricing summary
     return {
       washroomPricing,
       projectSummary: {
@@ -378,7 +370,6 @@ export class QuotationService extends BaseService {
   
   /**
    * Helper function to generate HTML for quotation
-   * This uses the original pricing without margins for client-facing quotation
    */
   static async generateQuotationHtml(project: RealProject, quotationData: Record<string, any>, washrooms: Washroom[]): Promise<string> {
     const formatAmount = (value: any): string => {
