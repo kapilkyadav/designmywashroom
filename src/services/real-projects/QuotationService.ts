@@ -178,7 +178,7 @@ export class QuotationService extends BaseService {
       const isExecutionService = item.isExecutionService && !item.isBrandProduct && !item.isFixture;
       
       // Only apply margin to execution services
-      if (isExecutionService && washroomId && margins[washroomId]) {
+      if (isExecutionService && washroomId && margins[washroomId] !== undefined) {
         const marginPercentage = margins[washroomId];
         const baseAmount = parseFloat(item.amount) || 0;
         const marginAmount = baseAmount * (marginPercentage / 100);
@@ -207,7 +207,7 @@ export class QuotationService extends BaseService {
       }
       
       // For service details with margin, we need to update each service
-      if (isExecutionService && item.serviceDetails && item.serviceDetails.length > 0 && washroomId && margins[washroomId]) {
+      if (isExecutionService && item.serviceDetails && item.serviceDetails.length > 0 && washroomId && margins[washroomId] !== undefined) {
         const marginPercentage = margins[washroomId];
         // Calculate the total with margin for all services
         let totalWithMargin = 0;
@@ -275,31 +275,34 @@ export class QuotationService extends BaseService {
       
       // Calculate pricing for each item
       washroomItems.forEach(item => {
+        // Track base amounts for all items
+        const itemBasePrice = parseFloat(item.baseAmount || item.amount) || 0;
+        washroomBasePrice += itemBasePrice;
+        
+        // For execution services, track margin separately
         if (item.isExecutionService && !item.isBrandProduct && !item.isFixture) {
-          const itemBasePrice = parseFloat(item.baseAmount || item.amount) || 0;
           washroomExecutionBasePrice += itemBasePrice; // Add to washroom execution base price
           totalExecutionBeforeMargin += itemBasePrice;
           
-          // Apply margin to execution services
-          const marginPercentage = margins[washroom.id] || 0;
+          // Calculate margin amount based on margin percentage for this washroom
+          const marginPercentage = margins[washroom.id] !== undefined ? margins[washroom.id] : 0;
           const itemMarginAmount = itemBasePrice * (marginPercentage / 100);
-          totalExecutionMarginAmount += itemMarginAmount;
+          
           washroomMarginAmount += itemMarginAmount;
+          totalExecutionMarginAmount += itemMarginAmount;
           totalExecutionWithMargin += (itemBasePrice + itemMarginAmount);
         }
         
-        const itemBasePrice = parseFloat(item.baseAmount || item.amount) || 0;
+        // Calculate item-specific pricing details for the itemized breakdown
         let itemMarginAmount = 0;
         
         // Only apply margin if it's an execution service (not a brand product or fixture)
         if (item.isExecutionService && !item.isBrandProduct && !item.isFixture) {
-          const marginPercentage = margins[washroom.id] || 0;
+          const marginPercentage = margins[washroom.id] !== undefined ? margins[washroom.id] : 0;
           itemMarginAmount = itemBasePrice * (marginPercentage / 100);
         }
         
         const itemTotalPrice = itemBasePrice + itemMarginAmount;
-        
-        washroomBasePrice += itemBasePrice;
         
         itemizedPricing.push({
           itemName: item.name,
@@ -324,7 +327,7 @@ export class QuotationService extends BaseService {
           
           // Only apply margin to execution services
           if (item.isExecutionService && !item.isBrandProduct && !item.isFixture) {
-            const marginPercentage = margins[washroom.id] || 0;
+            const marginPercentage = margins[washroom.id] !== undefined ? margins[washroom.id] : 0;
             const itemMarginAmount = itemBasePrice * (marginPercentage / 100);
             itemTotalWithMargin += itemMarginAmount;
           }
@@ -340,7 +343,7 @@ export class QuotationService extends BaseService {
         basePrice: washroomBasePrice,
         executionBasePrice: washroomExecutionBasePrice,
         marginAmount: washroomMarginAmount,
-        marginPercentage: margins[washroom.id] || 0,
+        marginPercentage: margins[washroom.id] !== undefined ? margins[washroom.id] : 0,
         priceWithMargin,
         gstableAmount,
         gstPercentage: gstRate,

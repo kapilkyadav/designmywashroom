@@ -252,7 +252,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                             };
                             
                             // Get the actual user-defined margin percentage directly from localMargins
-                            const userMarginPercentage = localMargins[washroom.id] || 0;
+                            const userMarginPercentage = localMargins[washroom.id] !== undefined ? localMargins[washroom.id] : 0;
                             
                             return (
                               <TableRow key={washroom.id} className="hover:bg-indigo-50/30">
