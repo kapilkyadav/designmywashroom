@@ -87,6 +87,11 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
     const newMargins = { ...localMargins, [washroomId]: numValue };
     setLocalMargins(newMargins);
     onMarginsChange(newMargins);
+    
+    // Force recalculation when margins change
+    if (internalPricing) {
+      calculateInternalPricing(washrooms);
+    }
   };
 
   const handleGstRateChange = (value: string) => {
