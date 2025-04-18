@@ -45,14 +45,14 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
   const [loading, setLoading] = useState(false);
   const [quotationItems, setQuotationItems] = useState<any[]>([]);
   const [totalAmount, setTotalAmount] = useState(0);
-  
+
   const [margins, setMargins] = useState<Record<string, number>>(() => {
     const initialMargins: Record<string, number> = {};
     washrooms.forEach(w => { initialMargins[w.id] = 0 });
     return initialMargins;
   });
   const [gstRate, setGstRate] = useState(18);
-  
+
   // Initialize margins when washrooms change
   useEffect(() => {
     const newMargins = { ...margins };
@@ -64,23 +64,23 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
     setMargins(newMargins);
   }, [washrooms]);
   const [internalPricingDetails, setInternalPricingDetails] = useState<Record<string, any> | undefined>(undefined);
-  
+
   useEffect(() => {
     if (open && project.id) {
       loadWashrooms();
     }
   }, [open, project.id]);
-  
+
   const loadWashrooms = async () => {
     setLoading(true);
     try {
       const washroomData = await RealProjectService.getProjectWashrooms(project.id);
       setWashrooms(washroomData);
-      
+
       const initialMargins: Record<string, number> = {};
       washroomData.forEach(w => { initialMargins[w.id] = 0 });
       setMargins(initialMargins);
-      
+
       await calculateCosts(washroomData);
     } catch (error) {
       console.error('Error loading washrooms:', error);
@@ -88,7 +88,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
       setLoading(false);
     }
   };
-  
+
   const calculateCosts = async (washroomData: any[]) => {
     try {
       const executionCosts = {};
@@ -97,23 +97,23 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
         washroomData,
         executionCosts
       );
-      
+
       const items: any[] = [];
       const serviceCategories: Record<string, any> = {};
-      
+
       const fixtures: any[] = [];
-      
+
       if (project.project_details && project.project_details.selected_fixtures) {
         try {
           const fixtureIds = Object.keys(project.project_details.selected_fixtures || {}).filter(id => 
             project.project_details?.selected_fixtures?.[id] === true
           );
-          
+
           if (fixtureIds.length > 0) {
             const fixtureDetails = await Promise.all(
               fixtureIds.map(id => FixtureService.getFixtureById(id))
             );
-            
+
             fixtureDetails.forEach(fixture => {
               fixtures.push({
                 id: fixture.id,
@@ -130,7 +130,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
           console.error('Error loading fixtures:', error);
         }
       }
-      
+
       washroomData.forEach(washroom => {
         if (washroom.services) {
           Object.entries(washroom.services).forEach(([serviceId, isSelected]) => {
@@ -138,10 +138,10 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
               const serviceRate = costData.service_rates[serviceId] || 0;
               const measurementUnit = costData.service_measurements[serviceId] || '';
               const serviceDetails = costData.service_details?.[serviceId] || {};
-              
+
               const serviceName = serviceDetails.name || `Service ${serviceId}`;
               const serviceCategory = serviceDetails.category || 'General';
-              
+
               if (!serviceCategories[serviceCategory]) {
                 serviceCategories[serviceCategory] = {
                   washroomId: washroom.id,
@@ -152,7 +152,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
                   isCategory: true
                 };
               }
-              
+
               let serviceCost = serviceRate;
               if (
                 measurementUnit.toLowerCase().includes('sqft') || 
@@ -163,19 +163,19 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
                 const area = washroom.length * washroom.width;
                 serviceCost = Number((serviceRate * area).toFixed(2));
               }
-              
+
               serviceCategories[serviceCategory].services.push({
                 serviceId,
                 name: serviceName,
                 cost: serviceCost,
                 unit: measurementUnit
               });
-              
+
               serviceCategories[serviceCategory].totalAmount += serviceCost;
             }
           });
         }
-        
+
         Object.values(serviceCategories).forEach((category: any) => {
           if (category.totalAmount > 0) {
             items.push({
@@ -193,7 +193,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
             });
           }
         });
-        
+
         if (washroom.selected_brand) {
           const brandCost = costData.washroom_costs[washroom.id]?.productCosts || 0;
           if (brandCost > 0) {
@@ -211,7 +211,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
           }
         }
       });
-      
+
       fixtures.forEach(fixture => {
         items.push({
           name: fixture.name,
@@ -224,14 +224,14 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
           applyGst: true
         });
       });
-      
+
       const calculatedTotal = Number(
         items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)
       );
-      
+
       setQuotationItems(items);
       setTotalAmount(calculatedTotal);
-      
+
       if (internalPricingEnabled) {
         calculateInternalPricing(items);
       }
@@ -239,27 +239,27 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
       console.error('Error calculating costs:', error);
     }
   };
-  
+
   const calculateInternalPricing = (items: any[]) => {
     if (!internalPricingEnabled) return;
-    
+
     try {
       const itemsWithMargins = QuotationService.applyMarginsToItems(
         washrooms,
         items,
         margins
       );
-      
+
       const details = QuotationService.calculateInternalPricing(
         washrooms,
         itemsWithMargins,
         margins,
         gstRate
       );
-      
+
       setQuotationItems(itemsWithMargins);
       setInternalPricingDetails(details);
-      
+
       const newTotalAmount = Number(
         itemsWithMargins.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)
       );
@@ -268,10 +268,10 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
       console.error('Error calculating internal pricing:', error);
     }
   };
-  
+
   const handleInternalPricingToggle = (enabled: boolean) => {
     onInternalPricingChange(enabled);
-    
+
     if (enabled) {
       calculateInternalPricing(quotationItems);
     } else {
@@ -279,7 +279,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
       setInternalPricingDetails(undefined);
     }
   };
-  
+
   const handleMarginsChange = (newMargins: Record<string, number>) => {
     setMargins(newMargins);
     if (internalPricingEnabled && washrooms.length > 0) {
@@ -288,29 +288,29 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
         quotationItems,
         newMargins
       );
-      
+
       const details = QuotationService.calculateInternalPricing(
         washrooms,
         itemsWithMargins,
         newMargins,
         gstRate
       );
-      
+
       setQuotationItems(itemsWithMargins);
       setInternalPricingDetails(details);
-      
+
       const newTotalAmount = Number(
         itemsWithMargins.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)
       );
       setTotalAmount(newTotalAmount);
     }
   };
-  
+
   const handleGstRateChange = (rate: number) => {
     setGstRate(rate);
     calculateInternalPricing(quotationItems);
   };
-  
+
   const handleSubmit = () => {
     (window as any).currentQuotationData = {
       items: quotationItems,
@@ -321,10 +321,10 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
       gstRate,
       internalPricingDetails
     };
-    
+
     onGenerateQuotation();
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -334,7 +334,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
             Create a detailed quotation for this project to share with the client.
           </DialogDescription>
         </DialogHeader>
-        
+
         {loading ? (
           <div className="flex justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -345,14 +345,14 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="internal">Internal Pricing</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="general">
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-medium mb-2">Quotation Summary</h3>
                   <p>Total items: {quotationItems.length}</p>
                   <p>Total amount: ₹{totalAmount.toLocaleString('en-IN')}</p>
-                  
+
                   <div className="mt-4 p-4 bg-gray-50 rounded-md">
                     <h4 className="text-md font-medium mb-2">Cost Breakdown</h4>
                     <div className="space-y-2">
@@ -383,7 +383,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
                     </div>
                   </div>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="terms">Terms & Conditions</Label>
                   <Textarea
@@ -396,7 +396,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
                 </div>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="internal">
               <InternalPricingSection
                 washrooms={washrooms}
@@ -411,7 +411,7 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
             </TabsContent>
           </Tabs>
         )}
-        
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
