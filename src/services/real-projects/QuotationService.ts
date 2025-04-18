@@ -57,10 +57,18 @@ export class QuotationService extends BaseService {
       
       // Calculate internal pricing if enabled
       if (sanitizedQuotationData.internalPricing) {
-        // Apply margins to execution services
+        // Apply margins to execution services - IMPORTANT: make sure we use original item amounts
+        // First we need to make a clean copy of items without any previous margin calculations
+        const cleanItems = sanitizedQuotationData.items.map(item => {
+          // Remove any previously calculated margin data to start fresh
+          const { baseAmount, appliedMargin, ...cleanItem } = item;
+          return cleanItem;
+        });
+        
+        // Now apply margins to the clean items
         sanitizedQuotationData.items = QuotationService.applyMarginsToItems(
           washrooms || [],
-          sanitizedQuotationData.items,
+          cleanItems,
           sanitizedQuotationData.margins
         );
         
@@ -177,17 +185,20 @@ export class QuotationService extends BaseService {
       const washroomId = item.washroomId;
       const isExecutionService = item.isExecutionService && !item.isBrandProduct && !item.isFixture;
       
+      // Get the original amount - we need to always work with the base amount
+      const originalAmount = parseFloat(item.originalAmount || item.amount) || 0;
+      
       // Only apply margin to execution services
       if (isExecutionService && washroomId && margins[washroomId] !== undefined) {
         const marginPercentage = margins[washroomId];
-        const baseAmount = parseFloat(item.amount) || 0;
-        const marginAmount = baseAmount * (marginPercentage / 100);
+        const marginAmount = originalAmount * (marginPercentage / 100);
         
         // Update the amount with margin included
         return {
           ...item,
-          baseAmount: baseAmount, // Store original amount for reference
-          amount: baseAmount + marginAmount,
+          originalAmount: originalAmount, // Store original amount that never changes
+          baseAmount: originalAmount, // Store base amount for reference
+          amount: originalAmount + marginAmount,
           appliedMargin: marginPercentage // Store applied margin for reference
         };
       }
@@ -195,13 +206,13 @@ export class QuotationService extends BaseService {
       // For items with no washroom ID, check if there's a uniform margin in the margins object
       if (isExecutionService && !washroomId && margins['uniform']) {
         const marginPercentage = margins['uniform'];
-        const baseAmount = parseFloat(item.amount) || 0;
-        const marginAmount = baseAmount * (marginPercentage / 100);
+        const marginAmount = originalAmount * (marginPercentage / 100);
         
         return {
           ...item,
-          baseAmount: baseAmount,
-          amount: baseAmount + marginAmount,
+          originalAmount: originalAmount,
+          baseAmount: originalAmount,
+          amount: originalAmount + marginAmount,
           appliedMargin: marginPercentage
         };
       }
@@ -213,15 +224,17 @@ export class QuotationService extends BaseService {
         let totalWithMargin = 0;
         
         const updatedServiceDetails = item.serviceDetails.map((service: any) => {
-          const serviceCost = parseFloat(service.cost) || 0;
-          const serviceMarginAmount = serviceCost * (marginPercentage / 100);
-          const serviceWithMargin = serviceCost + serviceMarginAmount;
+          // Use original service cost if available
+          const originalServiceCost = parseFloat(service.originalCost || service.cost) || 0;
+          const serviceMarginAmount = originalServiceCost * (marginPercentage / 100);
+          const serviceWithMargin = originalServiceCost + serviceMarginAmount;
           
           totalWithMargin += serviceWithMargin;
           
           return {
             ...service,
-            baseCost: serviceCost,
+            originalCost: originalServiceCost, // Store original that never changes
+            baseCost: originalServiceCost,
             cost: serviceWithMargin,
             appliedMargin: marginPercentage
           };
@@ -229,14 +242,19 @@ export class QuotationService extends BaseService {
         
         return {
           ...item,
-          baseAmount: parseFloat(item.amount) || 0,
+          originalAmount: originalAmount,
+          baseAmount: originalAmount,
           amount: totalWithMargin,
           serviceDetails: updatedServiceDetails,
           appliedMargin: marginPercentage
         };
       }
       
-      return item;
+      // For all other items, preserve the original amount but still add it for reference
+      return {
+        ...item,
+        originalAmount: originalAmount
+      };
     });
   }
   
@@ -275,8 +293,8 @@ export class QuotationService extends BaseService {
       
       // Calculate pricing for each item
       washroomItems.forEach(item => {
-        // Track base amounts for all items
-        const itemBasePrice = parseFloat(item.baseAmount || item.amount) || 0;
+        // Always use original/base amount for calculations to prevent compounding margins
+        const itemBasePrice = parseFloat(item.baseAmount || item.originalAmount || item.amount) || 0;
         washroomBasePrice += itemBasePrice;
         
         // For execution services, track margin separately
@@ -322,7 +340,8 @@ export class QuotationService extends BaseService {
       const gstableAmount = washroomItems
         .filter(item => item.applyGst !== false)
         .reduce((sum, item) => {
-          const itemBasePrice = parseFloat(item.baseAmount || item.amount) || 0;
+          // Always use base price for GST calculation to prevent compounding
+          const itemBasePrice = parseFloat(item.baseAmount || item.originalAmount || item.amount) || 0;
           let itemTotalWithMargin = itemBasePrice;
           
           // Only apply margin to execution services

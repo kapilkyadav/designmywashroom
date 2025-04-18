@@ -39,6 +39,15 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
         throw new Error('Quotation data not found');
       }
       
+      // Reset any existing margin calculations each time a new quotation is generated
+      if (quotationData.items) {
+        quotationData.items = quotationData.items.map((item: any) => {
+          // Remove any previously calculated margins to prevent compounding
+          const { baseAmount, appliedMargin, ...cleanItem } = item;
+          return cleanItem;
+        });
+      }
+      
       // Make sure internalPricingEnabled and marginPercentage are included in the quotation data
       // This flag controls whether margins are applied to the client-facing quotation
       quotationData.internalPricing = internalPricingEnabled;
