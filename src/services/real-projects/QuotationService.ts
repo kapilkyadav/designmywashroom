@@ -905,4 +905,298 @@ export class QuotationService extends BaseService {
 
     // Sort categories by their sequence
     const sortedCategories = Object.entries(itemsByCategory).sort((a, b) => {
-      const seqA = categorySequenceMap[a
+      const seqA = categorySequenceMap[a[0]] || 999;
+      const seqB = categorySequenceMap[b[0]] || 999;
+      return seqA - seqB;
+    });
+
+    // Generate the HTML content
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Project Quotation</title>
+        <style>
+          ${existingStyles}
+          ${cssUpdates}
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <header class="header">
+            <div class="header-left">
+              <div>
+                <h1 class="company-name">YDS Interiors</h1>
+                <p class="company-address">
+                  D/1 Prithvi Palace, Near Rajmata Jijau Garden, 
+                  Sus Road, Sus, Pune - 411045, Maharashtra, India
+                </p>
+                <p class="company-gst">GSTIN: 27AAAGB6468H1Z1</p>
+              </div>
+            </div>
+            <div class="header-right">
+              <h2 class="quotation-title">QUOTATION</h2>
+              <p><strong>Date:</strong> ${format(new Date(), 'dd/MM/yyyy')}</p>
+              <p><strong>Ref:</strong> #${project.project_id || ''}</p>
+            </div>
+          </header>
+
+          <section class="info-grid">
+            <div>
+              <h3>Client Information</h3>
+              <p><strong>Name:</strong> ${project.client_name || ''}</p>
+              <p><strong>Contact:</strong> ${project.client_mobile || ''}</p>
+              <p><strong>Email:</strong> ${project.client_email || ''}</p>
+              <p><strong>Location:</strong> ${project.client_location || ''}</p>
+            </div>
+            <div>
+              <h3>Project Information</h3>
+              <p><strong>Type:</strong> ${project.project_type ? project.project_type.replace('-', ' ') : ''}</p>
+              <p><strong>Overall Area:</strong> ${
+                project.length && project.width ? 
+                `${project.length * project.width} sq.ft.` : 'Not specified'
+              }</p>
+              <p><strong>Project ID:</strong> ${project.project_id || ''}</p>
+            </div>
+          </section>
+
+          <section>
+            <h3 class="section-title">Scope of Work</h3>
+              ${washrooms.map(washroom => {
+                // Get items for this washroom
+                const washroomItems = (quotationData.items || []).filter((item: any) => 
+                  item.washroomId === washroom.id
+                );
+                
+                // Group the items by category
+                const washroomItemsByCategory: Record<string, any[]> = {};
+                washroomItems.forEach((item: any) => {
+                  // Use item's service details category if available, otherwise 'General'
+                  const category = item.serviceDetails?.[0]?.categoryName || 'General';
+                  if (!washroomItemsByCategory[category]) {
+                    washroomItemsByCategory[category] = [];
+                  }
+                  washroomItemsByCategory[category].push(item);
+                });
+                
+                // Sort categories by their sequence for this washroom
+                const sortedWashroomCategories = Object.entries(washroomItemsByCategory).sort((a, b) => {
+                  const seqA = categorySequenceMap[a[0]] || 999;
+                  const seqB = categorySequenceMap[b[0]] || 999;
+                  return seqA - seqB;
+                });
+                
+                // Calculate total YDS offer price and total MRP for the washroom
+                let washroomTotalYdsPrice = 0;
+                let washroomTotalMrp = 0;
+                
+                washroomItems.forEach((item: any) => {
+                  washroomTotalYdsPrice += parseFloat(item.amount) || 0;
+                  washroomTotalMrp += parseFloat(item.mrp) || 0;
+                });
+                
+                // Calculate discount percentage if MRP is higher than YDS price
+                const discountAmount = Math.max(0, washroomTotalMrp - washroomTotalYdsPrice);
+                const discountPercentage = washroomTotalMrp > 0 ? 
+                  (discountAmount / washroomTotalMrp) * 100 : 0;
+                
+                return `
+                  <div class="washroom-card">
+                    <div class="washroom-header">
+                      <h4>${washroom.name}</h4>
+                      <div>
+                        <span>Area: ${washroom.area || 0} sq.ft.</span>
+                      </div>
+                    </div>
+                    <div class="washroom-content">
+                      <div class="area-details">
+                        <div><strong>Length:</strong> ${washroom.length || 0} ft</div>
+                        <div><strong>Width:</strong> ${washroom.width || 0} ft</div>
+                        <div><strong>Height:</strong> ${washroom.height || 0} ft</div>
+                        <div><strong>Wall Area:</strong> ${washroom.wall_area || 0} sq.ft.</div>
+                      </div>
+                      
+                      ${sortedWashroomCategories.length > 0 ? `
+                        <table class="scope-table">
+                          <thead>
+                            <tr>
+                              <th width="40%">Item</th>
+                              <th width="15%">MRP</th>
+                              <th width="30%">YDS Offer Price</th>
+                              <th width="15%">Notes</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${sortedWashroomCategories.map(([category, items]) => `
+                              <tr>
+                                <td colspan="4" style="background-color: #f1f5f9; font-weight: 600; color: #334155;">
+                                  ${category}
+                                </td>
+                              </tr>
+                              ${items.map((item: any) => {
+                                // Calculate individual item discount
+                                const itemMrp = parseFloat(item.mrp) || 0;
+                                const itemPrice = parseFloat(item.amount) || 0;
+                                const itemDiscount = Math.max(0, itemMrp - itemPrice);
+                                const itemDiscountPercent = itemMrp > 0 ? (itemDiscount / itemMrp) * 100 : 0;
+                                
+                                return `
+                                  <tr>
+                                    <td>${item.name}</td>
+                                    <td>₹${formatAmount(itemMrp)}</td>
+                                    <td>₹${formatAmount(itemPrice)}${
+                                      itemDiscountPercent > 0 ? 
+                                      ` <span style="color: #10b981; font-size: 11px;">(${itemDiscountPercent.toFixed(0)}% off)</span>` : 
+                                      ''
+                                    }</td>
+                                    <td>${item.notes || ''}</td>
+                                  </tr>
+                                `;
+                              }).join('')}
+                              <tr>
+                                <td colspan="4" style="text-align: right; font-weight: 600; padding-right: 20px; background-color: #f8fafc;">
+                                  Category Subtotal: 
+                                  <span style="margin-left: 10px;">
+                                    ₹${formatAmount(items.reduce((total: number, item: any) => total + (parseFloat(item.amount) || 0), 0))}
+                                  </span>
+                                </td>
+                              </tr>
+                            `).join('')}
+                          </tbody>
+                        </table>
+                        <div class="price-box">
+                          <div class="price-row">
+                            <span>Total MRP:</span>
+                            <span>₹${formatAmount(washroomTotalMrp)}</span>
+                          </div>
+                          <div class="price-row">
+                            <span>YDS Offer Price:</span>
+                            <span>₹${formatAmount(washroomTotalYdsPrice)}</span>
+                          </div>
+                          ${discountAmount > 0 ? `
+                            <div class="price-row" style="color: #10b981;">
+                              <span>You Save:</span>
+                              <span>₹${formatAmount(discountAmount)} (${discountPercentage.toFixed(0)}%)</span>
+                            </div>
+                          ` : ''}
+                        </div>
+                      ` : '<p>No items specified for this washroom.</p>'}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+          </section>
+          
+          <section class="summary-box">
+            <h3 class="section-title">Quotation Summary</h3>
+            <div class="price-box">
+              ${Object.values(costBreakdown).map(category => {
+                if (category.amount <= 0) return '';
+                return `
+                  <div class="price-row cost-category">
+                    <span class="cost-category-title">${category.title}:</span>
+                    <span class="cost-category-amount">₹${formatAmount(category.amount)}</span>
+                  </div>
+                `;
+              }).join('')}
+              
+              <div class="price-row">
+                <span>Subtotal:</span>
+                <span>₹${formatAmount(subtotalBeforeGst)}</span>
+              </div>
+              
+              <div class="price-row">
+                <span>GST (${quotationData.gstRate || 18}%):</span>
+                <span>₹${formatAmount(gstAmount)}</span>
+              </div>
+              
+              <div class="price-row total">
+                <span>Total:</span>
+                <span>₹${formatAmount(grandTotal)}</span>
+              </div>
+            </div>
+            
+            <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+              <h4>Terms and Conditions:</h4>
+              <p>${quotationData.terms || 'Standard terms and conditions apply.'}</p>
+            </div>
+          </section>
+          
+          <footer class="footer">
+            <p>Thank you for choosing YDS Interiors</p>
+            <p>&copy; ${new Date().getFullYear()} YDS Interiors. All rights reserved.</p>
+          </footer>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    return html;
+  }
+  
+  /**
+   * Get all quotations for a project
+   */
+  static async getProjectQuotations(projectId: string): Promise<ProjectQuotation[]> {
+    try {
+      const { data, error } = await supabase
+        .from('project_quotations')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      
+      return data || [];
+    } catch (error: any) {
+      console.error('Error getting project quotations:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Get a single quotation by its ID
+   */
+  static async getQuotation(quotationId: string): Promise<ProjectQuotation | null> {
+    try {
+      const { data, error } = await supabase
+        .from('project_quotations')
+        .select('*')
+        .eq('id', quotationId)
+        .single();
+        
+      if (error) throw error;
+      
+      return data;
+    } catch (error: any) {
+      console.error('Error getting quotation:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Delete a quotation
+   */
+  static async deleteQuotation(quotationId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('project_quotations')
+        .delete()
+        .eq('id', quotationId);
+        
+      if (error) throw error;
+      
+      return true;
+    } catch (error: any) {
+      console.error('Error deleting quotation:', error);
+      toast({
+        title: "Error deleting quotation",
+        description: error.message || "Failed to delete quotation",
+        variant: "destructive",
+      });
+      return false;
+    }
+  }
+}
