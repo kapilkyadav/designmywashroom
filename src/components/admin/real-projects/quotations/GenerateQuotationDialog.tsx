@@ -282,7 +282,28 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
   
   const handleMarginsChange = (newMargins: Record<string, number>) => {
     setMargins(newMargins);
-    calculateInternalPricing(quotationItems);
+    if (internalPricingEnabled && washrooms.length > 0) {
+      const itemsWithMargins = QuotationService.applyMarginsToItems(
+        washrooms,
+        quotationItems,
+        newMargins
+      );
+      
+      const details = QuotationService.calculateInternalPricing(
+        washrooms,
+        itemsWithMargins,
+        newMargins,
+        gstRate
+      );
+      
+      setQuotationItems(itemsWithMargins);
+      setInternalPricingDetails(details);
+      
+      const newTotalAmount = Number(
+        itemsWithMargins.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)
+      );
+      setTotalAmount(newTotalAmount);
+    }
   };
   
   const handleGstRateChange = (rate: number) => {
