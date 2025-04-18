@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,7 +21,16 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
   defaultTab = "details" 
 }) => {
   const [activeTab, setActiveTab] = useState(defaultTab);
-  
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!project) {
+      setIsLoading(true);
+      return;
+    }
+    setIsLoading(false);
+  }, [project]);
+
   const { data: services = [] } = useQuery({
     queryKey: ['execution-services'],
     queryFn: () => RealProjectService.getExecutionServices(),
@@ -37,7 +45,7 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
         <TabsTrigger value="costing">Vendor Rates</TabsTrigger>
         <TabsTrigger value="quotations">Quotations</TabsTrigger>
       </TabsList>
-      
+
       <TabsContent value="details">
         <Card>
           <CardHeader>
@@ -49,7 +57,7 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
           </CardContent>
         </Card>
       </TabsContent>
-      
+
       <TabsContent value="washrooms">
         <Card>
           <CardHeader>
@@ -61,7 +69,7 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
           </CardContent>
         </Card>
       </TabsContent>
-      
+
       <TabsContent value="execution">
         <Card>
           <CardHeader>
@@ -73,7 +81,7 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
           </CardContent>
         </Card>
       </TabsContent>
-      
+
       <TabsContent value="costing">
         <Card>
           <CardHeader>
@@ -85,7 +93,7 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
           </CardContent>
         </Card>
       </TabsContent>
-      
+
       <TabsContent value="quotations">
         <Card>
           <CardHeader>

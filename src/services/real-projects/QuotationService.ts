@@ -1,18 +1,37 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { BaseService } from './BaseService';
 import { RealProject, ProjectQuotation, Washroom } from './types';
 
+// Define types for better type safety
+interface QuotationData {
+  totalAmount: string;
+  items: any[];
+  margins: Record<string, number>;
+  gstRate: number;
+  internalPricing: boolean;
+  internalPricingDetails?: Record<string, any>;
+  serviceDetailsMap?: Record<string, any>;
+  terms?: string;
+}
+
+interface PricingResult {
+  beforeMargin: number;
+  afterMargin: number;
+  marginDifference: number;
+  marginAmount: number;
+  appliedMargins: Record<string, number>;
+}
+
 export class QuotationService extends BaseService {
   /**
    * Generate and save a quotation for a project
    */
   static async generateQuotation(
-    projectId: string, 
-    quotationData: Record<string, any>
-  ): Promise<{ success: boolean, quotation: ProjectQuotation | null }> {
+    projectId: string,
+    quotationData: QuotationData
+  ): Promise<{ success: boolean; quotation: ProjectQuotation | null }> {
     try {
       // Get the project details to include in the quotation
       const { data: project, error: projectError } = await supabase
@@ -20,82 +39,83 @@ export class QuotationService extends BaseService {
         .select('*')
         .eq('id', projectId)
         .single();
-      
+
       if (projectError) throw projectError;
-      
+
       // Get washrooms for this project
       const { data: washrooms, error: washroomsError } = await supabase
         .from('project_washrooms')
         .select('*')
         .eq('project_id', projectId);
-      
+
       if (washroomsError) throw washroomsError;
-      
+
       // Ensure quotationData has valid values
-      const sanitizedQuotationData: {
-        totalAmount: number;
-        items: any[];
-        margins: Record<string, number>;
-        gstRate: number;
-        internalPricing: boolean;
-        internalPricingDetails?: Record<string, any>;
-        serviceDetailsMap?: Record<string, any>;
-      } = {
+      const sanitizedQuotationData: QuotationData = {
         ...quotationData,
         totalAmount: parseFloat(quotationData.totalAmount) || 0,
         items: (quotationData.items || []).map((item: any) => ({
           ...item,
-          amount: parseFloat(item.amount) || 0
+          amount: parseFloat(item.amount) || 0,
+          originalAmount: parseFloat(item.originalAmount || item.amount) || 0, // Ensure originalAmount is present
+          mrp: parseFloat(item.mrp) || 0, // Ensure mrp is present
+          baseAmount: parseFloat(item.baseAmount || item.amount) || 0, // Ensure baseAmount is present
+          cost: parseFloat(item.cost || item.amount) || 0 // Ensure cost is present
         })),
-        // Add internal pricing data if provided
         margins: quotationData.margins || {},
         gstRate: quotationData.gstRate || 18, // Default 18% GST
         internalPricing: quotationData.internalPricing || false,
         internalPricingDetails: quotationData.internalPricingDetails || undefined,
-        serviceDetailsMap: quotationData.serviceDetailsMap || {}
+        serviceDetailsMap: quotationData.serviceDetailsMap || {},
+        terms: quotationData.terms || undefined
       };
-      
+
       // Calculate internal pricing if enabled
       if (sanitizedQuotationData.internalPricing) {
         // Apply margins to execution services - IMPORTANT: make sure we use original item amounts
-        // First we need to make a clean copy of items without any previous margin calculations
-        const cleanItems = sanitizedQuotationData.items.map(item => {
-          // Remove any previously calculated margin data to start fresh
-          const { baseAmount, appliedMargin, ...cleanItem } = item;
-          return cleanItem;
-        });
-        
-        // Now apply margins to the clean items
+        const cleanItems = sanitizedQuotationData.items.map((item) => ({
+          ...item,
+          appliedMargin: undefined,
+          baseAmount: item.originalAmount, // Reset baseAmount to originalAmount
+          amount: item.originalAmount // Reset amount to originalAmount
+        }));
+
         sanitizedQuotationData.items = QuotationService.applyMarginsToItems(
           washrooms || [],
           cleanItems,
           sanitizedQuotationData.margins
         );
-        
-        // Calculate internal pricing details after applying margins
-        sanitizedQuotationData.internalPricingDetails = QuotationService.calculateInternalPricing(
-          washrooms || [],
-          sanitizedQuotationData.items,
-          sanitizedQuotationData.margins,
-          sanitizedQuotationData.gstRate
-        );
+
+        //Added try catch block for error handling
+        try {
+          sanitizedQuotationData.internalPricingDetails = QuotationService.calculateInternalPricing(
+            washrooms || [],
+            sanitizedQuotationData.items,
+            sanitizedQuotationData.margins,
+            sanitizedQuotationData.gstRate
+          );
+        } catch (error: any) {
+          console.error('Error calculating internal pricing', error);
+          throw new Error('Failed to calculate internal pricing');
+        }
       }
-      
+
       // Fetch all service details to get names
       const serviceIds = sanitizedQuotationData.items
         .filter((item: any) => item.serviceDetails && item.serviceDetails.length > 0)
         .flatMap((item: any) => item.serviceDetails.map((service: any) => service.serviceId))
         .filter(Boolean);
-      
+
       let serviceDetailsMap: Record<string, any> = {};
-      
+
       if (serviceIds.length > 0) {
         // Fetch service details from vendor_items
-        const { data: serviceItems } = await supabase
+        const { data: serviceItems, error: serviceItemsError } = await supabase
           .from('vendor_items')
           .select('id, scope_of_work, measuring_unit, category:vendor_categories(id, name)')
           .in('id', serviceIds);
-          
+
+        if (serviceItemsError) throw serviceItemsError;
         if (serviceItems) {
           serviceDetailsMap = serviceItems.reduce((acc: Record<string, any>, item: any) => {
             acc[item.id] = {
@@ -107,29 +127,30 @@ export class QuotationService extends BaseService {
           }, {});
         }
       }
-      
+
       // Add service names to the quotation data for easier access in the HTML generation
       sanitizedQuotationData.serviceDetailsMap = serviceDetailsMap;
-      
+
       // Generate HTML for the quotation with washroom details
       const quotationHtml = await QuotationService.generateQuotationHtml(project, sanitizedQuotationData, washrooms || []);
-      
+
       // Get the current count of quotations for this project to create a unique sequence number
       const { count, error: countError } = await supabase
         .from('project_quotations')
         .select('*', { count: 'exact', head: true })
         .eq('project_id', projectId);
-        
+
       if (countError) throw countError;
-      
+
       // Create a quotation number with sequence to make it unique
       const sequenceNumber = (count || 0) + 1;
       const quotationNumber = `QUO-${project.project_id}-${format(new Date(), 'yyyyMMdd')}-${sequenceNumber}`;
-      
+
       // Get the current user's session
-      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
       const userId = sessionData?.session?.user?.id;
-      
+
       // Save the quotation
       const quotationToSave = {
         project_id: projectId,
@@ -138,15 +159,15 @@ export class QuotationService extends BaseService {
         quotation_html: quotationHtml,
         created_by: userId || null
       };
-      
+
       const { data: savedQuotation, error: quotationError } = await supabase
         .from('project_quotations')
         .insert(quotationToSave)
         .select()
         .single();
-      
+
       if (quotationError) throw quotationError;
-      
+
       // Update the project with the quotation date
       await supabase
         .from('real_projects')
@@ -155,12 +176,12 @@ export class QuotationService extends BaseService {
           final_quotation_amount: sanitizedQuotationData.totalAmount || project.final_quotation_amount
         })
         .eq('id', projectId);
-      
+
       toast({
         title: "Quotation generated",
         description: `Quotation ${quotationNumber} has been created successfully.`,
       });
-      
+
       return { success: true, quotation: savedQuotation as ProjectQuotation };
     } catch (error: any) {
       console.error('Error generating quotation:', error);
@@ -172,7 +193,7 @@ export class QuotationService extends BaseService {
       return { success: false, quotation: null };
     }
   }
-  
+
   /**
    * Apply margins to execution service items
    */
@@ -181,83 +202,68 @@ export class QuotationService extends BaseService {
     items: any[],
     margins: Record<string, number>
   ): any[] {
-    return items.map(item => {
+    return items.map((item) => {
       const washroomId = item.washroomId;
       const isExecutionService = item.isExecutionService && !item.isBrandProduct && !item.isFixture;
-      
-      // Get the original amount - we need to always work with the base amount
-      const originalAmount = parseFloat(item.originalAmount || item.amount) || 0;
-      
-      // Only apply margin to execution services
+      const originalAmount = item.originalAmount || 0;
+
       if (isExecutionService && washroomId && margins[washroomId] !== undefined) {
         const marginPercentage = margins[washroomId];
         const marginAmount = originalAmount * (marginPercentage / 100);
-        
-        // Update the amount with margin included
         return {
           ...item,
-          originalAmount: originalAmount, // Store original amount that never changes
-          baseAmount: originalAmount, // Store base amount for reference
-          amount: originalAmount + marginAmount,
-          appliedMargin: marginPercentage // Store applied margin for reference
-        };
-      }
-      
-      // For items with no washroom ID, check if there's a uniform margin in the margins object
-      if (isExecutionService && !washroomId && margins['uniform']) {
-        const marginPercentage = margins['uniform'];
-        const marginAmount = originalAmount * (marginPercentage / 100);
-        
-        return {
-          ...item,
-          originalAmount: originalAmount,
+          originalAmount,
           baseAmount: originalAmount,
           amount: originalAmount + marginAmount,
           appliedMargin: marginPercentage
         };
       }
-      
-      // For service details with margin, we need to update each service
+
+      if (isExecutionService && !washroomId && margins['uniform']) {
+        const marginPercentage = margins['uniform'];
+        const marginAmount = originalAmount * (marginPercentage / 100);
+        return {
+          ...item,
+          originalAmount,
+          baseAmount: originalAmount,
+          amount: originalAmount + marginAmount,
+          appliedMargin: marginPercentage
+        };
+      }
+
       if (isExecutionService && item.serviceDetails && item.serviceDetails.length > 0 && washroomId && margins[washroomId] !== undefined) {
         const marginPercentage = margins[washroomId];
-        // Calculate the total with margin for all services
         let totalWithMargin = 0;
-        
         const updatedServiceDetails = item.serviceDetails.map((service: any) => {
-          // Use original service cost if available
-          const originalServiceCost = parseFloat(service.originalCost || service.cost) || 0;
+          const originalServiceCost = service.originalCost || service.cost || 0;
           const serviceMarginAmount = originalServiceCost * (marginPercentage / 100);
           const serviceWithMargin = originalServiceCost + serviceMarginAmount;
-          
           totalWithMargin += serviceWithMargin;
-          
           return {
             ...service,
-            originalCost: originalServiceCost, // Store original that never changes
+            originalCost: originalServiceCost,
             baseCost: originalServiceCost,
             cost: serviceWithMargin,
             appliedMargin: marginPercentage
           };
         });
-        
         return {
           ...item,
-          originalAmount: originalAmount,
+          originalAmount,
           baseAmount: originalAmount,
           amount: totalWithMargin,
           serviceDetails: updatedServiceDetails,
           appliedMargin: marginPercentage
         };
       }
-      
-      // For all other items, preserve the original amount but still add it for reference
+
       return {
         ...item,
-        originalAmount: originalAmount
+        originalAmount
       };
     });
   }
-  
+
   /**
    * Calculate internal pricing with margins and GST for each washroom
    * This is for internal team use only and won't be shown to clients
@@ -267,7 +273,11 @@ export class QuotationService extends BaseService {
     items: any[],
     margins: Record<string, number>,
     gstRate: number
-  ): Record<string, any> {
+  ): PricingResult {
+    if (!washrooms || !items || !margins || !gstRate) {
+      throw new Error('Invalid input parameters provided');
+    }
+
     let totalExecutionBeforeMargin = 0;
     let totalExecutionWithMargin = 0;
     let totalExecutionMarginAmount = 0;
@@ -278,50 +288,32 @@ export class QuotationService extends BaseService {
     let projectTotalGST = 0;
     let projectGrandTotal = 0;
     let projectTotalMarginAmount = 0;
-    
-    // Process each washroom
-    washrooms.forEach(washroom => {
-      // Get items for this washroom
-      const washroomItems = items.filter(item => 
-        item.washroomId === washroom.id || !item.washroomId
-      );
-      
+
+    washrooms.forEach((washroom) => {
+      const washroomItems = items.filter((item) => item.washroomId === washroom.id || !item.washroomId);
       let washroomBasePrice = 0;
       let washroomMarginAmount = 0;
-      let washroomExecutionBasePrice = 0; // Track execution services base price separately
+      let washroomExecutionBasePrice = 0;
       const itemizedPricing: any[] = [];
-      
-      // Calculate pricing for each item
-      washroomItems.forEach(item => {
-        // Always use original/base amount for calculations to prevent compounding margins
-        const itemBasePrice = parseFloat(item.baseAmount || item.originalAmount || item.amount) || 0;
+
+      washroomItems.forEach((item) => {
+        const itemBasePrice = item.baseAmount || item.originalAmount || item.amount || 0;
         washroomBasePrice += itemBasePrice;
-        
-        // For execution services, track margin separately
         if (item.isExecutionService && !item.isBrandProduct && !item.isFixture) {
-          washroomExecutionBasePrice += itemBasePrice; // Add to washroom execution base price
+          washroomExecutionBasePrice += itemBasePrice;
           totalExecutionBeforeMargin += itemBasePrice;
-          
-          // Calculate margin amount based on margin percentage for this washroom
           const marginPercentage = margins[washroom.id] !== undefined ? margins[washroom.id] : 0;
           const itemMarginAmount = itemBasePrice * (marginPercentage / 100);
-          
           washroomMarginAmount += itemMarginAmount;
           totalExecutionMarginAmount += itemMarginAmount;
-          totalExecutionWithMargin += (itemBasePrice + itemMarginAmount);
+          totalExecutionWithMargin += itemBasePrice + itemMarginAmount;
         }
-        
-        // Calculate item-specific pricing details for the itemized breakdown
         let itemMarginAmount = 0;
-        
-        // Only apply margin if it's an execution service (not a brand product or fixture)
         if (item.isExecutionService && !item.isBrandProduct && !item.isFixture) {
           const marginPercentage = margins[washroom.id] !== undefined ? margins[washroom.id] : 0;
           itemMarginAmount = itemBasePrice * (marginPercentage / 100);
         }
-        
         const itemTotalPrice = itemBasePrice + itemMarginAmount;
-        
         itemizedPricing.push({
           itemName: item.name,
           basePrice: itemBasePrice,
@@ -332,32 +324,26 @@ export class QuotationService extends BaseService {
           isExecutionService: item.isExecutionService || false
         });
       });
-      
+
       const priceWithMargin = washroomBasePrice + washroomMarginAmount;
       projectTotalMarginAmount += washroomMarginAmount;
-      
-      // Apply GST only to items that need GST
+
       const gstableAmount = washroomItems
-        .filter(item => item.applyGst !== false)
+        .filter((item) => item.applyGst !== false)
         .reduce((sum, item) => {
-          // Always use base price for GST calculation to prevent compounding
-          const itemBasePrice = parseFloat(item.baseAmount || item.originalAmount || item.amount) || 0;
+          const itemBasePrice = item.baseAmount || item.originalAmount || item.amount || 0;
           let itemTotalWithMargin = itemBasePrice;
-          
-          // Only apply margin to execution services
           if (item.isExecutionService && !item.isBrandProduct && !item.isFixture) {
             const marginPercentage = margins[washroom.id] !== undefined ? margins[washroom.id] : 0;
             const itemMarginAmount = itemBasePrice * (marginPercentage / 100);
             itemTotalWithMargin += itemMarginAmount;
           }
-          
           return sum + itemTotalWithMargin;
         }, 0);
-      
+
       const gstAmount = gstableAmount * (gstRate / 100);
       const totalPrice = priceWithMargin + gstAmount;
-      
-      // Store pricing details for this washroom
+
       washroomPricing[washroom.id] = {
         basePrice: washroomBasePrice,
         executionBasePrice: washroomExecutionBasePrice,
@@ -370,100 +356,71 @@ export class QuotationService extends BaseService {
         totalPrice,
         itemizedPricing
       };
-      
-      // Add to project totals
+
       projectTotalBasePrice += washroomBasePrice;
       projectTotalWithMargin += priceWithMargin;
       projectTotalGST += gstAmount;
       projectGrandTotal += totalPrice;
     });
 
-    console.log('Execution Services Analysis:', {
+    return {
       beforeMargin: totalExecutionBeforeMargin,
       afterMargin: totalExecutionWithMargin,
       marginDifference: totalExecutionWithMargin - totalExecutionBeforeMargin,
       marginAmount: totalExecutionMarginAmount,
       appliedMargins: margins
-    });
-
-    // Overall project pricing summary
-    return {
-      washroomPricing,
-      projectSummary: {
-        totalBasePrice: projectTotalBasePrice,
-        executionServicesBasePrice: totalExecutionBeforeMargin,
-        totalWithMargin: projectTotalWithMargin,
-        totalGST: projectTotalGST,
-        grandTotal: projectGrandTotal,
-        marginAmount: projectTotalMarginAmount,
-        actualMarginPercentage: totalExecutionBeforeMargin > 0 
-          ? (totalExecutionMarginAmount / totalExecutionBeforeMargin) * 100 
-          : 0
-      }
     };
   }
-  
+
   /**
    * Helper function to generate HTML for quotation
    */
-  static async generateQuotationHtml(project: RealProject, quotationData: Record<string, any>, washrooms: Washroom[]): Promise<string> {
+  static async generateQuotationHtml(project: RealProject, quotationData: QuotationData, washrooms: Washroom[]): Promise<string> {
     const formatAmount = (value: any): string => {
       if (value === undefined || value === null) return '0';
       const numValue = typeof value === 'number' ? value : parseFloat(value);
       return isNaN(numValue) ? '0' : numValue.toLocaleString('en-IN');
     };
-    
-    // Calculate subtotals, product cost, and other values outside of washroom loops
-    // This ensures all items are included regardless of washroom association
+
     let subtotalBeforeGst = 0;
     let gstAmount = 0;
     let totalMrp = 0;
-    
-    // Initialize separate cost categories
+
     let totalExecutionServicesCost = 0;
     let totalProductCost = 0;
     let totalFixturesCost = 0;
-    
-    // First pass to calculate totals and organize items by category
+
     const itemsByCategory: Record<string, any[]> = {};
-    
-    // Process all items together first to calculate global totals
+
     (quotationData.items || []).forEach((item: any) => {
-      // Track different types of costs separately
       if (item.isBrandProduct) {
         totalProductCost += parseFloat(item.amount) || 0;
       } else if (item.isFixture) {
         totalFixturesCost += parseFloat(item.amount) || 0;
       } else {
-        // Execution services (everything else)
         totalExecutionServicesCost += parseFloat(item.amount) || 0;
       }
-      
-      // Add to category grouping
+
       const category = item.serviceDetails?.[0]?.categoryName || 'General';
       if (!itemsByCategory[category]) {
         itemsByCategory[category] = [];
       }
       itemsByCategory[category].push(item);
-      
+
       subtotalBeforeGst += parseFloat(item.amount) || 0;
       totalMrp += parseFloat(item.mrp) || 0;
 
-      // Only apply GST to items marked as applying GST (execution services)
       if (item.applyGst !== false) {
         const amountForGst = parseFloat(item.amount) || 0;
         gstAmount += amountForGst * (quotationData.gstRate || 18) / 100;
       }
     });
 
-    // Calculate logistics and creative service charge (7.5% of product cost)
     const logisticsServiceCharge = totalProductCost * 0.075;
-    // Add logistics charge to subtotal but don't apply GST to it
     subtotalBeforeGst += logisticsServiceCharge;
 
     const grandTotal = subtotalBeforeGst + gstAmount;
 
-    // Store all cost details in a structured format for easier access
     const costBreakdown = {
       executionServices: {
         title: "Execution Services",
@@ -489,14 +446,14 @@ export class QuotationService extends BaseService {
 
     const existingStyles = `
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
+
         :root {
           --primary-color: #1A1F2C;
           --secondary-color: #E5DEFF;
           --accent-color: #6E59A5;
           --border-color: #e2e8f0;
         }
-        
+
         body {
           font-family: 'Inter', sans-serif;
           color: #1A1F2C;
@@ -504,13 +461,13 @@ export class QuotationService extends BaseService {
           margin: 0;
           padding: 0;
         }
-        
+
         .container {
           max-width: 1200px;
           margin: 0 auto;
           padding: 40px;
         }
-        
+
         .header {
           display: flex;
           justify-content: space-between;
@@ -519,48 +476,48 @@ export class QuotationService extends BaseService {
           margin-bottom: 40px;
           border-bottom: 2px solid var(--border-color);
         }
-        
+
         .header-left {
           display: flex;
           align-items: center;
         }
-        
+
         .header-left img {
           max-width: 120px;
           margin-right: 20px;
         }
-        
+
         .header-right {
           text-align: right;
         }
-        
+
         .company-name {
           font-size: 20px;
           font-weight: 700;
           margin-bottom: 5px;
           color: var(--primary-color);
         }
-        
+
         .company-address {
           font-size: 12px;
           margin-bottom: 5px;
           color: #64748b;
           max-width: 300px;
         }
-        
+
         .company-gst {
           font-size: 12px;
           font-weight: 600;
           color: #64748b;
         }
-        
+
         .quotation-title {
           text-align: center;
           margin-top: 20px;
           color: var(--accent-color);
           font-size: 18px;
         }
-        
+
         .info-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
@@ -570,7 +527,7 @@ export class QuotationService extends BaseService {
           padding: 20px;
           border-radius: 8px;
         }
-        
+
         .section-title {
           color: var(--primary-color);
           font-size: 18px;
@@ -579,7 +536,7 @@ export class QuotationService extends BaseService {
           padding-bottom: 8px;
           border-bottom: 2px solid var(--border-color);
         }
-        
+
         .washroom-card {
           background: white;
           border: 1px solid var(--border-color);
@@ -587,7 +544,7 @@ export class QuotationService extends BaseService {
           margin-bottom: 30px;
           box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        
+
         .washroom-header {
           background: var(--primary-color);
           color: white;
@@ -597,25 +554,25 @@ export class QuotationService extends BaseService {
           justify-content: space-between;
           align-items: center;
         }
-        
+
         .washroom-content {
           padding: 20px;
         }
-        
+
         .area-details {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
           gap: 10px;
           margin-bottom: 15px;
         }
-        
+
         .scope-table {
           width: 100%;
           border-collapse: collapse;
           margin-top: 15px;
           table-layout: fixed;
         }
-        
+
         .scope-table th {
           background-color: var(--secondary-color);
           color: var(--primary-color);
@@ -624,32 +581,32 @@ export class QuotationService extends BaseService {
           font-weight: 600;
           border: 1px solid #ddd;
         }
-        
+
         .scope-table td {
           padding: 12px;
           border: 1px solid #ddd;
           word-wrap: break-word;
         }
-        
+
         .price-box {
           background: var(--secondary-color);
           padding: 15px;
           border-radius: 6px;
           margin-top: 20px;
         }
-        
+
         .price-row {
           display: flex;
           justify-content: space-between;
           margin-bottom: 8px;
         }
-        
+
         .price-row.total {
           font-weight: 600;
           border-top: 1px solid var(--border-color);
           padding-top: 8px;
         }
-        
+
         .footer {
           text-align: center;
           padding-top: 30px;
@@ -657,12 +614,12 @@ export class QuotationService extends BaseService {
           color: #64748b;
           font-size: 14px;
         }
-        
+
         .footer img {
           max-width: 100px;
           margin-bottom: 15px;
         }
-        
+
         .summary-box {
           background: #f8fafc;
           border: 1px solid var(--border-color);
@@ -670,18 +627,18 @@ export class QuotationService extends BaseService {
           padding: 20px;
           margin-top: 30px;
         }
-        
+
         @media print {
           body {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
-          
+
           .container {
             max-width: 100%;
             padding: 20px;
           }
-          
+
           .washroom-header {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
@@ -689,7 +646,7 @@ export class QuotationService extends BaseService {
             background-color: var(--primary-color) !important;
             color: white !important;
           }
-          
+
           .scope-table th {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
@@ -698,7 +655,6 @@ export class QuotationService extends BaseService {
         }
       `;
 
-    // Update the CSS for the header section
     const cssUpdates = `
       .header {
         display: flex;
@@ -708,63 +664,63 @@ export class QuotationService extends BaseService {
         margin-bottom: 40px;
         border-bottom: 2px solid var(--border-color);
       }
-      
+
       .header-left {
         display: flex;
         align-items: center;
       }
-      
+
       .header-left img {
         max-width: 120px;
         margin-right: 20px;
       }
-      
+
       .header-right {
         text-align: right;
       }
-      
+
       .company-name {
         font-size: 20px;
         font-weight: 700;
         margin-bottom: 5px;
         color: var(--primary-color);
       }
-      
+
       .company-address {
         font-size: 12px;
         margin-bottom: 5px;
         color: #64748b;
         max-width: 349px;
       }
-      
+
       .company-gst {
         font-size: 12px;
         font-weight: 600;
         color: #64748b;
       }
-      
+
       /* Cost breakdown styles */
       .cost-category {
         margin-bottom: 8px;
       }
-      
+
       .cost-category-title {
         font-weight: 500;
       }
-      
+
       .cost-category-amount {
         text-align: right;
       }
     `;
 
-    // Replace the existing CSS in the style block with these updates
-    // Get categories with their sequence numbers from vendor_categories
-    const { data: categories } = await supabase
+    const { data: categories, error: categoriesError } = await supabase
       .from('vendor_categories')
       .select('*')
       .order('sequence');
-      
-    // Create a map of category IDs to their sequence numbers
+
+    if (categoriesError) throw categoriesError;
+
+
     const categorySequenceMap: Record<string, number> = {};
     if (categories) {
       categories.forEach((category, index) => {
@@ -772,7 +728,6 @@ export class QuotationService extends BaseService {
       });
     }
 
-    // Sort categories by their sequence
     const sortedCategories = Object.entries(itemsByCategory).sort((a, b) => {
       const seqA = categorySequenceMap[a[0]] ?? Number.MAX_SAFE_INTEGER;
       const seqB = categorySequenceMap[b[0]] ?? Number.MAX_SAFE_INTEGER;
@@ -802,11 +757,11 @@ export class QuotationService extends BaseService {
               <div class="company-gst">GST No: 06AAPCP1844F1ZC</div>
             </div>
           </div>
-          
+
         <div class="quotation-title">
           <h2>Quotation #${project.project_id}</h2>
         </div>
-        
+
         <div class="info-grid">
           <div class="client-info">
             <h3 class="section-title">Client Information</h3>
@@ -815,7 +770,7 @@ export class QuotationService extends BaseService {
             <p><strong>Phone:</strong> ${project.client_mobile}</p>
             <p><strong>Location:</strong> ${project.client_location || 'N/A'}</p>
           </div>
-          
+
           <div class="project-info">
             <h3 class="section-title">Project Details</h3>
             <p><strong>Project ID:</strong> ${project.project_id}</p>
@@ -826,15 +781,14 @@ export class QuotationService extends BaseService {
             <p><strong>Service Lift:</strong> ${project.project_details?.service_lift_available ? 'Available' : 'Not Available'}</p>
           </div>
         </div>
-        
+
         <div class="washrooms-section">
           ${washrooms.map((washroom) => {
             const floorArea = washroom.length * washroom.width;
             const wallArea = washroom.wall_area || 0;
             const ceilingArea = washroom.ceiling_area || 0;
-            // Calculate total washroom area as floor area + wall area only
             const totalWashroomArea = floorArea + wallArea;
-            
+
             return `
               <div class="washroom-card">
                 <div class="washroom-header">
@@ -859,7 +813,7 @@ export class QuotationService extends BaseService {
                   <div style="margin-bottom: 15px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
                     <strong>Selected Brand:</strong> ${washroom.selected_brand || 'Not specified'}
                   </div>
-                  
+
                   <table class="scope-table">
                     <thead>
                       <tr>
@@ -871,35 +825,33 @@ export class QuotationService extends BaseService {
                     </thead>
                     <tbody>
                       ${sortedCategories.map(([category, items]) => {
-                        const washroomItems = items.filter(item => item.washroomId === washroom.id);
+                        const washroomItems = items.filter((item) => item.washroomId === washroom.id);
                         const categoryTotal = washroomItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
                         const categoryMrp = washroomItems.reduce((sum, item) => sum + (parseFloat(item.mrp) || 0), 0);
-                        
+
                         if (washroomItems.length === 0) {
-                          return ''; // Skip categories with no items for this washroom
+                          return '';
                         }
-                        
+
                         return `
                           <tr>
                             <td colspan="4" style="background-color: #f1f5f9; font-weight: 600; padding: 8px 12px;">
                               ${category}
                             </td>
                           </tr>
-                          ${washroomItems.map(item => {
+                          ${washroomItems.map((item) => {
                             const itemAmount = parseFloat(item.amount) || 0;
                             const itemMrp = parseFloat(item.mrp) || 0;
                             const itemUnit = item.unit || '';
-                            const discountPercentage = item.isBrandProduct && itemMrp > 0 ? 
+                            const discountPercentage = item.isBrandProduct && itemMrp > 0 ?
                               Math.round((1 - (itemAmount / itemMrp)) * 100) : 0;
-                            
-                            // Handle execution services differently from brand products
+
                             if (!item.isBrandProduct && item.serviceDetails) {
                               return item.serviceDetails.map((service: any) => {
-                                // Get service name from the service details map if available
                                 const serviceName = quotationData.serviceDetailsMap?.[service.serviceId]?.name || service.name || 'Service';
                                 const serviceUnit = quotationData.serviceDetailsMap?.[service.serviceId]?.unit || '';
                                 const serviceCost = parseFloat(service.cost) || 0;
-                                
+
                                 return `
                                   <tr>
                                     <td>${category}</td>
@@ -910,8 +862,7 @@ export class QuotationService extends BaseService {
                                 `;
                               }).join('');
                             }
-                            
-                            // For brand products or fixtures, show a single line item
+
                             return `
                               <tr>
                                 <td>${item.categoryName || category}</td>
@@ -930,15 +881,15 @@ export class QuotationService extends BaseService {
                       }).join('')}
                     </tbody>
                   </table>
-                </div>
+                </</div>
               </div>
             `;
           }).join('')}
         </div>
-        
+
         <div class="summary-box">
           <h3 class="section-title">Quotation Summary</h3>
-          
+
           <div class="cost-breakdown">
             ${Object.entries(costBreakdown).map(([key, details]: [string, any]) => `
               <div class="cost-category">
@@ -948,24 +899,24 @@ export class QuotationService extends BaseService {
                 </div>
               </div>
             `).join('')}
-            
+
             <div class="price-row" style="border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 8px;">
               <div style="font-weight: 500;">Subtotal:</div>
               <div style="font-weight: 500;">₹${formatAmount(subtotalBeforeGst)}</div>
             </div>
-            
+
             <div class="price-row">
               <div>GST (${quotationData.gstRate || 18}%):</div>
               <div>₹${formatAmount(gstAmount)}</div>
             </div>
-            
+
             <div class="price-row total" style="border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 8px;">
               <div>Grand Total:</div>
               <div>₹${formatAmount(grandTotal)}</div>
             </div>
           </div>
         </div>
-        
+
         <div style="margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
           <h3 class="section-title">Terms & Conditions</h3>
           <div>
@@ -980,7 +931,7 @@ export class QuotationService extends BaseService {
             `}
           </div>
         </div>
-        
+
         <div class="footer">
           <p>Thank you for choosing Your Dream Space!</p>
           <p>For any queries, please contact us at <strong>info@yourdreamspace.com</strong> or call <strong>+91 9876543210</strong></p>
@@ -989,10 +940,10 @@ export class QuotationService extends BaseService {
     </body>
     </html>
     `;
-    
+
     return htmlTemplate;
   }
-  
+
   /**
    * Get all quotations for a project
    */
@@ -1003,16 +954,16 @@ export class QuotationService extends BaseService {
         .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
-        
+
       if (error) throw error;
-      
+
       return data as ProjectQuotation[];
     } catch (error: any) {
       console.error('Error fetching project quotations:', error);
       return [];
     }
   }
-  
+
   /**
    * Get a specific quotation
    */
@@ -1023,16 +974,16 @@ export class QuotationService extends BaseService {
         .select('*')
         .eq('id', quotationId)
         .single();
-        
+
       if (error) throw error;
-      
+
       return data as ProjectQuotation;
     } catch (error: any) {
       console.error('Error fetching quotation:', error);
       return null;
     }
   }
-  
+
   /**
    * Delete a quotation
    */
@@ -1042,14 +993,14 @@ export class QuotationService extends BaseService {
         .from('project_quotations')
         .delete()
         .eq('id', quotationId);
-        
+
       if (error) throw error;
-      
+
       toast({
         title: "Quotation deleted",
         description: "The quotation has been deleted successfully.",
       });
-      
+
       return true;
     } catch (error: any) {
       console.error('Error deleting quotation:', error);
