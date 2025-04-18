@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -893,18 +892,20 @@ export class QuotationService extends BaseService {
                               Math.round((1 - (itemAmount / itemMrp)) * 100) : 0;
                             
                             // Handle execution services differently from brand products
-                            if (!item.isBrandProduct && item.serviceDetails) {
+                            if (!item.isBrandProduct && item.serviceDetails && item.serviceDetails.length > 0) {
                               return item.serviceDetails.map((service: any) => {
                                 // Get service name from the service details map if available
                                 const serviceName = quotationData.serviceDetailsMap?.[service.serviceId]?.name || service.name || 'Service';
                                 const serviceUnit = quotationData.serviceDetailsMap?.[service.serviceId]?.unit || '';
                                 const serviceCost = parseFloat(service.cost) || 0;
+                                // Get the actual category for this service
+                                const serviceCategory = quotationData.serviceDetailsMap?.[service.serviceId]?.categoryName || category;
                                 
                                 return `
                                   <tr>
-                                    <td>${category}</td>
+                                    <td>${serviceCategory}</td>
                                     <td>${serviceName} ${serviceUnit ? `(${serviceUnit})` : ''}</td>
-                                    <td style="text-align: right;">-</td>
+                                    <td style="text-align: right;">₹${formatAmount(service.mrp || '-')}</td>
                                     <td style="text-align: right;">₹${formatAmount(serviceCost)}</td>
                                   </tr>
                                 `;
@@ -912,9 +913,10 @@ export class QuotationService extends BaseService {
                             }
                             
                             // For brand products or fixtures, show a single line item
+                            const categoryName = item.categoryName || category;
                             return `
                               <tr>
-                                <td>${item.categoryName || category}</td>
+                                <td>${categoryName}</td>
                                 <td>${item.name} ${itemUnit ? `(${itemUnit})` : ''}</td>
                                 <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
                                 <td style="text-align: right;">₹${formatAmount(itemAmount)}</td>
