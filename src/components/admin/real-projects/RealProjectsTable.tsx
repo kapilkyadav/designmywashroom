@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RealProject } from '@/services/RealProjectService';
@@ -26,6 +25,8 @@ interface RealProjectsTableProps {
   onPageChange: (page: number) => void;
   onSortChange: (field: string) => void;
   onRefresh: () => void;
+  isLoading?: boolean; // Added isLoading prop
+  error?: any; // Added error prop
 }
 
 const RealProjectsTable: React.FC<RealProjectsTableProps> = ({
@@ -37,14 +38,16 @@ const RealProjectsTable: React.FC<RealProjectsTableProps> = ({
   sortDirection,
   onPageChange,
   onSortChange,
-  onRefresh
+  onRefresh,
+  isLoading = false, // Default isLoading to false
+  error = null, // Default error to null
 }) => {
   const navigate = useNavigate();
-  
+
   const navigateToProject = (id: string) => {
     navigate(`/admin/real-projects/${id}`);
   };
-  
+
   const renderSortIcon = (field: string) => {
     if (sortBy === field) {
       return sortDirection === 'asc' 
@@ -53,7 +56,7 @@ const RealProjectsTable: React.FC<RealProjectsTableProps> = ({
     }
     return null;
   };
-  
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'In Progress':
@@ -70,11 +73,19 @@ const RealProjectsTable: React.FC<RealProjectsTableProps> = ({
         return <Badge>{status}</Badge>;
     }
   };
-  
+
   const formatCurrency = (amount: number | null) => {
     if (amount === null || amount === undefined) return '—';
     return `₹${amount.toLocaleString('en-IN')}`;
   };
+
+  if (error) {
+    return <div className="p-4 text-red-500">Error loading projects: {error.message}</div>;
+  }
+
+  if (isLoading) {
+    return <div className="p-4">Loading projects...</div>;
+  }
 
   return (
     <div>
@@ -172,7 +183,7 @@ const RealProjectsTable: React.FC<RealProjectsTableProps> = ({
           </TableBody>
         </Table>
       </div>
-      
+
       <PaginationComponent
         currentPage={currentPage}
         totalCount={totalCount}

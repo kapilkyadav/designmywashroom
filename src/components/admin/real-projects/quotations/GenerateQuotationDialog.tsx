@@ -46,8 +46,23 @@ const GenerateQuotationDialog: React.FC<GenerateQuotationDialogProps> = ({
   const [quotationItems, setQuotationItems] = useState<any[]>([]);
   const [totalAmount, setTotalAmount] = useState(0);
   
-  const [margins, setMargins] = useState<Record<string, number>>({});
+  const [margins, setMargins] = useState<Record<string, number>>(() => {
+    const initialMargins: Record<string, number> = {};
+    washrooms.forEach(w => { initialMargins[w.id] = 0 });
+    return initialMargins;
+  });
   const [gstRate, setGstRate] = useState(18);
+  
+  // Initialize margins when washrooms change
+  useEffect(() => {
+    const newMargins = { ...margins };
+    washrooms.forEach(w => {
+      if (newMargins[w.id] === undefined) {
+        newMargins[w.id] = 0;
+      }
+    });
+    setMargins(newMargins);
+  }, [washrooms]);
   const [internalPricingDetails, setInternalPricingDetails] = useState<Record<string, any> | undefined>(undefined);
   
   useEffect(() => {

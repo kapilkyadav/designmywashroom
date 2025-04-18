@@ -2,8 +2,12 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Define default values for development if env vars are missing
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://afbmlkeplnimkfltwchy.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmYm1sa2VwbG5pbWtmbHR3Y2h5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwNjU1NjIsImV4cCI6MjA1ODY0MTU2Mn0.NsaKmqtoy3LB9xEK5nnhCoaq7IxM5NbbGrRi-roMu8U';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Supabase URL and Anon Key must be provided in environment variables');
+}
 
 // Check if we have the required values and log a message if they're being used from defaults
 if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {

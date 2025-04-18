@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -59,63 +58,68 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
   const [localMargins, setLocalMargins] = useState<Record<string, number>>(margins || {});
   const [useUniformMargin, setUseUniformMargin] = useState<boolean>(false);
   const [uniformMargin, setUniformMargin] = useState<number>(0);
-  
+
   // Initialize margins for all washrooms if not already present
   useEffect(() => {
     const initializedMargins = { ...localMargins };
     let hasUpdates = false;
-    
+
     washrooms.forEach(washroom => {
       if (initializedMargins[washroom.id] === undefined) {
         initializedMargins[washroom.id] = 0;
         hasUpdates = true;
       }
     });
-    
+
     if (hasUpdates) {
       setLocalMargins(initializedMargins);
       onMarginsChange(initializedMargins);
     }
   }, [washrooms]);
-  
+
   // Update local margins when prop margins change
   useEffect(() => {
     setLocalMargins(margins);
   }, [margins]);
-  
+
   const handleMarginChange = (washroomId: string, value: string) => {
     const numValue = parseFloat(value) || 0;
     const newMargins = { ...localMargins, [washroomId]: numValue };
     setLocalMargins(newMargins);
     onMarginsChange(newMargins);
+    
+    // Force recalculation when margins change
+    if (internalPricing) {
+      calculateInternalPricing(washrooms);
+    }
   };
-  
+
   const handleGstRateChange = (value: string) => {
     const numValue = parseFloat(value) || 0;
     onGstRateChange(numValue);
   };
-  
+
   const handleUniformMarginChange = (value: string) => {
     const numValue = parseFloat(value) || 0;
     setUniformMargin(numValue);
   };
-  
+
   const applyUniformMargin = () => {
     const newMargins: Record<string, number> = {};
     washrooms.forEach(washroom => {
       newMargins[washroom.id] = uniformMargin;
     });
-    
+
     setLocalMargins(newMargins);
     onMarginsChange(newMargins);
   };
-  
+
   // Helper to get actual margin percentage used in calculations
   const getMarginDisplay = (washroomId: string): string => {
     const marginValue = localMargins[washroomId];
     return marginValue !== undefined ? marginValue.toFixed(2) : '0.00';
   };
-  
+
   return (
     <div className="space-y-4 border p-4 rounded-md bg-gradient-to-br from-purple-50 to-indigo-50">
       <div className="flex items-center justify-between">
@@ -137,7 +141,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
           </Label>
         </div>
       </div>
-      
+
       {internalPricing && (
         <>
           <Card className="border border-indigo-100 shadow-sm bg-white">
@@ -173,7 +177,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                     className="max-w-24 border-indigo-200 focus:border-indigo-500 focus:ring-indigo-400"
                   />
                 </div>
-                
+
                 {/* Quick margin setting for all washrooms */}
                 <div className="flex items-center space-x-4 mb-4 p-3 bg-indigo-50/50 rounded-md">
                   <Label htmlFor="uniform-margin" className="min-w-32 font-medium text-indigo-800">
@@ -200,7 +204,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="text-sm font-medium text-indigo-800 mb-2">Individual Washroom Margins</div>
                   {washrooms.map((washroom) => (
@@ -224,7 +228,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
               </div>
             </CardContent>
           </Card>
-          
+
           {internalPricingDetails && (
             <Accordion type="single" collapsible defaultValue="item-1" className="border border-indigo-100 rounded-lg bg-white">
               <AccordionItem value="item-1" className="border-b-0">
@@ -248,7 +252,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                         </TableHeader>
                         <TableBody>
                           {washrooms.map((washroom) => {
-                            const pricing = internalPricingDetails.washroomPricing[washroom.id] || {
+                            const pricing = internalPricingDetails?.washroomPricing?.[washroom.id] || {
                               basePrice: 0,
                               marginPercentage: 0,
                               marginAmount: 0,
@@ -256,10 +260,10 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                               gstAmount: 0,
                               totalPrice: 0
                             };
-                            
+
                             // Display the user-specified margin percentage
                             const userMarginPercentage = getMarginDisplay(washroom.id);
-                            
+
                             return (
                               <TableRow key={washroom.id} className="hover:bg-indigo-50/30">
                                 <TableCell className="font-medium text-gray-800">{washroom.name}</TableCell>
@@ -274,7 +278,7 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                         </TableBody>
                       </Table>
                     </div>
-                    
+
                     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-md shadow-sm border border-indigo-100">
                       <h4 className="font-medium mb-3 text-indigo-800 flex items-center">
                         <span>Project Summary</span>
@@ -292,27 +296,32 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
                         </TooltipProvider>
                       </h4>
                       <div className="grid grid-cols-2 gap-2 text-gray-800">
-                        {/* Split Base Price into two components */}
-                        <div className="text-sm text-gray-700">Execution Services Base Price:</div>
-                        <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.executionServicesBasePrice || 0)}</div>
-                        
-                        <div className="text-sm text-gray-700">Product & Fixtures Price:</div>
-                        <div className="text-right font-medium">₹{formatAmount((internalPricingDetails.projectSummary.totalBasePrice || 0) - (internalPricingDetails.projectSummary.executionServicesBasePrice || 0))}</div>
-                        
-                        <div className="text-sm text-gray-700 border-t border-indigo-100 pt-1">Total Base Price:</div>
-                        <div className="text-right font-medium border-t border-indigo-100 pt-1">₹{formatAmount(internalPricingDetails.projectSummary.totalBasePrice)}</div>
-                        
-                        <div className="text-sm text-gray-700">Complete Margin:</div>
-                        <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.marginAmount || 0)}</div>
-                        
-                        <div className="text-sm text-gray-700">Price with Margin:</div>
-                        <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.totalWithMargin)}</div>
-                        
-                        <div className="text-sm text-gray-700">GST ({gstRate}%):</div>
-                        <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.totalGST)}</div>
-                        
-                        <div className="text-sm border-t pt-1 font-semibold text-indigo-900">Grand Total:</div>
-                        <div className="text-right border-t pt-1 font-semibold text-indigo-900">₹{formatAmount(internalPricingDetails.projectSummary.grandTotal)}</div>
+                        {internalPricingDetails?.projectSummary ? (
+                          <>
+                            <div className="text-sm text-gray-700">Execution Services Base Price:</div>
+                            <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.executionServicesBasePrice || 0)}</div>
+
+                            <div className="text-sm text-gray-700">Product & Fixtures Price:</div>
+                            <div className="text-right font-medium">₹{formatAmount((internalPricingDetails.projectSummary.totalBasePrice || 0) - (internalPricingDetails.projectSummary.executionServicesBasePrice || 0))}</div>
+
+                            <div className="text-sm text-gray-700 border-t border-indigo-100 pt-1">Total Base Price:</div>
+                            <div className="text-right font-medium border-t border-indigo-100 pt-1">₹{formatAmount(internalPricingDetails.projectSummary.totalBasePrice)}</div>
+
+                            <div className="text-sm text-gray-700">Complete Margin:</div>
+                            <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.marginAmount || 0)}</div>
+
+                            <div className="text-sm text-gray-700">Price with Margin:</div>
+                            <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.totalWithMargin)}</div>
+
+                            <div className="text-sm text-gray-700">GST ({gstRate}%):</div>
+                            <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.totalGST)}</div>
+
+                            <div className="text-sm border-t pt-1 font-semibold text-indigo-900">Grand Total:</div>
+                            <div className="text-right border-t pt-1 font-semibold text-indigo-900">₹{formatAmount(internalPricingDetails.projectSummary.grandTotal)}</div>
+                          </>
+                        ) : (
+                          <div className="text-sm text-gray-700">No pricing details available</div>
+                        )}
                       </div>
                     </div>
                   </div>
