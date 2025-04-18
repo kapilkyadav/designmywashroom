@@ -895,8 +895,19 @@ export class QuotationService extends BaseService {
                             // Handle execution services differently from brand products
                             if (!item.isBrandProduct && item.serviceDetails) {
                               return item.serviceDetails.map((service: any) => {
-                                // Service details here
-                                return '';
+                                // Get service name from the service details map if available
+                                const serviceName = quotationData.serviceDetailsMap?.[service.serviceId]?.name || service.name || 'Service';
+                                const serviceUnit = quotationData.serviceDetailsMap?.[service.serviceId]?.unit || '';
+                                const serviceCost = parseFloat(service.cost) || 0;
+                                
+                                return `
+                                  <tr>
+                                    <td>${category}</td>
+                                    <td>${serviceName} ${serviceUnit ? `(${serviceUnit})` : ''}</td>
+                                    <td style="text-align: right;">-</td>
+                                    <td style="text-align: right;">₹${formatAmount(serviceCost)}</td>
+                                  </tr>
+                                `;
                               }).join('');
                             }
                             
