@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -874,4 +875,160 @@ export class QuotationService extends BaseService {
                             
                             // Handle execution services differently from brand products
                             if (!item.isBrandProduct && item.serviceDetails) {
-                              return item.serviceDetails.map((service: any
+                              return item.serviceDetails.map((service: any) => {
+                                // Service details here
+                                return '';
+                              }).join('');
+                            }
+                            
+                            // For brand products or fixtures, show a single line item
+                            return `
+                              <tr>
+                                <td>${item.categoryName || category}</td>
+                                <td>${item.name} ${itemUnit ? `(${itemUnit})` : ''}</td>
+                                <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
+                                <td style="text-align: right;">₹${formatAmount(itemAmount)}</td>
+                              </tr>
+                            `;
+                          }).join('')}
+                          <tr>
+                            <td colspan="2" style="text-align: right; font-weight: 500;">Category Subtotal:</td>
+                            <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryMrp)}</td>
+                            <td style="text-align: right; font-weight: 500;">₹${formatAmount(categoryTotal)}</td>
+                          </tr>
+                        `;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        
+        <div class="summary-box">
+          <h3 class="section-title">Quotation Summary</h3>
+          
+          <div class="cost-breakdown">
+            ${Object.entries(costBreakdown).map(([key, details]: [string, any]) => `
+              <div class="cost-category">
+                <div class="price-row">
+                  <div class="cost-category-title">${details.title}:</div>
+                  <div class="cost-category-amount">₹${formatAmount(details.amount)}</div>
+                </div>
+              </div>
+            `).join('')}
+            
+            <div class="price-row" style="border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 8px;">
+              <div style="font-weight: 500;">Subtotal:</div>
+              <div style="font-weight: 500;">₹${formatAmount(subtotalBeforeGst)}</div>
+            </div>
+            
+            <div class="price-row">
+              <div>GST (${quotationData.gstRate || 18}%):</div>
+              <div>₹${formatAmount(gstAmount)}</div>
+            </div>
+            
+            <div class="price-row total" style="border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 8px;">
+              <div>Grand Total:</div>
+              <div>₹${formatAmount(grandTotal)}</div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+          <h3 class="section-title">Terms & Conditions</h3>
+          <div>
+            ${quotationData.terms || `
+              <ol>
+                <li>50% advance payment is required at the time of order confirmation.</li>
+                <li>Balance payment is due on completion of the project.</li>
+                <li>Prices are inclusive of installation and applicable taxes.</li>
+                <li>Delivery timeline will be 4-6 weeks from the date of order confirmation and advance payment.</li>
+                <li>This quotation is valid for 15 days from the date of issue.</li>
+              </ol>
+            `}
+          </div>
+        </div>
+        
+        <div class="footer">
+          <p>Thank you for choosing Your Dream Space!</p>
+          <p>For any queries, please contact us at <strong>info@yourdreamspace.com</strong> or call <strong>+91 9876543210</strong></p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+    
+    return htmlTemplate;
+  }
+  
+  /**
+   * Get all quotations for a project
+   */
+  static async getProjectQuotations(projectId: string): Promise<ProjectQuotation[]> {
+    try {
+      const { data, error } = await supabase
+        .from('project_quotations')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      
+      return data as ProjectQuotation[];
+    } catch (error: any) {
+      console.error('Error fetching project quotations:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Get a specific quotation
+   */
+  static async getQuotation(quotationId: string): Promise<ProjectQuotation | null> {
+    try {
+      const { data, error } = await supabase
+        .from('project_quotations')
+        .select('*')
+        .eq('id', quotationId)
+        .single();
+        
+      if (error) throw error;
+      
+      return data as ProjectQuotation;
+    } catch (error: any) {
+      console.error('Error fetching quotation:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Delete a quotation
+   */
+  static async deleteQuotation(quotationId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('project_quotations')
+        .delete()
+        .eq('id', quotationId);
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Quotation deleted",
+        description: "The quotation has been deleted successfully.",
+      });
+      
+      return true;
+    } catch (error: any) {
+      console.error('Error deleting quotation:', error);
+      toast({
+        title: "Error deleting quotation",
+        description: error.message || "Failed to delete quotation",
+        variant: "destructive",
+      });
+      return false;
+    }
+  }
+}
