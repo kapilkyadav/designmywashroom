@@ -17,7 +17,14 @@ interface QuotationData {
 }
 
 interface PricingResult {
+  beforeMargin: number;
+  afterMargin: number;
+  marginDifference: number;
+  marginAmount: number;
+  appliedMargins: Record<string, number>;
+}
 
+export class QuotationService extends BaseService {
   static validateQuotationData(quotationData: QuotationData): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
     
@@ -43,15 +50,6 @@ interface PricingResult {
       errors
     };
   }
-
-  beforeMargin: number;
-  afterMargin: number;
-  marginDifference: number;
-  marginAmount: number;
-  appliedMargins: Record<string, number>;
-}
-
-export class QuotationService extends BaseService {
   /**
    * Generate and save a quotation for a project
    */
