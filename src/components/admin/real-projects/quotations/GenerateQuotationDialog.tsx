@@ -6,7 +6,7 @@ import { RealProjectService } from '@/services/real-projects';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-export function GenerateQuotationDialog({ 
+export default function GenerateQuotationDialog({ 
   project, 
   isOpen, 
   onClose 
