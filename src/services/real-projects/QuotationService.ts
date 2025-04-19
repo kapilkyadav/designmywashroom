@@ -98,12 +98,17 @@ export class QuotationService extends BaseService {
       // Calculate internal pricing if enabled
       if (sanitizedQuotationData.internalPricing) {
         // Apply margins to execution services - IMPORTANT: make sure we use original item amounts
-        const cleanItems = sanitizedQuotationData.items.map((item) => ({
-          ...item,
-          appliedMargin: undefined,
-          baseAmount: item.originalAmount, // Reset baseAmount to originalAmount
-          amount: item.originalAmount // Reset amount to originalAmount
-        }));
+        // and preserve custom formula calculations
+        const cleanItems = sanitizedQuotationData.items.map((item) => {
+          const baseAmount = item.customFormulaAmount || item.originalAmount;
+          return {
+            ...item,
+            appliedMargin: undefined,
+            baseAmount: baseAmount,
+            amount: baseAmount,
+            customFormulaAmount: item.customFormulaAmount
+          };
+        });
 
         sanitizedQuotationData.items = QuotationService.applyMarginsToItems(
           washrooms || [],

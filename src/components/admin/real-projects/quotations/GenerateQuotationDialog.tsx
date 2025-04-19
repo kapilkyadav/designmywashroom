@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -47,7 +46,7 @@ export default function GenerateQuotationDialog({
       if (!project?.id) {
         throw new Error('Project ID is required');
       }
-      
+
       // Get project washrooms first
       const washrooms = await RealProjectService.getProjectWashrooms(project.id);
       if (!washrooms) {
@@ -60,7 +59,7 @@ export default function GenerateQuotationDialog({
         washrooms,
         executionCosts
       );
-      
+
       if (!pricing) {
         throw new Error('Failed to calculate project costs');
       }
@@ -69,7 +68,8 @@ export default function GenerateQuotationDialog({
       setTotalPricing({
         basePrice: pricing.projectTotalBasePrice || 0,
         gstAmount: pricing.projectTotalGST || 0,
-        grandTotal: pricing.projectGrandTotal || 0
+        grandTotal: pricing.projectGrandTotal || 0,
+        hasCustomFormulas: pricing.hasCustomFormulas || false // Added to handle custom formulas
       });
     } catch (error: any) {
       console.error('Error loading pricing:', error);
@@ -123,6 +123,11 @@ export default function GenerateQuotationDialog({
                   <div>₹{totalPricing.basePrice.toFixed(2)}</div>
                   <div>GST:</div>
                   <div>₹{totalPricing.gstAmount.toFixed(2)}</div>
+                  {totalPricing.hasCustomFormulas && (
+                    <div className="text-sm text-muted-foreground col-span-2">
+                      * Some items use custom pricing formulas
+                    </div>
+                  )}
                   <div className="font-bold">Total:</div>
                   <div className="font-bold">₹{totalPricing.grandTotal.toFixed(2)}</div>
                 </div>
