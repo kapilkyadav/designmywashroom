@@ -22,6 +22,7 @@ const formSchema = z.object({
     message: 'Category name must be at least 2 characters.',
   }),
   description: z.string().optional(),
+  sequence: z.number().default(0),
 });
 
 type FormValues = z.infer<typeof formSchema>;
