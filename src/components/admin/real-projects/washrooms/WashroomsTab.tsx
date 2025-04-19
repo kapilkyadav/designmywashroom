@@ -213,23 +213,26 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
   };
 
   const updateWashroomFixture = async (index: number, fixtureId: string, checked: boolean) => {
-    const updatedWashrooms = [...washrooms];
-    if (!updatedWashrooms[index].fixtures) {
-      updatedWashrooms[index].fixtures = {};
-    }
-    updatedWashrooms[index].fixtures[fixtureId] = checked;
-    setWashrooms(updatedWashrooms);
-
-    // Save immediately to persist changes
     try {
-      await WashroomService.updateWashroom(updatedWashrooms[index].id, {
-        fixtures: updatedWashrooms[index].fixtures
-      });
+      const updatedWashrooms = [...washrooms];
+      if (!updatedWashrooms[index].fixtures) {
+        updatedWashrooms[index].fixtures = {};
+      }
+      updatedWashrooms[index].fixtures[fixtureId] = checked;
+
+      // Only update UI after successful save
+      const success = await WashroomService.updateProjectWashrooms(project.id, updatedWashrooms);
+      
+      if (success) {
+        setWashrooms(updatedWashrooms);
+      } else {
+        throw new Error("Failed to update washroom");
+      }
     } catch (error) {
       console.error('Error saving fixture selection:', error);
       toast({
         title: "Error",
-        description: "Failed to save fixture selection",
+        description: "Failed to save fixture selection. Please try again.",
         variant: "destructive"
       });
     }
