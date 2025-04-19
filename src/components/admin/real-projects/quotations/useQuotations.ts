@@ -32,7 +32,7 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
   const handleGenerateQuotation = async () => {
     try {
       setIsGeneratingQuote(true);
-      const pricing = await RealProjectService.calculateProjectCosts(project.id);
+      const pricing = await RealProjectService.calculateProjectCosts(project.id, project.washrooms || []);
       
       const quotationData = {
         items: (pricing.items || []).map(item => ({

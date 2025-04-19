@@ -105,8 +105,8 @@ export class CostingService extends BaseService {
    */
   static async calculateProjectCosts(
     projectId: string, 
-    washrooms: Washroom[], 
-    executionCosts: Record<string, any>
+    washrooms: Washroom[] = [], 
+    executionCosts: Record<string, any> = {}
   ): Promise<Record<string, any>> {
     try {
       // Get tiling rates
