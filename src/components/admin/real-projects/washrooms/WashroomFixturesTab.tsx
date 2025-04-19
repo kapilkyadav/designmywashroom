@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { RealProject } from '@/services/real-projects';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { LoadingState, ErrorState } from '@/components/admin/real-projects/ProjectDetailStates';
+import { LoadingState } from '@/components/admin/real-projects/ProjectDetailStates';
 import { useQuery } from '@tanstack/react-query';
 import { fixtureService } from '@/services/fixtures/FixtureService';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { WashroomService } from '@/services/real-projects/WashroomService';
 
 interface WashroomFixturesTabProps {
   project: RealProject;
@@ -47,12 +48,17 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
         }
       };
 
-      // TODO: Implement WashroomService.updateWashroom
-      onUpdate();
-      toast({
-        title: "Success",
-        description: "Fixture updated successfully",
-      });
+      const success = await WashroomService.updateWashroom(project.id, washroomToUpdate);
+      
+      if (success) {
+        onUpdate();
+        toast({
+          title: "Success",
+          description: "Fixture updated successfully",
+        });
+      } else {
+        throw new Error("Failed to update washroom");
+      }
     } catch (error) {
       console.error('Error updating fixture:', error);
       toast({
