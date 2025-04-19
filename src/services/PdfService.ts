@@ -1,83 +1,74 @@
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { toast } from '@/hooks/use-toast';
 
 export class PdfService {
-  /**
-   * Generate PDF from HTML content using browser print functionality
-   */
   static async generatePdfFromHtml(
-    html: string, 
+    html: string,
     filename: string = 'document.pdf'
-  ): Promise<Blob | null> {
+  ): Promise<void> {
     try {
-      // Create an iframe to render the HTML
-      const iframe = document.createElement('iframe');
-      iframe.style.visibility = 'hidden';
-      iframe.style.position = 'absolute';
-      iframe.style.width = '8.27in'; // A4 width
-      iframe.style.height = '11.69in'; // A4 height
-      iframe.style.border = 'none';
-      
-      document.body.appendChild(iframe);
-      
-      // Add print styles for better PDF rendering
-      const printStyles = `
-        <style>
-          @page {
-            size: A4;
-            margin: 1cm;
-          }
-          @media print {
-            body {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              color-adjust: exact !important;
-            }
-            .container {
-              padding: 0 !important;
-              max-width: 100% !important;
-            }
-          }
-        </style>
-      `;
-      
-      // Fix image paths to absolute URLs
-      const enhancedHtml = html.replace(/src="\/([^"]*)"/g, (match, p1) => {
-        const absoluteUrl = window.location.origin + '/' + p1;
-        return `src="${absoluteUrl}"`;
+      // Create a temporary container
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      container.style.width = '210mm'; // A4 width
+      container.style.padding = '10mm';
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      document.body.appendChild(container);
+
+      // Render the HTML to canvas
+      const canvas = await html2canvas(container, {
+        scale: 2, // Higher quality
+        useCORS: true, // Allow cross-origin images
+        logging: false,
+        allowTaint: true,
+        windowWidth: container.scrollWidth,
+        windowHeight: container.scrollHeight
       });
-      
-      // Write the HTML content to the iframe
-      const iframeDoc = iframe.contentWindow?.document;
-      if (!iframeDoc) throw new Error('Could not access iframe document');
-      
-      iframeDoc.open();
-      iframeDoc.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>${printStyles}</head>
-          <body>${enhancedHtml}</body>
-        </html>
-      `);
-      iframeDoc.close();
-      
-      // Wait for images to load
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Focus and print the iframe
-      if (iframe.contentWindow) {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
+
+      // Calculate dimensions
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      let firstPage = true;
+
+      // Add pages iteratively
+      while (heightLeft >= 0) {
+        if (!firstPage) {
+          pdf.addPage();
+        }
+        const currentHeight = Math.min(pageHeight, heightLeft);
+        pdf.addImage(
+          canvas.toDataURL('image/jpeg', 1.0),
+          'JPEG',
+          0,
+          position,
+          imgWidth,
+          imgHeight,
+          '',
+          'FAST'
+        );
+        heightLeft -= pageHeight;
+        position -= pageHeight;
+        firstPage = false;
       }
-      
-      // Clean up the iframe
-      document.body.removeChild(iframe);
-      
+
+      // Save the PDF
+      pdf.save(filename);
+
+      // Clean up
+      document.body.removeChild(container);
+
       toast({
-        title: "Print Dialog Opened",
-        description: "Save as PDF using your browser's print dialog",
+        title: "PDF Generated",
+        description: "Your PDF has been generated and downloaded",
       });
-      
-      return null;
     } catch (error: any) {
       console.error('Error generating PDF:', error);
       toast({
@@ -85,30 +76,21 @@ export class PdfService {
         description: error.message || 'Failed to generate PDF',
         variant: 'destructive',
       });
-      return null;
     }
   }
 
-  /**
-   * Save the HTML content as a file for download
-   */
   static downloadHtmlAsFile(html: string, filename: string): void {
     try {
-      // Create a blob from the HTML content
       const blob = new Blob([html], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
-      
-      // Create a link to download
       const link = document.createElement('a');
       link.href = url;
       link.download = filename || 'document.html';
       document.body.appendChild(link);
       link.click();
-      
-      // Clean up
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
+
       toast({
         title: 'Download Started',
         description: 'Your document download has started',
