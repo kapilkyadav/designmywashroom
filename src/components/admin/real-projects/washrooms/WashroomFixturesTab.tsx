@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { RealProject } from '@/services/real-projects';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -16,24 +17,32 @@ interface WashroomFixturesTabProps {
 
 const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUpdate }) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (project && project.washrooms) {
-      setIsLoading(false);
-    }
-  }, [project]);
-
-  if (isLoading) {
-    return <LoadingState />;
-  }
-
-  if (!project || !project.washrooms) {
-    return <ErrorState />;
-  }
-  const { data: fixtures = [] } = useQuery({
+  const { data: fixtures = [], isLoading: isFixturesLoading, error: fixturesError } = useQuery({
     queryKey: ['fixtures'],
     queryFn: () => FixtureService.getAllFixtures(),
   });
+
+  useEffect(() => {
+    if (!isFixturesLoading && fixtures) {
+      setIsLoading(false);
+    }
+  }, [isFixturesLoading, fixtures]);
+
+  useEffect(() => {
+    if (fixturesError) {
+      setError('Failed to load fixtures. Please try again.');
+    }
+  }, [fixturesError]);
+
+  if (isLoading || isFixturesLoading) {
+    return <LoadingState />;
+  }
+
+  if (error || !project?.id || !project.washrooms) {
+    return <ErrorState />;
+  }
 
   const fixturesByCategory = fixtures.reduce((acc, fixture) => {
     const category = fixture.category || 'Uncategorized';
@@ -46,11 +55,7 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
 
   const updateWashroomFixture = async (washroomId: string, fixtureId: string, checked: boolean) => {
     try {
-      if (!project?.id) {
-        throw new Error("Project ID is required");
-      }
-
-      const updatedWashroom = project?.washrooms?.find(w => w.id === washroomId);
+      const updatedWashroom = project.washrooms?.find(w => w.id === washroomId);
       if (!updatedWashroom) {
         throw new Error("Washroom not found");
       }
@@ -64,7 +69,7 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
       };
 
       const success = await WashroomService.updateWashroom(project.id, washroomToUpdate);
-
+      
       if (success) {
         onUpdate();
       } else {
