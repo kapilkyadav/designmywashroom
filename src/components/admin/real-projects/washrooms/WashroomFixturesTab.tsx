@@ -4,11 +4,15 @@ import { RealProject } from '@/services/real-projects';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { LoadingState, ErrorState } from '@/components/admin/real-projects/ProjectDetailStates';
 import { useQuery } from '@tanstack/react-query';
-import { FixtureService } from '@/services/FixtureService';
+import { FixtureService } from '@/services/fixtures/FixtureService';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { WashroomService } from '@/services/real-projects/WashroomService';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 interface WashroomFixturesTabProps {
   project: RealProject;
@@ -16,34 +20,15 @@ interface WashroomFixturesTabProps {
 }
 
 const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUpdate }) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [activeWashroom, setActiveWashroom] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { data: fixtures = [], isLoading: isFixturesLoading, error: fixturesError } = useQuery({
+  const { data: fixtures = [], isLoading: isFixturesLoading } = useQuery({
     queryKey: ['fixtures'],
     queryFn: () => FixtureService.getAllFixtures(),
   });
 
-  useEffect(() => {
-    if (!isFixturesLoading && fixtures) {
-      setIsLoading(false);
-    }
-  }, [isFixturesLoading, fixtures]);
-
-  useEffect(() => {
-    if (fixturesError) {
-      setError('Failed to load fixtures. Please try again.');
-    }
-  }, [fixturesError]);
-
-  if (isLoading || isFixturesLoading) {
-    return <LoadingState />;
-  }
-
-  if (error || !project?.id || !project.washrooms) {
-    return <ErrorState />;
-  }
-
+  // Group fixtures by category
   const fixturesByCategory = fixtures.reduce((acc, fixture) => {
     const category = fixture.category || 'Uncategorized';
     if (!acc[category]) {
@@ -53,12 +38,17 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
     return acc;
   }, {} as Record<string, any[]>);
 
+  useEffect(() => {
+    if (project.washrooms?.length > 0 && !activeWashroom) {
+      setActiveWashroom(project.washrooms[0].id);
+    }
+  }, [project.washrooms]);
+
   const updateWashroomFixture = async (washroomId: string, fixtureId: string, checked: boolean) => {
     try {
+      setIsLoading(true);
       const updatedWashroom = project.washrooms?.find(w => w.id === washroomId);
-      if (!updatedWashroom) {
-        throw new Error("Washroom not found");
-      }
+      if (!updatedWashroom) return;
 
       const washroomToUpdate = {
         ...updatedWashroom,
@@ -72,22 +62,26 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
       
       if (success) {
         onUpdate();
-      } else {
-        throw new Error("Failed to update washroom");
+        toast({
+          title: "Success",
+          description: "Fixture updated successfully",
+        });
       }
     } catch (error) {
-      console.error('Error saving fixture selection:', error);
-      const errorMessage = error instanceof Error ? error.message : 
-        typeof error === 'object' && error !== null && 'message' in error ? 
-        String(error.message) : "Failed to save fixture selection. Please try again.";
-
+      console.error('Error updating fixture:', error);
       toast({
         title: "Error",
-        description: errorMessage,
+        description: "Failed to update fixture",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isFixturesLoading) {
+    return <LoadingState />;
+  }
 
   if (!project.washrooms?.length) {
     return (
@@ -103,44 +97,73 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
 
   return (
     <div className="space-y-6">
-      {project.washrooms.map(washroom => (
-        <Card key={washroom.id}>
-          <CardHeader>
-            <CardTitle>{washroom.name}</CardTitle>
-            <CardDescription>
-              {washroom.length}ft × {washroom.width}ft
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {Object.entries(fixturesByCategory).map(([category, fixtures]) => (
-              <div key={category} className="mb-6">
-                <h3 className="font-medium mb-3">{category}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {fixtures.map(fixture => (
-                    <div key={fixture.id} className="flex items-center gap-4 p-2 rounded-md hover:bg-accent">
-                      <Checkbox
-                        id={`fixture-${washroom.id}-${fixture.id}`}
-                        checked={washroom.fixtures?.[fixture.id] || false}
-                        onCheckedChange={(checked) => 
-                          updateWashroomFixture(washroom.id, fixture.id, !!checked)
-                        }
-                      />
-                      <div className="flex flex-col">
-                        <Label htmlFor={`fixture-${washroom.id}-${fixture.id}`} className="font-medium">
-                          {fixture.name}
-                        </Label>
-                        <span className="text-xs text-muted-foreground">
-                          Client Price: ₹{fixture.client_price || 'N/A'}
-                        </span>
+      <Tabs value={activeWashroom || ''} onValueChange={setActiveWashroom}>
+        <TabsList className="w-full h-auto flex-wrap">
+          {project.washrooms.map(washroom => (
+            <TabsTrigger key={washroom.id} value={washroom.id} className="flex-grow">
+              <div className="flex flex-col items-start">
+                <span>{washroom.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {washroom.length}' × {washroom.width}'
+                </span>
+              </div>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {project.washrooms.map(washroom => (
+          <TabsContent key={washroom.id} value={washroom.id}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>{washroom.name} Fixtures</span>
+                  <Badge variant="outline">
+                    {Object.values(washroom.fixtures || {}).filter(Boolean).length} Selected
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Select fixtures for {washroom.name} ({washroom.length}' × {washroom.width}')
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[60vh] pr-4">
+                  {Object.entries(fixturesByCategory).map(([category, fixtures]) => (
+                    <div key={category} className="mb-6">
+                      <h3 className="font-medium mb-3">{category}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {fixtures.map(fixture => (
+                          <div key={fixture.id} className="flex items-start gap-4 p-3 rounded-lg border">
+                            <Checkbox
+                              id={`fixture-${washroom.id}-${fixture.id}`}
+                              checked={washroom.fixtures?.[fixture.id] || false}
+                              onCheckedChange={(checked) => 
+                                updateWashroomFixture(washroom.id, fixture.id, !!checked)
+                              }
+                              disabled={isLoading}
+                            />
+                            <div className="flex flex-col">
+                              <Label 
+                                htmlFor={`fixture-${washroom.id}-${fixture.id}`} 
+                                className="font-medium cursor-pointer"
+                              >
+                                {fixture.name}
+                              </Label>
+                              <span className="text-sm text-muted-foreground">
+                                ₹{fixture.client_price || 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
+                      <Separator className="my-6" />
                     </div>
                   ))}
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ))}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 };
