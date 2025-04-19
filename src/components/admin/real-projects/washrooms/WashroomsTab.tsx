@@ -452,13 +452,28 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                               <Checkbox
                                 id={`fixture-${washroom.id}-${fixture.id}`}
                                 checked={washroom.fixtures?.[fixture.id] || false}
-                                onCheckedChange={(checked) => {
+                                onCheckedChange={async (checked) => {
                                   const updatedWashrooms = [...washrooms];
                                   if (!updatedWashrooms[index].fixtures) {
                                     updatedWashrooms[index].fixtures = {};
                                   }
                                   updatedWashrooms[index].fixtures[fixture.id] = !!checked;
-                                  setWashrooms(updatedWashrooms);
+                                  
+                                  try {
+                                    const success = await WashroomService.updateProjectWashrooms(project.id, updatedWashrooms);
+                                    if (success) {
+                                      setWashrooms(updatedWashrooms);
+                                    } else {
+                                      throw new Error("Failed to update washroom");
+                                    }
+                                  } catch (error) {
+                                    console.error('Error saving fixture selection:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to save fixture selection. Please try again.",
+                                      variant: "destructive"
+                                    });
+                                  }
                                 }}
                               />
                               <div className="flex flex-col">
