@@ -1,10 +1,10 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { RealProject } from '@/services/real-projects';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { LoadingState, ErrorState } from '@/components/admin/real-projects/ProjectDetailStates';
 import { useQuery } from '@tanstack/react-query';
-import { FixtureService } from '@/services/fixtures/FixtureService';
+import { fixtureService } from '@/services/fixtures/FixtureService';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
@@ -25,10 +25,9 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
 
   const { data: fixtures = [], isLoading: isFixturesLoading } = useQuery({
     queryKey: ['fixtures'],
-    queryFn: () => FixtureService.getAllFixtures(),
+    queryFn: () => fixtureService.getAllFixtures(),
   });
 
-  // Group fixtures by category
   const fixturesByCategory = fixtures.reduce((acc, fixture) => {
     const category = fixture.category || 'Uncategorized';
     if (!acc[category]) {
@@ -38,11 +37,21 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
     return acc;
   }, {} as Record<string, any[]>);
 
-  useEffect(() => {
-    if (project.washrooms?.length > 0 && !activeWashroom) {
-      setActiveWashroom(project.washrooms[0].id);
-    }
-  }, [project.washrooms]);
+  if (isFixturesLoading) {
+    return <LoadingState />;
+  }
+
+  if (!project.washrooms?.length) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <div className="text-center text-muted-foreground">
+            No washrooms found. Please add washrooms first.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const updateWashroomFixture = async (washroomId: string, fixtureId: string, checked: boolean) => {
     try {
@@ -79,25 +88,9 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
     }
   };
 
-  if (isFixturesLoading) {
-    return <LoadingState />;
-  }
-
-  if (!project.washrooms?.length) {
-    return (
-      <Card>
-        <CardContent className="py-8">
-          <div className="text-center text-muted-foreground">
-            No washrooms found. Please add washrooms first.
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <Tabs value={activeWashroom || ''} onValueChange={setActiveWashroom}>
+      <Tabs defaultValue={project.washrooms[0].id} onValueChange={setActiveWashroom}>
         <TabsList className="w-full h-auto flex-wrap">
           {project.washrooms.map(washroom => (
             <TabsTrigger key={washroom.id} value={washroom.id} className="flex-grow">
@@ -127,11 +120,11 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[60vh] pr-4">
-                  {Object.entries(fixturesByCategory).map(([category, fixtures]) => (
+                  {Object.entries(fixturesByCategory).map(([category, categoryFixtures]) => (
                     <div key={category} className="mb-6">
                       <h3 className="font-medium mb-3">{category}</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {fixtures.map(fixture => (
+                        {categoryFixtures.map(fixture => (
                           <div key={fixture.id} className="flex items-start gap-4 p-3 rounded-lg border">
                             <Checkbox
                               id={`fixture-${washroom.id}-${fixture.id}`}
