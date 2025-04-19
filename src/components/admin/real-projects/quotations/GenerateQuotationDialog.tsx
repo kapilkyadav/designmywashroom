@@ -47,29 +47,27 @@ export default function GenerateQuotationDialog({
         throw new Error('Project ID is required');
       }
 
-      // Get project washrooms first
-      const washrooms = await RealProjectService.getProjectWashrooms(project.id);
-      if (!washrooms) {
-        throw new Error('Failed to fetch washrooms');
-      }
-
       const executionCosts = {};
-      const pricing = await RealProjectService.calculateProjectCosts(
-        project.id,
-        washrooms,
-        executionCosts
-      );
+      const pricing = await RealProjectService.calculateProjectCosts(project.id);
 
       if (!pricing) {
         throw new Error('Failed to calculate project costs');
       }
 
-      setWashroomPricing(pricing.washroomPricing || {});
+      // Set washroom pricing
+      const washroomPricingData = pricing.washroom_costs || {};
+      setWashroomPricing(washroomPricingData);
+
+      // Calculate totals
+      const basePrice = pricing.execution_services_total + pricing.product_costs_total || 0;
+      const gstAmount = basePrice * 0.18; // 18% GST
+      const grandTotal = basePrice + gstAmount;
+
       setTotalPricing({
-        basePrice: pricing.projectTotalBasePrice || 0,
-        gstAmount: pricing.projectTotalGST || 0,
-        grandTotal: pricing.projectGrandTotal || 0,
-        hasCustomFormulas: pricing.hasCustomFormulas || false // Added to handle custom formulas
+        basePrice,
+        gstAmount,
+        grandTotal,
+        hasCustomFormulas: false
       });
     } catch (error: any) {
       console.error('Error loading pricing:', error);
