@@ -39,7 +39,7 @@ export class CostingService extends BaseService {
       return this.handleError(error, 'Failed to fetch services');
     }
   }
-  
+
   /**
    * Get tiling rates
    */
@@ -49,9 +49,9 @@ export class CostingService extends BaseService {
         .from('settings')
         .select('*')
         .single();
-      
+
       if (error) throw error;
-      
+
       return {
         per_tile_cost: data.tile_cost_per_unit || 0,
         tile_laying_cost: data.tiling_labor_per_sqft || 0
@@ -61,7 +61,7 @@ export class CostingService extends BaseService {
       return null;
     }
   }
-  
+
   /**
    * Get rate for a vendor item from rate card
    */
@@ -74,7 +74,7 @@ export class CostingService extends BaseService {
       return 0;
     }
   }
-  
+
   /**
    * Get product costs for a brand
    */
@@ -86,12 +86,12 @@ export class CostingService extends BaseService {
         .select('id')
         .eq('name', brandName)
         .single();
-      
+
       if (!brandData) return 0;
-      
+
       // Then get all products for this brand
       const products = await ProductService.getProductsByBrandId(brandData.id);
-      
+
       // Calculate total product cost (using quotation_price)
       return products.reduce((sum, product) => sum + (product.quotation_price || 0), 0);
     } catch (error) {
@@ -99,7 +99,7 @@ export class CostingService extends BaseService {
       return 0;
     }
   }
-  
+
   /**
    * Calculate project costs
    */
@@ -112,9 +112,9 @@ export class CostingService extends BaseService {
       // Get tiling rates
       const tilingRates = await this.getTilingRates();
       if (!tilingRates) throw new Error("Unable to fetch tiling rates");
-      
+
       const combinedTilingRate = tilingRates.per_tile_cost + tilingRates.tile_laying_cost;
-      
+
       // Calculate costs for each washroom
       let totalTilingCost = 0;
       let floorAreaTotal = 0;
@@ -122,7 +122,7 @@ export class CostingService extends BaseService {
       let executionServicesTotal = 0;
       let productCostsTotal = 0;
       const washroomCosts: Record<string, { executionServices: number, productCosts: number, totalCost: number }> = {};
-      
+
       // Extract all service IDs that are selected across washrooms
       const selectedServiceIds: string[] = [];
       washrooms.forEach(washroom => {
@@ -134,23 +134,23 @@ export class CostingService extends BaseService {
           });
         }
       });
-      
+
       // Get all vendor items for proper display and categorization
       const serviceItems = await VendorRateCardService.getItemsByIds(selectedServiceIds);
-      
+
       // Get rate cards for all selected services in one batch
       const rateCards = await Promise.all(
         selectedServiceIds.map(id => VendorRateCardService.getRateCardByItemId(id))
       );
-      
+
       // Create a map of service ID to rate and measurement unit
       const serviceRates: Record<string, number> = {};
       const serviceMeasurements: Record<string, string> = {};
-      
+
       rateCards.forEach((rateCard, index) => {
         if (rateCard) {
           serviceRates[selectedServiceIds[index]] = rateCard.client_rate;
-          
+
           // Find the corresponding service item to get the measuring unit
           const serviceItem = serviceItems.find(item => item.id === selectedServiceIds[index]);
           if (serviceItem) {
@@ -158,22 +158,22 @@ export class CostingService extends BaseService {
           }
         }
       });
-      
+
       // Process each washroom
       for (let i = 0; i < washrooms.length; i++) {
         const washroom = washrooms[i];
-        
+
         // Calculate floor area
         const floorArea = Number(washroom.length || 0) * Number(washroom.width || 0);
         floorAreaTotal += floorArea;
-        
+
         // Calculate wall area
         const wallArea = Number(washroom.wall_area || 0);
         wallAreaTotal += wallArea;
-        
+
         let washroomExecutionCost = 0;
         let washroomProductCost = 0;
-        
+
         // Calculate tiling cost if tiling service is selected
         if (washroom.services && Object.entries(washroom.services).some(([id, selected]) => 
           selected && serviceMeasurements[id]?.toLowerCase().includes('tile'))) {
@@ -181,56 +181,81 @@ export class CostingService extends BaseService {
           totalTilingCost += washroomTilingCost;
           washroomExecutionCost += washroomTilingCost;
         }
-        
+
         // Calculate cost for other selected services based on measurement unit
         if (washroom.services) {
           Object.entries(washroom.services).forEach(([serviceId, isSelected]) => {
             if (isSelected) {
               // Use the rate from our serviceRates map
               const serviceRate = serviceRates[serviceId] || 0;
-              const measurementUnit = serviceMeasurements[serviceId]?.toLowerCase() || '';
-              
               let serviceCost = serviceRate;
-              
-              // Adjust cost based on measurement unit
-              if (measurementUnit.includes('sqft') || measurementUnit.includes('sft') || 
-                  measurementUnit.includes('sq ft') || measurementUnit.includes('square')) {
-                // Per square foot pricing - use the sum of floor and wall area
-                serviceCost = serviceRate * (floorArea + wallArea);
+
+              // Find service item to check for custom formula
+              const serviceItem = serviceItems.find(item => item.id === serviceId);
+              const customFormula = serviceItem?.custom_formula;
+
+              if (customFormula) {
+                // Execute custom formula with available variables
+                try {
+                  const formula = customFormula
+                    .replace(/\$floor_area/g, String(floorArea))
+                    .replace(/\$wall_area/g, String(wallArea))
+                    .replace(/\$length/g, String(washroom.length || 0))
+                    .replace(/\$width/g, String(washroom.width || 0))
+                    .replace(/\$height/g, String(washroom.height || 0))
+                    .replace(/\$rate/g, String(serviceRate));
+
+                  serviceCost = eval(formula);
+                } catch (error) {
+                  console.error('Error evaluating custom formula:', error);
+                  // Fallback to standard calculation
+                  const measurementUnit = serviceMeasurements[serviceId]?.toLowerCase() || '';
+                  if (measurementUnit.includes('sqft') || measurementUnit.includes('sft') || 
+                      measurementUnit.includes('sq ft') || measurementUnit.includes('square')) {
+                    serviceCost = serviceRate * (floorArea + wallArea);
+                  }
+                }
+              } else {
+                // Standard calculation based on measurement unit
+                const measurementUnit = serviceMeasurements[serviceId]?.toLowerCase() || '';
+                if (measurementUnit.includes('sqft') || measurementUnit.includes('sft') || 
+                    measurementUnit.includes('sq ft') || measurementUnit.includes('square')) {
+                  serviceCost = serviceRate * (floorArea + wallArea);
+                }
               }
               // For "bathroom" or "nos" (number), use the flat rate
-              
+
               // Store in executionCosts if not already there
               if (!executionCosts[serviceId]) {
                 executionCosts[serviceId] = serviceRate;
               }
-              
+
               // Add to washroom execution cost
               washroomExecutionCost += serviceCost;
             }
           });
         }
-        
+
         // Get product costs for this washroom's brand
         if (washroom.selected_brand) {
           washroomProductCost = await CostingService.getProductCostsByBrand(washroom.selected_brand);
           productCostsTotal += washroomProductCost;
         }
-        
+
         // Store washroom costs
         washroomCosts[washroom.id] = {
           executionServices: washroomExecutionCost,
           productCosts: washroomProductCost,
           totalCost: washroomExecutionCost + washroomProductCost
         };
-        
+
         // Add to total execution services cost
         executionServicesTotal += washroomExecutionCost;
       }
-      
+
       // Calculate final quote amount
       const finalQuotationAmount = executionServicesTotal + productCostsTotal;
-      
+
       return {
         tiling_cost: totalTilingCost,
         execution_services_total: executionServicesTotal,
