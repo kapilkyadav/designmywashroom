@@ -47,7 +47,18 @@ export default function GenerateQuotationDialog({
         throw new Error('Project ID is required');
       }
 
-      const executionCosts = {};
+      // Check if execution costs exist
+      if (!project.execution_costs || Object.keys(project.execution_costs).length === 0) {
+        toast({
+          title: "Missing execution costs",
+          description: "Please add and save execution costs in the Execution Services tab first.",
+          variant: "destructive"
+        });
+        onOpenChange(false);
+        return;
+      }
+
+      const executionCosts = project.execution_costs || {};
       const pricing = await RealProjectService.calculateProjectCosts(project.id);
 
       if (!pricing) {
