@@ -41,6 +41,7 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
       <TabsList className="mb-4">
         <TabsTrigger value="details">Project Details</TabsTrigger>
         <TabsTrigger value="washrooms">Washrooms</TabsTrigger>
+        <TabsTrigger value="washroom-fixtures">Washroom Fixtures</TabsTrigger>
         <TabsTrigger value="execution">Execution Services</TabsTrigger>
         <TabsTrigger value="quotations">Quotations</TabsTrigger>
       </TabsList>
@@ -65,6 +66,18 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
           </CardHeader>
           <CardContent>
             <WashroomsTab project={project} services={services} onUpdate={onUpdate} />
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="washroom-fixtures">
+        <Card>
+          <CardHeader>
+            <CardTitle>Washroom Fixtures</CardTitle>
+            <CardDescription>Select fixtures for each washroom</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <WashroomFixturesTab project={project} onUpdate={onUpdate} />
           </CardContent>
         </Card>
       </TabsContent>
