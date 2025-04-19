@@ -42,6 +42,7 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
         <TabsTrigger value="details">Project Details</TabsTrigger>
         <TabsTrigger value="washrooms">Washrooms</TabsTrigger>
         <TabsTrigger value="execution">Execution Services</TabsTrigger>
+        <TabsTrigger value="quotations">Quotations</TabsTrigger>
       </TabsList>
 
       <TabsContent value="details">
@@ -76,6 +77,17 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
           </CardHeader>
           <CardContent>
             <ExecutionTab project={project} onUpdate={onUpdate} />
+          </CardContent>
+        </Card>
+      </TabsContent>
+      <TabsContent value="quotations">
+        <Card>
+          <CardHeader>
+            <CardTitle>Quotations</CardTitle>
+            <CardDescription>Manage project quotations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <QuotationsTab project={project} onUpdate={onUpdate} />
           </CardContent>
         </Card>
       </TabsContent>
