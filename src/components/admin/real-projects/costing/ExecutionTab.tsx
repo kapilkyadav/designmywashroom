@@ -108,6 +108,21 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
         executionCosts
       );
 
+      if (!executionCosts || Object.keys(executionCosts).length === 0) {
+        throw new Error('No execution costs to save');
+      }
+
+      // Validate costs before saving
+      const calculatedCosts = await RealProjectService.calculateProjectCosts(
+        project.id,
+        project.washrooms || [],
+        executionCosts
+      );
+
+      if (!calculatedCosts) {
+        throw new Error('Failed to calculate costs');
+      }
+
       await project.updateCosts({
         execution_costs: executionCosts,
         vendor_rates: project.vendor_rates || {},
@@ -116,8 +131,8 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
         final_quotation_amount: calculatedCosts.final_quotation_amount,
         execution_services_total: calculatedCosts.execution_services_total,
         product_costs_total: calculatedCosts.product_costs_total,
-        product_cost: project.product_cost || 0,
-        logistics_cost: project.logistics_cost || 0
+        product_cost: calculatedCosts.product_costs_total || 0,
+        logistics_cost: calculatedCosts.logistics_cost || 0
       });
       
       toast({

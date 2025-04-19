@@ -58,8 +58,23 @@ export default function GenerateQuotationDialog({
         return;
       }
 
+      // Check if washrooms exist
+      if (!project.washrooms || project.washrooms.length === 0) {
+        toast({
+          title: "Missing washrooms",
+          description: "Please add washrooms to the project first.",
+          variant: "destructive"
+        });
+        onOpenChange(false);
+        return;
+      }
+
       const executionCosts = project.execution_costs || {};
-      const pricing = await RealProjectService.calculateProjectCosts(project.id);
+      const pricing = await RealProjectService.calculateProjectCosts(
+        project.id,
+        project.washrooms,
+        executionCosts
+      );
 
       if (!pricing) {
         throw new Error('Failed to calculate project costs');

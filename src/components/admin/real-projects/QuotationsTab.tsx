@@ -37,10 +37,7 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
   const handleGenerateNewQuotation = async () => {
     try {
       // Check if execution costs exist and are valid
-      const hasValidExecutionCosts = project.execution_costs && 
-        Object.entries(project.execution_costs).some(([_, value]) => value > 0);
-
-      if (!hasValidExecutionCosts) {
+      if (!project.execution_costs || Object.keys(project.execution_costs).length === 0) {
         toast({
           title: "Missing execution costs",
           description: "Please add and save execution costs in the Execution Services tab first.",
@@ -49,14 +46,31 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
         return;
       }
 
+      // Validate washrooms
+      if (!project.washrooms || project.washrooms.length === 0) {
+        toast({
+          title: "Missing washrooms",
+          description: "Please add washrooms to the project first.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Calculate project costs
-      const costs = await CostingService.calculateProjectCosts(
+      const costs = await RealProjectService.calculateProjectCosts(
         project.id,
-        project.washrooms || [],
+        project.washrooms,
         project.execution_costs
       );
 
-      if (!costs || costs.final_quotation_amount <= 0) {
+      if (!costs) {
+        toast({
+          title: "Error calculating costs",
+          description: "Failed to calculate project costs. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
         toast({
           title: "Invalid cost calculation",
           description: "Please ensure all costs are properly calculated and saved in the Execution Services tab.",
