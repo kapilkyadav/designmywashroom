@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { RealProject } from '@/services/real-projects';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -31,7 +30,11 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
 
   const updateWashroomFixture = async (washroomId: string, fixtureId: string, checked: boolean) => {
     try {
-      const updatedWashroom = project.washrooms?.find(w => w.id === washroomId);
+      if (!project?.id) {
+        throw new Error("Project ID is required");
+      }
+
+      const updatedWashroom = project?.washrooms?.find(w => w.id === washroomId);
       if (!updatedWashroom) {
         throw new Error("Washroom not found");
       }
@@ -45,7 +48,7 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
       };
 
       const success = await WashroomService.updateWashroom(project.id, washroomToUpdate);
-      
+
       if (success) {
         onUpdate();
       } else {
@@ -56,7 +59,7 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
       const errorMessage = error instanceof Error ? error.message : 
         typeof error === 'object' && error !== null && 'message' in error ? 
         String(error.message) : "Failed to save fixture selection. Please try again.";
-      
+
       toast({
         title: "Error",
         description: errorMessage,
