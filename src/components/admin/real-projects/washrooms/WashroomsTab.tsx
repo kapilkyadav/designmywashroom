@@ -453,17 +453,29 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                                 id={`fixture-${washroom.id}-${fixture.id}`}
                                 checked={washroom.fixtures?.[fixture.id] || false}
                                 onCheckedChange={async (checked) => {
-                                  const updatedWashrooms = [...washrooms];
-                                  if (!updatedWashrooms[index].fixtures) {
-                                    updatedWashrooms[index].fixtures = {};
-                                  }
-                                  updatedWashrooms[index].fixtures[fixture.id] = !!checked;
-                                  
                                   try {
+                                    const updatedWashrooms = washrooms.map((w, i) => {
+                                      if (i === index) {
+                                        return {
+                                          ...w,
+                                          fixtures: {
+                                            ...(w.fixtures || {}),
+                                            [fixture.id]: !!checked
+                                          }
+                                        };
+                                      }
+                                      return w;
+                                    });
+
+                                    // First update local state
+                                    setWashrooms(updatedWashrooms);
+                                    
+                                    // Then persist to backend
                                     const success = await WashroomService.updateProjectWashrooms(project.id, updatedWashrooms);
-                                    if (success) {
-                                      setWashrooms(updatedWashrooms);
-                                    } else {
+                                    
+                                    if (!success) {
+                                      // Revert on failure
+                                      setWashrooms(washrooms);
                                       throw new Error("Failed to update washroom");
                                     }
                                   } catch (error) {
