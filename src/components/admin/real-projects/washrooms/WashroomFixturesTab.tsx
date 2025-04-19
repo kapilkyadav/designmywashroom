@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { RealProject } from '@/services/real-projects/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { FixtureService } from '@/services/fixtures/FixtureService';
 import { WashroomService } from '@/services/real-projects/WashroomService';
 import { toast } from '@/hooks/use-toast';
-import { Shower, Lightbulb, Fan } from 'lucide-react';
+import { Shower, Lightbulb, Fan, Thermometer } from 'lucide-react';
 
 interface WashroomFixturesTabProps {
   project: RealProject;
@@ -79,6 +78,8 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
         return <Lightbulb className="h-5 w-5" />;
       case 'ventilation':
         return <Fan className="h-5 w-5" />;
+      case 'heating':
+        return <Thermometer className="h-5 w-5" />;
       default:
         return null;
     }
@@ -92,6 +93,8 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
     );
   }
 
+  const selectedWashroom = project.washrooms.find(w => w.id === activeWashroom);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
       {/* Washroom Selection Sidebar */}
@@ -102,22 +105,25 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
         <CardContent>
           <ScrollArea className="h-[calc(100vh-300px)]">
             <div className="space-y-2">
-              {project.washrooms.map(washroom => (
-                <button
-                  key={washroom.id}
-                  onClick={() => setActiveWashroom(washroom.id)}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                    activeWashroom === washroom.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted'
-                  }`}
-                >
-                  <div className="font-medium">{washroom.name}</div>
-                  <div className="text-sm opacity-80">
-                    {Object.values(washroom.fixtures || {}).filter(Boolean).length} fixtures selected
-                  </div>
-                </button>
-              ))}
+              {project.washrooms.map(washroom => {
+                const selectedFixturesCount = Object.values(washroom.fixtures || {}).filter(Boolean).length;
+                return (
+                  <button
+                    key={washroom.id}
+                    onClick={() => setActiveWashroom(washroom.id)}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                      activeWashroom === washroom.id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    <div className="font-medium">{washroom.name}</div>
+                    <div className="text-sm opacity-80">
+                      {selectedFixturesCount} {selectedFixturesCount === 1 ? 'fixture' : 'fixtures'} selected
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </ScrollArea>
         </CardContent>
@@ -126,11 +132,11 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
       {/* Fixtures Selection Area */}
       <Card className="md:col-span-3">
         <CardHeader>
-          <CardTitle className="text-lg">
+          <CardTitle className="text-lg flex items-center gap-2">
             Select Fixtures
-            {activeWashroom && (
-              <Badge variant="outline" className="ml-2">
-                {project.washrooms.find(w => w.id === activeWashroom)?.name}
+            {selectedWashroom && (
+              <Badge variant="outline">
+                {selectedWashroom.name}
               </Badge>
             )}
           </CardTitle>
@@ -148,35 +154,38 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      {categoryFixtures.map(fixture => (
-                        <div
-                          key={fixture.id}
-                          className="flex items-center space-x-4 p-3 rounded-lg hover:bg-accent transition-colors"
-                        >
-                          <Checkbox
-                            id={`fixture-${activeWashroom}-${fixture.id}`}
-                            checked={project.washrooms
-                              ?.find(w => w.id === activeWashroom)
-                              ?.fixtures?.[fixture.id] || false}
-                            onCheckedChange={(checked) =>
-                              activeWashroom &&
-                              handleFixtureSelect(activeWashroom, fixture.id, !!checked)
-                            }
-                            disabled={!activeWashroom}
-                          />
-                          <div className="flex flex-col flex-1">
-                            <Label
-                              htmlFor={`fixture-${activeWashroom}-${fixture.id}`}
-                              className="font-medium"
-                            >
-                              {fixture.name}
-                            </Label>
-                            <div className="text-sm text-muted-foreground">
-                              MRP: ₹{fixture.mrp || 'N/A'} | Client: ₹{fixture.client_price || 'N/A'}
+                      {categoryFixtures.map(fixture => {
+                        const isSelected = selectedWashroom?.fixtures?.[fixture.id] || false;
+                        return (
+                          <div
+                            key={fixture.id}
+                            className={`flex items-center space-x-4 p-3 rounded-lg transition-colors ${
+                              isSelected ? 'bg-primary/5' : 'hover:bg-accent'
+                            }`}
+                          >
+                            <Checkbox
+                              id={`fixture-${activeWashroom}-${fixture.id}`}
+                              checked={isSelected}
+                              onCheckedChange={(checked) =>
+                                activeWashroom &&
+                                handleFixtureSelect(activeWashroom, fixture.id, !!checked)
+                              }
+                              disabled={!activeWashroom}
+                            />
+                            <div className="flex flex-col flex-1">
+                              <Label
+                                htmlFor={`fixture-${activeWashroom}-${fixture.id}`}
+                                className="font-medium"
+                              >
+                                {fixture.name}
+                              </Label>
+                              <div className="text-sm text-muted-foreground">
+                                MRP: ₹{fixture.mrp?.toLocaleString() || 'N/A'} | Client: ₹{fixture.client_price?.toLocaleString() || 'N/A'}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
