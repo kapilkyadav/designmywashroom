@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { RealProject, RealProjectService } from '@/services/RealProjectService';
 import ProjectDetailsTab from '@/components/admin/real-projects/ProjectDetailsTab';
 import CostingTab from '@/components/admin/real-projects/costing/CostingTab';
-import QuotationsTab from '@/components/admin/real-projects/QuotationsTab';
 import WashroomsTab from '@/components/admin/real-projects/washrooms/WashroomsTab';
 import ExecutionTab from '@/components/admin/real-projects/costing/ExecutionTab';
 import { useQuery } from '@tanstack/react-query';
@@ -43,7 +42,6 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
         <TabsTrigger value="washrooms">Washrooms</TabsTrigger>
         <TabsTrigger value="execution">Execution Services</TabsTrigger>
         <TabsTrigger value="costing">Vendor Rates</TabsTrigger>
-        <TabsTrigger value="quotations">Quotations</TabsTrigger>
       </TabsList>
 
       <TabsContent value="details">
@@ -90,18 +88,6 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
           </CardHeader>
           <CardContent>
             <CostingTab project={project} onUpdate={onUpdate} />
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="quotations">
-        <Card>
-          <CardHeader>
-            <CardTitle>Quotations</CardTitle>
-            <CardDescription>Generate and manage client quotations</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <QuotationsTab project={project} onUpdate={onUpdate} />
           </CardContent>
         </Card>
       </TabsContent>
