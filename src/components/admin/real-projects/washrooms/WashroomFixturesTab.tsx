@@ -53,9 +53,13 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
       }
     } catch (error) {
       console.error('Error saving fixture selection:', error);
+      const errorMessage = error instanceof Error ? error.message : 
+        typeof error === 'object' && error !== null && 'message' in error ? 
+        String(error.message) : "Failed to save fixture selection. Please try again.";
+      
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save fixture selection. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     }

@@ -7,7 +7,7 @@ export class WashroomService extends BaseService {
   static async updateWashroom(projectId: string, washroom: Washroom): Promise<boolean> {
     try {
       const { error } = await supabase
-        .from('washrooms')
+        .from('project_washrooms')
         .update({
           fixtures: washroom.fixtures || {},
           services: washroom.services || {},
