@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -17,23 +18,23 @@ const AdminSidebar = () => {
     setTheme
   } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
-
+  
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
-
+  
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
-
+  
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
   };
-
+  
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
-
+  
   const navigationItems = [
     {
       name: 'Dashboard',
@@ -55,6 +56,11 @@ const AdminSidebar = () => {
       href: '/admin/real-projects',
       icon: <FileCheck className="h-5 w-5" />
     }, 
+    {
+      name: 'Vendor Rate Card',
+      href: '/admin/vendor-rate-card',
+      icon: <Database className="h-5 w-5" />
+    },
     {
       name: 'Brands',
       href: '/admin/brands',
@@ -110,7 +116,7 @@ const AdminSidebar = () => {
         </div>
       </div>
     </>;
-
+    
   return <>
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
