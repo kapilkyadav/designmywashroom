@@ -36,8 +36,11 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
 
   const handleGenerateNewQuotation = async () => {
     try {
-      // Validate that execution costs exist
-      if (!project.execution_costs || Object.keys(project.execution_costs).length === 0) {
+      // Check if execution costs exist and are valid
+      const hasValidExecutionCosts = project.execution_costs && 
+        Object.entries(project.execution_costs).some(([_, value]) => value > 0);
+
+      if (!hasValidExecutionCosts) {
         toast({
           title: "Missing execution costs",
           description: "Please add and save execution costs in the Execution Services tab first.",
