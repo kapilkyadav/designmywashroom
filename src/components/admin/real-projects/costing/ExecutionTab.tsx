@@ -101,11 +101,21 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
     setIsUpdating(true);
     
     try {
+      // Calculate final costs before saving
+      const calculatedCosts = await CostingService.calculateProjectCosts(
+        project.id,
+        project.washrooms || [],
+        executionCosts
+      );
+
       await project.updateCosts({
         execution_costs: executionCosts,
         vendor_rates: project.vendor_rates || {},
         additional_costs: project.additional_costs || {},
         washrooms: project.washrooms || [],
+        final_quotation_amount: calculatedCosts.final_quotation_amount,
+        execution_services_total: calculatedCosts.execution_services_total,
+        product_costs_total: calculatedCosts.product_costs_total
         final_quotation_amount: costSummary.final_quotation_amount || 0,
         // Add the missing parameters with their current values from the project or default to 0
         product_cost: project.product_cost || 0,

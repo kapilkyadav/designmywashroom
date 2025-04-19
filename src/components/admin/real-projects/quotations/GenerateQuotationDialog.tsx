@@ -59,12 +59,17 @@ export default function GenerateQuotationDialog({
       setWashroomPricing(washroomPricingData);
 
       // Calculate totals
-      const basePrice = pricing.execution_services_total + pricing.product_costs_total || 0;
+      // Use project's calculated totals if pricing calculation fails
+      const executionTotal = pricing?.execution_services_total || project.execution_services_total || 0;
+      const productTotal = pricing?.product_costs_total || project.product_costs_total || 0;
+      const basePrice = executionTotal + productTotal;
       const gstAmount = basePrice * 0.18; // 18% GST
       const grandTotal = basePrice + gstAmount;
 
       setTotalPricing({
         basePrice,
+        executionTotal,
+        productTotal,
         gstAmount,
         grandTotal,
         hasCustomFormulas: false

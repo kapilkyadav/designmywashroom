@@ -35,23 +35,47 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
   } = useQuotations(project, onUpdate);
 
   const handleGenerateNewQuotation = async () => {
-    // Calculate project costs first
-    const costs = await CostingService.calculateProjectCosts(
-      project.id,
-      project.washrooms || [],
-      project.execution_costs || {}
-    );
+    try {
+      // Validate that execution costs exist
+      if (!project.execution_costs || Object.keys(project.execution_costs).length === 0) {
+        toast({
+          title: "Missing execution costs",
+          description: "Please add and save execution costs in the Execution Services tab first.",
+          variant: "destructive"
+        });
+        return;
+      }
 
-    if (!costs.execution_services_total && !costs.product_costs_total) {
+      // Calculate project costs
+      const costs = await CostingService.calculateProjectCosts(
+        project.id,
+        project.washrooms || [],
+        project.execution_costs
+      );
+
+      if (!costs || costs.final_quotation_amount <= 0) {
+        toast({
+          title: "Invalid cost calculation",
+          description: "Please ensure all costs are properly calculated and saved in the Execution Services tab.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Store the calculated costs for quotation generation
+      project.execution_services_total = costs.execution_services_total;
+      project.product_costs_total = costs.product_costs_total;
+      project.final_quotation_amount = costs.final_quotation_amount;
+
+      setIsQuoteDialogOpen(true);
+    } catch (error: any) {
+      console.error("Error preparing quotation:", error);
       toast({
-        title: "Missing cost data",
-        description: "Please ensure execution services and product costs are calculated in the Execution Services tab first.",
+        title: "Error",
+        description: "Failed to prepare quotation. Please try again.",
         variant: "destructive"
       });
-      return;
     }
-
-    setIsQuoteDialogOpen(true);
   };
 
   const handleDeleteQuotations = async (quotationIds: string[]) => {
