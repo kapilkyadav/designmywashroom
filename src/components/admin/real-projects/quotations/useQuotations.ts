@@ -35,8 +35,15 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
       const pricing = await RealProjectService.calculateProjectCosts(project.id);
       
       const quotationData = {
-        items: pricing.items || [],
-        totalAmount: pricing.projectGrandTotal || 0,
+        items: (pricing.items || []).map(item => ({
+          ...item,
+          amount: parseFloat(item.amount || '0'),
+          mrp: parseFloat(item.mrp || '0'),
+          originalAmount: parseFloat(item.originalAmount || item.amount || '0'),
+          baseAmount: parseFloat(item.baseAmount || item.amount || '0'),
+          cost: parseFloat(item.cost || item.amount || '0')
+        })),
+        totalAmount: parseFloat(pricing.projectGrandTotal || '0'),
         margins: {},
         gstRate: 18,
         internalPricing: internalPricingEnabled,
