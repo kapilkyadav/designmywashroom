@@ -439,7 +439,44 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                 </div>
               )}
 
-              {/* Fixtures section removed for rebuild */}
+              {Object.keys(fixturesByCategory).length > 0 && (
+                <div className="mt-6">
+                  <h5 className="font-medium mb-3">Washroom Fixtures</h5>
+                  <div className="space-y-4">
+                    {Object.entries(fixturesByCategory).map(([category, fixtures]) => (
+                      <div key={category} className="border p-3 rounded-md">
+                        <h6 className="font-medium mb-2">{category}</h6>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {fixtures.map(fixture => (
+                            <div key={fixture.id} className="flex items-center gap-4 p-2 rounded-md hover:bg-accent">
+                              <Checkbox
+                                id={`fixture-${washroom.id}-${fixture.id}`}
+                                checked={washroom.fixtures?.[fixture.id] || false}
+                                onCheckedChange={(checked) => {
+                                  const updatedWashrooms = [...washrooms];
+                                  if (!updatedWashrooms[index].fixtures) {
+                                    updatedWashrooms[index].fixtures = {};
+                                  }
+                                  updatedWashrooms[index].fixtures[fixture.id] = !!checked;
+                                  setWashrooms(updatedWashrooms);
+                                }}
+                              />
+                              <div className="flex flex-col">
+                                <Label htmlFor={`fixture-${washroom.id}-${fixture.id}`} className="font-medium">
+                                  {fixture.name}
+                                </Label>
+                                <span className="text-xs text-muted-foreground">
+                                  Client Price: ₹{fixture.client_price || 'N/A'}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
