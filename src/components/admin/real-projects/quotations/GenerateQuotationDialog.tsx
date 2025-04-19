@@ -48,7 +48,19 @@ export default function GenerateQuotationDialog({
         throw new Error('Project ID is required');
       }
       
-      const pricing = await RealProjectService.calculateProjectCosts(project.id);
+      // Get project washrooms first
+      const washrooms = await RealProjectService.getProjectWashrooms(project.id);
+      if (!washrooms) {
+        throw new Error('Failed to fetch washrooms');
+      }
+
+      const executionCosts = {};
+      const pricing = await RealProjectService.calculateProjectCosts(
+        project.id,
+        washrooms,
+        executionCosts
+      );
+      
       if (!pricing) {
         throw new Error('Failed to calculate project costs');
       }
