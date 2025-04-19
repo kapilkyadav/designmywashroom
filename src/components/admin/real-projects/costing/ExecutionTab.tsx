@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { RealProject, RealProjectService } from '@/services/RealProjectService';
 import { Button } from '@/components/ui/button';
@@ -28,57 +27,57 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
   const [serviceRates, setServiceRates] = useState<Record<string, number>>({});
   const [serviceMeasurements, setServiceMeasurements] = useState<Record<string, string>>({});
   const [activeWashroomTab, setActiveWashroomTab] = useState<string>('all');
-  
+
   const { data: services, isLoading: isLoadingServices } = useQuery({
     queryKey: ['execution-services'],
     queryFn: () => RealProjectService.getExecutionServices()
   });
-  
+
   const { data: ratesData } = useQuery({
     queryKey: ['tiling-rates'],
     queryFn: () => RealProjectService.getTilingRates()
   });
-  
+
   useEffect(() => {
     if (project.execution_costs) {
       setExecutionCosts(project.execution_costs);
     }
-    
+
     if (ratesData) {
       setTilingRates(ratesData);
     }
-    
+
     if (project.washrooms && project.washrooms.length > 0) {
       setActiveWashroomTab('all');
     }
   }, [project, ratesData]);
-  
+
   useEffect(() => {
     const calculateCosts = async () => {
       if (!project.washrooms || !services) return;
-      
+
       try {
         const calculatedCosts = await RealProjectService.calculateProjectCosts(
           project.id,
           project.washrooms,
           executionCosts
         );
-        
+
         setCostSummary(calculatedCosts);
-        
+
         if (calculatedCosts.service_rates) {
           setServiceRates(calculatedCosts.service_rates);
-          
+
           const updatedCosts = { ...executionCosts };
           Object.entries(calculatedCosts.service_rates).forEach(([serviceId, rate]) => {
             if (!updatedCosts[serviceId]) {
               updatedCosts[serviceId] = rate as number;
             }
           });
-          
+
           setExecutionCosts(updatedCosts);
         }
-        
+
         if (calculatedCosts.service_measurements) {
           setServiceMeasurements(calculatedCosts.service_measurements);
         }
@@ -86,28 +85,37 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
         console.error("Error calculating costs:", error);
       }
     };
-    
+
     calculateCosts();
   }, [project.washrooms, executionCosts, services, project.id]);
-  
+
   const handleCostChange = (serviceId: string, value: number) => {
     setExecutionCosts(prev => ({
       ...prev,
       [serviceId]: value
     }));
   };
-  
+
   const saveCosts = async () => {
     setIsUpdating(true);
-    
+
     try {
-      // Calculate final costs before saving
-      const calculatedCosts = await CostingService.calculateProjectCosts(
+      if (!executionCosts || Object.keys(executionCosts).length === 0) {
+        throw new Error('No execution costs to save');
+      }
+
+      // Calculate and validate costs before saving
+      const calculatedCosts = await RealProjectService.calculateProjectCosts(
         project.id,
         project.washrooms || [],
         executionCosts
       );
 
+      if (!calculatedCosts) {
+        throw new Error('Failed to calculate project costs');
+      }
+
+      // Update project with latest costs
       await project.updateCosts({
         execution_costs: executionCosts,
         vendor_rates: project.vendor_rates || {},
@@ -119,12 +127,12 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
         product_cost: project.product_cost || 0,
         logistics_cost: project.logistics_cost || 0
       });
-      
+
       toast({
         title: "Costs updated",
         description: "Execution costs have been saved successfully.",
       });
-      
+
       onUpdate();
     } catch (error: any) {
       toast({
@@ -136,7 +144,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
       setIsUpdating(false);
     }
   };
-  
+
   if (isLoadingServices) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -144,7 +152,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
       </div>
     );
   }
-  
+
   const servicesByCategory: Record<string, any[]> = {};
   if (services) {
     services.forEach(service => {
@@ -155,22 +163,22 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
       servicesByCategory[categoryName].push(service);
     });
   }
-  
+
   const filteredServices = (selectedWashroomId: string) => {
     if (selectedWashroomId === 'all') {
       return services || [];
     } else {
       const selectedWashroom = project.washrooms?.find(w => w.id === selectedWashroomId);
       if (!selectedWashroom || !selectedWashroom.services) return [];
-      
+
       return services?.filter(service => selectedWashroom.services?.[service.id]) || [];
     }
   };
-  
+
   const filteredServicesByCategory = (selectedWashroomId: string) => {
     const filtered = filteredServices(selectedWashroomId);
     const result: Record<string, any[]> = {};
-    
+
     filtered.forEach(service => {
       const categoryName = service.category?.name || "Uncategorized";
       if (!result[categoryName]) {
@@ -178,7 +186,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
       }
       result[categoryName].push(service);
     });
-    
+
     return result;
   };
 
@@ -189,13 +197,13 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
 
   // Format the total area - ensure it's a number before formatting
   const formattedTotalArea = isNaN(totalArea) ? '0.00' : totalArea.toFixed(2);
-  
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Execution Services & Costing</h3>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
@@ -210,7 +218,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
@@ -224,7 +232,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
@@ -236,14 +244,14 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
           </CardContent>
         </Card>
       </div>
-      
+
       <Card>
         <CardContent className="p-0">
           <div className="bg-secondary px-4 py-3">
             <h4 className="font-medium">Cost Breakdown</h4>
           </div>
           <Separator />
-          
+
           <Table>
             <TableHeader>
               <TableRow>
@@ -274,7 +282,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
           </Table>
         </CardContent>
       </Card>
-      
+
       {project.washrooms && project.washrooms.length > 0 && costSummary.washroom_costs && (
         <Card>
           <CardContent className="p-0">
@@ -282,7 +290,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
               <h4 className="font-medium">Washroom Cost Details</h4>
             </div>
             <Separator />
-            
+
             <Table>
               <TableHeader>
                 <TableRow>
@@ -299,7 +307,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
                     productCosts: 0,
                     totalCost: 0
                   };
-                  
+
                   return (
                     <TableRow key={washroom.id}>
                       <TableCell>
@@ -325,7 +333,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
           </CardContent>
         </Card>
       )}
-      
+
       <Card>
         <CardContent className="p-0">
           <div className="bg-secondary px-4 py-3">
@@ -335,7 +343,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
             </p>
           </div>
           <Separator />
-          
+
           <div className="p-4">
             {project.washrooms && project.washrooms.length > 0 && (
               <Tabs value={activeWashroomTab} onValueChange={setActiveWashroomTab}>
@@ -345,18 +353,18 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
                     <TabsTrigger key={washroom.id} value={washroom.id}>{washroom.name}</TabsTrigger>
                   ))}
                 </TabsList>
-                
+
                 <TabsContent value="all">
                   {Object.entries(servicesByCategory).map(([category, categoryServices]) => (
                     <div key={category} className="mt-4">
                       <h5 className="font-medium text-sm mb-2">{category} Services</h5>
-                      
+
                       <div className="space-y-3">
                         {categoryServices.map(service => {
                           const suggestedRate = serviceRates[service.id] || 0;
                           const currentRate = executionCosts[service.id] || suggestedRate;
                           const measurementUnit = service.measuring_unit || '';
-                          
+
                           return (
                             <div key={service.id} className="grid grid-cols-3 gap-4 items-center">
                               <div className="col-span-2">
@@ -387,10 +395,10 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
                     </div>
                   ))}
                 </TabsContent>
-                
+
                 {project.washrooms.map(washroom => {
                   const filteredCategoryServices = filteredServicesByCategory(washroom.id);
-                  
+
                   return (
                     <TabsContent key={washroom.id} value={washroom.id}>
                       <div className="mb-4">
@@ -400,25 +408,25 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
                           {washroom.selected_brand && ` • Brand: ${washroom.selected_brand}`}
                         </p>
                       </div>
-                      
+
                       {Object.keys(filteredCategoryServices).length > 0 ? (
                         Object.entries(filteredCategoryServices).map(([category, categoryServices]) => (
                           <div key={category} className="mt-4">
                             <h5 className="font-medium text-sm mb-2">{category} Services</h5>
-                            
+
                             <div className="space-y-3">
                               {categoryServices.map(service => {
                                 const suggestedRate = serviceRates[service.id] || 0;
                                 const currentRate = executionCosts[service.id] || suggestedRate;
                                 const measurementUnit = service.measuring_unit || '';
-                                
+
                                 let estimatedCost = currentRate;
                                 const measurementLower = measurementUnit.toLowerCase();
                                 if (measurementLower.includes('sqft') || measurementLower.includes('sft') || 
                                     measurementLower.includes('sq ft') || measurementLower.includes('square')) {
                                   estimatedCost = currentRate * washroom.area;
                                 }
-                                
+
                                 return (
                                   <div key={service.id} className="grid grid-cols-4 gap-4 items-center">
                                     <div className="col-span-2">
@@ -468,7 +476,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
           </div>
         </CardContent>
       </Card>
-      
+
       <div className="flex justify-end">
         <Button 
           onClick={saveCosts}
