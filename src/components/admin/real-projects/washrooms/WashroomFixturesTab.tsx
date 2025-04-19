@@ -50,7 +50,8 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
         fixtures: {
           ...(washroom.fixtures || {}),
           [fixtureId]: checked
-        }
+        },
+        id: washroomId // Ensure ID is included
       };
 
       const success = await WashroomService.updateWashroom(project.id, updatedWashroom);
