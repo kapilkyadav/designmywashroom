@@ -26,6 +26,7 @@ import { Washroom } from '@/services/real-projects/types';
 import { Button } from '@/components/ui/button';
 import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { toast } from '@/components/ui/use-toast';
 
 interface InternalPricingProps {
   washrooms: Washroom[];
@@ -84,6 +85,23 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
 
   const handleMarginChange = (washroomId: string, value: string) => {
     const numValue = parseFloat(value) || 0;
+    if (numValue < 0) {
+      toast({
+        title: "Invalid margin",
+        description: "Margin percentage cannot be negative",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (numValue > 100) {
+      toast({
+        title: "High margin warning",
+        description: "Margin percentage exceeds 100%",
+        variant: "warning",
+      });
+    }
+
     const newMargins = { ...localMargins, [washroomId]: numValue };
     setLocalMargins(newMargins);
     onMarginsChange(newMargins);

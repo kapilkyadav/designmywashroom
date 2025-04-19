@@ -17,6 +17,33 @@ interface QuotationData {
 }
 
 interface PricingResult {
+
+  static validateQuotationData(quotationData: QuotationData): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    if (!quotationData.items || quotationData.items.length === 0) {
+      errors.push('No items found in quotation');
+    }
+
+    if (quotationData.gstRate < 0 || quotationData.gstRate > 100) {
+      errors.push('Invalid GST rate');
+    }
+
+    quotationData.items?.forEach((item, index) => {
+      if (item.amount < 0) {
+        errors.push(`Invalid amount for item at index ${index}`);
+      }
+      if (item.mrp < 0) {
+        errors.push(`Invalid MRP for item at index ${index}`);
+      }
+    });
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
+
   beforeMargin: number;
   afterMargin: number;
   marginDifference: number;

@@ -28,20 +28,28 @@ export function GenerateQuotationDialog({
   const loadPricing = async () => {
     try {
       setLoading(true);
+      if (!project?.id) {
+        throw new Error('Project ID is required');
+      }
+      
       const pricing = await RealProjectService.calculateProjectCosts(project.id);
+      if (!pricing) {
+        throw new Error('Failed to calculate project costs');
+      }
 
-      // Set washroom-wise pricing
       setWashroomPricing(pricing.washroomPricing || {});
-
-      // Calculate and set total pricing
-      const total = {
+      setTotalPricing({
         basePrice: pricing.projectTotalBasePrice || 0,
         gstAmount: pricing.projectTotalGST || 0,
         grandTotal: pricing.projectGrandTotal || 0
-      };
-      setTotalPricing(total);
-    } catch (error) {
+      });
+    } catch (error: any) {
       console.error('Error loading pricing:', error);
+      toast({
+        title: "Error loading pricing",
+        description: error.message || "Failed to load project pricing",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
