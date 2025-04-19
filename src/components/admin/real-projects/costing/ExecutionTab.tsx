@@ -101,16 +101,12 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
     setIsUpdating(true);
     
     try {
-      // Calculate and validate costs before saving
-      const calculatedCosts = await RealProjectService.calculateProjectCosts(
+      // Calculate final costs before saving
+      const calculatedCosts = await CostingService.calculateProjectCosts(
         project.id,
         project.washrooms || [],
         executionCosts
       );
-
-      if (!calculatedCosts) {
-        throw new Error('Failed to calculate costs');
-      }
 
       await project.updateCosts({
         execution_costs: executionCosts,
@@ -120,8 +116,8 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
         final_quotation_amount: calculatedCosts.final_quotation_amount,
         execution_services_total: calculatedCosts.execution_services_total,
         product_costs_total: calculatedCosts.product_costs_total,
-        product_cost: calculatedCosts.product_costs_total || 0,
-        logistics_cost: calculatedCosts.logistics_cost || 0
+        product_cost: project.product_cost || 0,
+        logistics_cost: project.logistics_cost || 0
       });
       
       toast({

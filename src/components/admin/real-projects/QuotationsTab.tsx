@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { RealProject } from '@/services/RealProjectService';
 import { Button } from '@/components/ui/button';
@@ -36,7 +37,10 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
   const handleGenerateNewQuotation = async () => {
     try {
       // Check if execution costs exist and are valid
-      if (!project.execution_costs || Object.keys(project.execution_costs).length === 0) {
+      const hasValidExecutionCosts = project.execution_costs && 
+        Object.entries(project.execution_costs).some(([_, value]) => value > 0);
+
+      if (!hasValidExecutionCosts) {
         toast({
           title: "Missing execution costs",
           description: "Please add and save execution costs in the Execution Services tab first.",
@@ -45,45 +49,33 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
         return;
       }
 
-      // Validate washrooms
-      if (!project.washrooms || project.washrooms.length === 0) {
-        toast({
-          title: "Missing washrooms",
-          description: "Please add washrooms to the project first.",
-          variant: "destructive"
-        });
-        return;
-      }
-
       // Calculate project costs
-      const costs = await RealProjectService.calculateProjectCosts(
+      const costs = await CostingService.calculateProjectCosts(
         project.id,
-        project.washrooms,
+        project.washrooms || [],
         project.execution_costs
       );
 
-      if (!costs) {
+      if (!costs || costs.final_quotation_amount <= 0) {
         toast({
-          title: "Error calculating costs",
-          description: "Failed to calculate project costs. Please try again.",
+          title: "Invalid cost calculation",
+          description: "Please ensure all costs are properly calculated and saved in the Execution Services tab.",
           variant: "destructive"
         });
         return;
       }
 
       // Store the calculated costs for quotation generation
-      if (costs) {
-        project.execution_services_total = costs.execution_services_total;
-        project.product_costs_total = costs.product_costs_total;
-        project.final_quotation_amount = costs.final_quotation_amount;
-      }
+      project.execution_services_total = costs.execution_services_total;
+      project.product_costs_total = costs.product_costs_total;
+      project.final_quotation_amount = costs.final_quotation_amount;
 
       setIsQuoteDialogOpen(true);
     } catch (error: any) {
       console.error("Error preparing quotation:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to prepare quotation",
+        description: "Failed to prepare quotation. Please try again.",
         variant: "destructive"
       });
     }
@@ -91,7 +83,7 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
 
   const handleDeleteQuotations = async (quotationIds: string[]) => {
     if (!quotationIds.length) return;
-
+    
     const success = await deleteQuotations(quotationIds);
     if (success) {
       toast({
@@ -110,7 +102,7 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
           Generate New Quotation
         </Button>
       </div>
-
+      
       <Card>
         <CardContent className="p-0">
           <QuotationsList 
@@ -122,7 +114,7 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
           />
         </CardContent>
       </Card>
-
+      
       <GenerateQuotationDialog
         project={project}
         open={isQuoteDialogOpen}
@@ -134,7 +126,7 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
         internalPricingEnabled={internalPricingEnabled}
         onInternalPricingChange={setInternalPricingEnabled}
       />
-
+      
       <ViewQuotationDialog
         html={viewQuotationHtml}
         open={!!viewQuotationHtml}

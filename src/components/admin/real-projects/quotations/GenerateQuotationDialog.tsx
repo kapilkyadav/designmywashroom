@@ -47,34 +47,8 @@ export default function GenerateQuotationDialog({
         throw new Error('Project ID is required');
       }
 
-      // Check if execution costs exist
-      if (!project.execution_costs || Object.keys(project.execution_costs).length === 0) {
-        toast({
-          title: "Missing execution costs",
-          description: "Please add and save execution costs in the Execution Services tab first.",
-          variant: "destructive"
-        });
-        onOpenChange(false);
-        return;
-      }
-
-      // Check if washrooms exist
-      if (!project.washrooms || project.washrooms.length === 0) {
-        toast({
-          title: "Missing washrooms",
-          description: "Please add washrooms to the project first.",
-          variant: "destructive"
-        });
-        onOpenChange(false);
-        return;
-      }
-
-      const executionCosts = project.execution_costs || {};
-      const pricing = await RealProjectService.calculateProjectCosts(
-        project.id,
-        project.washrooms,
-        executionCosts
-      );
+      const executionCosts = {};
+      const pricing = await RealProjectService.calculateProjectCosts(project.id);
 
       if (!pricing) {
         throw new Error('Failed to calculate project costs');
@@ -170,58 +144,18 @@ export default function GenerateQuotationDialog({
               {project.washrooms?.map((washroom: any) => (
                 <Card key={washroom.id}>
                   <CardHeader>
-                    <CardTitle className="flex justify-between">
-                      <span>{washroom.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {washroom.selected_brand || 'No brand selected'}
-                      </span>
-                    </CardTitle>
+                    <CardTitle>{washroom.name}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-muted p-4 rounded-lg">
-                        <div>
-                          <div className="text-sm text-muted-foreground">Floor Area</div>
-                          <div className="text">
-                            {(washroom.length * washroom.width).toFixed(2)} sq ft
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-muted-foreground">Wall Area</div>
-                          <div className="text">{washroom.wall_area?.toFixed(2)} sq ft</div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-muted-foreground">Ceiling Area</div>
-                          <div className="text">{washroom.ceiling_area?.toFixed(2)} sq ft</div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-muted-foreground">Total Area</div>
-                          <div className="text">{washroom.total_area?.toFixed(2)} sq ft</div>
-                        </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>Base Price:</div>
+                      <div>₹{washroomPricing[washroom.id]?.basePrice.toFixed(2)}</div>
+                      <div>GST:</div>
+                      <div>₹{washroomPricing[washroom.id]?.gstAmount.toFixed(2)}</div>
+                      <div className="font-bold">Total:</div>
+                      <div className="font-bold">
+                        ₹{washroomPricing[washroom.id]?.totalPrice.toFixed(2)}
                       </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>Base Price:</div>
-                        <div>₹{washroomPricing[washroom.id]?.basePrice.toFixed(2)}</div>
-                        <div>GST:</div>
-                        <div>₹{washroomPricing[washroom.id]?.gstAmount.toFixed(2)}</div>
-                        <div className="font-bold border-t pt-2">Total:</div>
-                        <div className="font-bold border-t pt-2">
-                          ₹{washroomPricing[washroom.id]?.totalPrice.toFixed(2)}
-                        </div>
-                      </div>
-
-                      {washroom.services && Object.keys(washroom.services).length > 0 && (
-                        <div className="mt-4">
-                          <h4 className="text-sm font-medium mb-2">Selected Services</h4>
-                          <div className="text-sm text-muted-foreground">
-                            {Object.entries(washroom.services)
-                              .filter(([_, value]) => value)
-                              .map(([key]) => key)
-                              .join(', ')}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
