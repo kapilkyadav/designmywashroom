@@ -1,3 +1,35 @@
+
+import { supabase } from '@/lib/supabase';
+import { BaseService } from './BaseService';
+import { Washroom } from './types';
+
+export class WashroomService extends BaseService {
+  static async updateWashroom(projectId: string, washroom: Washroom): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('washrooms')
+        .update({
+          fixtures: washroom.fixtures || {},
+          services: washroom.services || {},
+          name: washroom.name,
+          length: washroom.length,
+          width: washroom.width,
+          height: washroom.height,
+          wall_area: washroom.wall_area,
+          selected_brand: washroom.selected_brand
+        })
+        .eq('id', washroom.id)
+        .eq('project_id', projectId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error updating washroom:', error);
+      return false;
+    }
+  }
+}
+
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './BaseService';
 import { Washroom, NewWashroom } from './types';

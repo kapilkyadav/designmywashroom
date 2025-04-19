@@ -454,24 +454,22 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                                 checked={washroom.fixtures?.[fixture.id] || false}
                                 onCheckedChange={async (checked) => {
                                   try {
-                                    const updatedWashrooms = washrooms.map((w, i) => {
-                                      if (i === index) {
-                                        return {
-                                          ...w,
-                                          fixtures: {
-                                            ...(w.fixtures || {}),
-                                            [fixture.id]: !!checked
-                                          }
-                                        };
+                                    const updatedWashroom = {
+                                      ...washroom,
+                                      fixtures: {
+                                        ...(washroom.fixtures || {}),
+                                        [fixture.id]: !!checked
                                       }
-                                      return w;
-                                    });
+                                    };
 
-                                    // First update local state
+                                    const updatedWashrooms = [...washrooms];
+                                    updatedWashrooms[index] = updatedWashroom;
+
+                                    // Update local state first (optimistic update)
                                     setWashrooms(updatedWashrooms);
-                                    
+
                                     // Then persist to backend
-                                    const success = await WashroomService.updateProjectWashrooms(project.id, updatedWashrooms);
+                                    const success = await WashroomService.updateWashroom(project.id, updatedWashroom);
                                     
                                     if (!success) {
                                       // Revert on failure
