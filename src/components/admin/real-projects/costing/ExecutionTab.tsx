@@ -101,18 +101,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ project, onUpdate }) => {
     setIsUpdating(true);
     
     try {
-      // Calculate final costs before saving
-      const calculatedCosts = await CostingService.calculateProjectCosts(
-        project.id,
-        project.washrooms || [],
-        executionCosts
-      );
-
-      if (!executionCosts || Object.keys(executionCosts).length === 0) {
-        throw new Error('No execution costs to save');
-      }
-
-      // Validate costs before saving
+      // Calculate and validate costs before saving
       const calculatedCosts = await RealProjectService.calculateProjectCosts(
         project.id,
         project.washrooms || [],

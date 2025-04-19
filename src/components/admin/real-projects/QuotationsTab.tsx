@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { RealProject } from '@/services/RealProjectService';
 import { Button } from '@/components/ui/button';
@@ -71,25 +70,20 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
         });
         return;
       }
-        toast({
-          title: "Invalid cost calculation",
-          description: "Please ensure all costs are properly calculated and saved in the Execution Services tab.",
-          variant: "destructive"
-        });
-        return;
-      }
 
       // Store the calculated costs for quotation generation
-      project.execution_services_total = costs.execution_services_total;
-      project.product_costs_total = costs.product_costs_total;
-      project.final_quotation_amount = costs.final_quotation_amount;
+      if (costs) {
+        project.execution_services_total = costs.execution_services_total;
+        project.product_costs_total = costs.product_costs_total;
+        project.final_quotation_amount = costs.final_quotation_amount;
+      }
 
       setIsQuoteDialogOpen(true);
     } catch (error: any) {
       console.error("Error preparing quotation:", error);
       toast({
         title: "Error",
-        description: "Failed to prepare quotation. Please try again.",
+        description: error.message || "Failed to prepare quotation",
         variant: "destructive"
       });
     }
@@ -97,7 +91,7 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
 
   const handleDeleteQuotations = async (quotationIds: string[]) => {
     if (!quotationIds.length) return;
-    
+
     const success = await deleteQuotations(quotationIds);
     if (success) {
       toast({
@@ -116,7 +110,7 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
           Generate New Quotation
         </Button>
       </div>
-      
+
       <Card>
         <CardContent className="p-0">
           <QuotationsList 
@@ -128,7 +122,7 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
           />
         </CardContent>
       </Card>
-      
+
       <GenerateQuotationDialog
         project={project}
         open={isQuoteDialogOpen}
@@ -140,7 +134,7 @@ const QuotationsTab: React.FC<QuotationsTabProps> = ({ project, onUpdate }) => {
         internalPricingEnabled={internalPricingEnabled}
         onInternalPricingChange={setInternalPricingEnabled}
       />
-      
+
       <ViewQuotationDialog
         html={viewQuotationHtml}
         open={!!viewQuotationHtml}
