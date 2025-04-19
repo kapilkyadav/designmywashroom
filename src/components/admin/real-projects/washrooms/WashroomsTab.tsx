@@ -14,6 +14,8 @@ import { toast } from '@/hooks/use-toast';
 import { VendorRateCardService } from '@/services/VendorRateCardService';
 import { BrandService } from '@/services/BrandService';
 import { FixtureService } from '@/services/FixtureService';
+import { WashroomService } from '@/services/WashroomService'; // Import WashroomService
+
 
 interface WashroomsTabProps {
   project: RealProject;
@@ -87,7 +89,8 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
         ceiling_area: (project.length || 0) * (project.width || 0),
         selected_brand: project.selected_brand || '',
         services: {},
-        service_details: {}
+        service_details: {},
+        fixtures: {} // Initialize fixtures
       };
       setWashrooms([defaultWashroom]);
     }
@@ -100,14 +103,14 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
 
   const calculateWashroomAreas = (washroom: Washroom): Washroom => {
     const floorArea = Number(washroom.length) * Number(washroom.width);
-    
+
     let wallArea = washroom.wall_area || 0;
     if (washroom.length > 0 && washroom.width > 0 && washroom.height > 0) {
       wallArea = calculateWallArea(washroom.length, washroom.width, washroom.height);
     }
-    
+
     const ceilingArea = washroom.ceiling_area || floorArea;
-    
+
     return {
       ...washroom,
       area: floorArea,
@@ -129,9 +132,10 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
       ceiling_area: 0,
       selected_brand: project.selected_brand || '',
       services: {},
-      service_details: {}
+      service_details: {},
+      fixtures: {} // Initialize fixtures
     };
-    
+
     setWashrooms([...washrooms, newWashroom]);
   };
 
@@ -144,27 +148,27 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
       });
       return;
     }
-    
+
     const updatedWashrooms = [...washrooms];
     updatedWashrooms.splice(index, 1);
-    
+
     updatedWashrooms.forEach((washroom, idx) => {
       if (washroom.name.startsWith("Washroom ")) {
         washroom.name = `Washroom ${idx + 1}`;
       }
     });
-    
+
     setWashrooms(updatedWashrooms);
   };
 
   const updateWashroomField = (index: number, field: keyof Washroom, value: any) => {
     const updatedWashrooms = [...washrooms];
     (updatedWashrooms[index] as Record<string, any>)[field] = value;
-    
+
     if (field === 'length' || field === 'width' || field === 'height') {
       updatedWashrooms[index] = calculateWashroomAreas(updatedWashrooms[index]);
     }
-    
+
     setWashrooms(updatedWashrooms);
   };
 
@@ -173,14 +177,14 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     if (!updatedWashrooms[index].services) {
       updatedWashrooms[index].services = {};
     }
-    
+
     updatedWashrooms[index].services![serviceKey] = checked;
-    
+
     if (checked) {
       if (!updatedWashrooms[index].service_details) {
         updatedWashrooms[index].service_details = {};
       }
-      
+
       if (!updatedWashrooms[index].service_details![serviceKey]) {
         updatedWashrooms[index].service_details![serviceKey] = {
           quantity: 1,
@@ -188,53 +192,67 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
         };
       }
     }
-    
+
     setWashrooms(updatedWashrooms);
   };
 
   const updateServiceDetail = (washroomIndex: number, serviceId: string, field: keyof ServiceDetail, value: any) => {
     const updatedWashrooms = [...washrooms];
-    
+
     if (!updatedWashrooms[washroomIndex].service_details) {
       updatedWashrooms[washroomIndex].service_details = {};
     }
-    
+
     if (!updatedWashrooms[washroomIndex].service_details![serviceId]) {
       updatedWashrooms[washroomIndex].service_details![serviceId] = {};
     }
-    
+
     (updatedWashrooms[washroomIndex].service_details![serviceId] as Record<string, any>)[field] = value;
-    
+
     setWashrooms(updatedWashrooms);
   };
 
-  const updateWashroomFixture = (washroomIndex: number, fixtureId: string, checked: boolean) => {
+  const updateWashroomFixture = async (index: number, fixtureId: string, checked: boolean) => {
     const updatedWashrooms = [...washrooms];
-    if (!updatedWashrooms[washroomIndex].fixtures) {
-      updatedWashrooms[washroomIndex].fixtures = {};
+    if (!updatedWashrooms[index].fixtures) {
+      updatedWashrooms[index].fixtures = {};
     }
-    updatedWashrooms[washroomIndex].fixtures![fixtureId] = checked;
+    updatedWashrooms[index].fixtures[fixtureId] = checked;
     setWashrooms(updatedWashrooms);
+
+    // Save immediately to persist changes
+    try {
+      await WashroomService.updateWashroom(updatedWashrooms[index].id, {
+        fixtures: updatedWashrooms[index].fixtures
+      });
+    } catch (error) {
+      console.error('Error saving fixture selection:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save fixture selection",
+        variant: "destructive"
+      });
+    }
   };
 
   const saveWashrooms = async () => {
     setIsUpdating(true);
-    
+
     try {
       for (const washroom of washrooms) {
         if (!washroom.name || washroom.length <= 0 || washroom.width <= 0) {
           throw new Error("All washrooms must have a name and valid dimensions");
         }
       }
-      
+
       const success = await RealProjectService.updateProjectWashrooms(project.id, washrooms);
-      
+
       if (success) {
         toast({
           title: "Washrooms updated",
           description: "Washroom details have been saved successfully.",
         });
-        
+
         onUpdate();
       }
     } catch (error: any) {
@@ -257,7 +275,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
           Add Washroom
         </Button>
       </div>
-      
+
       {washrooms.map((washroom, index) => (
         <Card key={washroom.id} className="overflow-hidden mb-6">
           <CardContent className="p-0">
@@ -273,7 +291,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
               </Button>
             </div>
             <Separator />
-            
+
             <div className="p-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="space-y-2">
@@ -284,7 +302,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                     onChange={(e) => updateWashroomField(index, 'name', e.target.value)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor={`washroom-brand-${index}`}>Preferred Brand</Label>
                   <Select
@@ -301,7 +319,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor={`washroom-length-${index}`}>Length (ft)</Label>
                   <Input
@@ -313,7 +331,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                     onChange={(e) => updateWashroomField(index, 'length', parseFloat(e.target.value) || 0)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor={`washroom-width-${index}`}>Width (ft)</Label>
                   <Input
@@ -325,7 +343,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                     onChange={(e) => updateWashroomField(index, 'width', parseFloat(e.target.value) || 0)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor={`washroom-height-${index}`}>Height (ft)</Label>
                   <Input
@@ -337,7 +355,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                     onChange={(e) => updateWashroomField(index, 'height', parseFloat(e.target.value) || 0)}
                   />
                 </div>
-                
+
                 <div className="col-span-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="space-y-4 bg-muted p-4 rounded-lg">
@@ -387,7 +405,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                   </div>
                 </div>
               </div>
-              
+
               {Object.keys(servicesByCategory).length > 0 && (
                 <div className="mt-6">
                   <h5 className="font-medium mb-3">Execution Services</h5>
@@ -417,7 +435,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                   </div>
                 </div>
               )}
-              
+
               {Object.keys(fixturesByCategory).length > 0 && (
                 <div className="mt-6">
                   <h5 className="font-medium mb-3">Fixtures</h5>
@@ -455,7 +473,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
           </CardContent>
         </Card>
       ))}
-      
+
       <div className="flex justify-end">
         <Button 
           onClick={saveWashrooms}
