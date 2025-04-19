@@ -1,29 +1,45 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 import { RealProjectService } from '@/services/real-projects';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-export default function GenerateQuotationDialog({ 
-  project, 
-  isOpen, 
-  onClose 
-}: { 
+interface GenerateQuotationDialogProps {
   project: any;
-  isOpen: boolean;
-  onClose: () => void;
-}) {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  quotationTerms: string;
+  onQuotationTermsChange: (terms: string) => void;
+  onGenerateQuotation: () => Promise<void>;
+  isGeneratingQuote: boolean;
+  internalPricingEnabled: boolean;
+  onInternalPricingChange: (enabled: boolean) => void;
+}
+
+export default function GenerateQuotationDialog({ 
+  project,
+  open,
+  onOpenChange,
+  quotationTerms,
+  onQuotationTermsChange,
+  onGenerateQuotation,
+  isGeneratingQuote,
+  internalPricingEnabled,
+  onInternalPricingChange
+}: GenerateQuotationDialogProps) {
   const [loading, setLoading] = useState(true);
   const [washroomPricing, setWashroomPricing] = useState<any>({});
   const [totalPricing, setTotalPricing] = useState<any>({});
 
   useEffect(() => {
-    if (isOpen) {
+    if (open) {
       loadPricing();
     }
-  }, [isOpen, project]);
+  }, [open, project]);
 
   const loadPricing = async () => {
     try {
@@ -57,17 +73,15 @@ export default function GenerateQuotationDialog({
 
   const handleGenerateQuotation = async () => {
     try {
-      setLoading(true);
-      await RealProjectService.generateQuotation(project.id);
-      onClose();
+      await onGenerateQuotation();
     } catch (error) {
       console.error('Error generating quotation:', error);
     }
   };
 
-  if (loading) {
+  if (loading || isGeneratingQuote) {
     return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl">
           <div className="flex justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -78,7 +92,7 @@ export default function GenerateQuotationDialog({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl">
         <Tabs defaultValue="summary">
           <TabsList>
@@ -130,8 +144,17 @@ export default function GenerateQuotationDialog({
         </Tabs>
 
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleGenerateQuotation}>Generate Quotation</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleGenerateQuotation} disabled={isGeneratingQuote}>
+            {isGeneratingQuote ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              'Generate Quotation'
+            )}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

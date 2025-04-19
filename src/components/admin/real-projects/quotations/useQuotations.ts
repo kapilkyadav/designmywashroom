@@ -32,12 +32,16 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
   const handleGenerateQuotation = async () => {
     try {
       setIsGeneratingQuote(true);
+      const pricing = await RealProjectService.calculateProjectCosts(project.id);
       
-      // Get quotation data from the dialog
-      const quotationData = (window as any).currentQuotationData;
-      if (!quotationData) {
-        throw new Error('Quotation data not found');
-      }
+      const quotationData = {
+        items: pricing.items || [],
+        totalAmount: pricing.projectGrandTotal || 0,
+        margins: {},
+        gstRate: 18,
+        internalPricing: internalPricingEnabled,
+        terms: quotationTerms
+      };
       
       // Reset any existing margin calculations each time a new quotation is generated
       if (quotationData.items) {
