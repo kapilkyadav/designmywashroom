@@ -1,7 +1,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './BaseService';
-import { Washroom } from './types';
+import { Washroom, NewWashroom } from './types';
 
 export class WashroomService extends BaseService {
   static async updateWashroom(projectId: string, washroom: Washroom): Promise<boolean> {
@@ -28,13 +28,7 @@ export class WashroomService extends BaseService {
       return false;
     }
   }
-}
 
-import { supabase } from '@/lib/supabase';
-import { BaseService } from './BaseService';
-import { Washroom, NewWashroom } from './types';
-
-export class WashroomService extends BaseService {
   /**
    * Add a washroom to a project
    */
