@@ -194,7 +194,8 @@ export class CostingService extends BaseService {
               const serviceItem = serviceItems.find(item => item.id === serviceId);
               const customFormula = serviceItem?.custom_formula;
 
-              if (customFormula) {
+              const measurementUnit = serviceMeasurements[serviceId]?.toLowerCase() || '';
+if (customFormula) {
                 // Execute custom formula with available variables
                 try {
                   const formula = customFormula
@@ -209,18 +210,24 @@ export class CostingService extends BaseService {
                 } catch (error) {
                   console.error('Error evaluating custom formula:', error);
                   // Fallback to standard calculation
-                  const measurementUnit = serviceMeasurements[serviceId]?.toLowerCase() || '';
                   if (measurementUnit.includes('sqft') || measurementUnit.includes('sft') || 
                       measurementUnit.includes('sq ft') || measurementUnit.includes('square')) {
                     serviceCost = serviceRate * (floorArea + wallArea);
+                  } else if (measurementUnit.toLowerCase().includes('bathroom')) {
+                    serviceCost = serviceRate; // Flat rate for bathroom
+                  } else {
+                    serviceCost = serviceRate; // Default to flat rate
                   }
                 }
               } else {
                 // Standard calculation based on measurement unit
-                const measurementUnit = serviceMeasurements[serviceId]?.toLowerCase() || '';
                 if (measurementUnit.includes('sqft') || measurementUnit.includes('sft') || 
                     measurementUnit.includes('sq ft') || measurementUnit.includes('square')) {
                   serviceCost = serviceRate * (floorArea + wallArea);
+                } else if (measurementUnit.toLowerCase().includes('bathroom')) {
+                  serviceCost = serviceRate; // Flat rate for bathroom
+                } else {
+                  serviceCost = serviceRate; // Default to flat rate
                 }
               }
               // For "bathroom" or "nos" (number), use the flat rate
