@@ -439,39 +439,7 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
                 </div>
               )}
 
-              {Object.keys(fixturesByCategory).length > 0 && (
-                <div className="mt-6">
-                  <h5 className="font-medium mb-3">Fixtures</h5>
-                  <div className="space-y-4">
-                    {Object.entries(fixturesByCategory).map(([category, categoryFixtures]) => (
-                      <div key={category} className="border p-3 rounded-md">
-                        <h6 className="font-medium mb-2">{category}</h6>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {categoryFixtures.map(fixture => (
-                            <div key={fixture.id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`fixture-${washroom.id}-${fixture.id}`}
-                                checked={washroom.fixtures?.[fixture.id] || false}
-                                onCheckedChange={(checked) => 
-                                  updateWashroomFixture(index, fixture.id, !!checked)
-                                }
-                              />
-                              <Label htmlFor={`fixture-${washroom.id}-${fixture.id}`}>
-                                {fixture.name}
-                                {fixture.category && (
-                                  <span className="text-xs text-muted-foreground ml-1">
-                                    ({fixture.category})
-                                  </span>
-                                )}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Fixtures section removed for rebuild */}
             </div>
           </CardContent>
         </Card>
