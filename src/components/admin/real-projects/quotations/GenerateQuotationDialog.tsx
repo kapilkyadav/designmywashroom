@@ -95,6 +95,7 @@ export default function GenerateQuotationDialog({
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl">
+          <DialogTitle>Generate Quotation</DialogTitle>
           <div className="flex justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
