@@ -26,6 +26,7 @@ import { Washroom } from '@/services/real-projects/types';
 import { Button } from '@/components/ui/button';
 import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { toast } from '@/components/ui/use-toast';
 
 interface InternalPricingProps {
   washrooms: Washroom[];
@@ -84,14 +85,26 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
 
   const handleMarginChange = (washroomId: string, value: string) => {
     const numValue = parseFloat(value) || 0;
+    if (numValue < 0) {
+      toast({
+        title: "Invalid margin",
+        description: "Margin percentage cannot be negative",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (numValue > 100) {
+      toast({
+        title: "High margin warning",
+        description: "Margin percentage exceeds 100%",
+        variant: "warning",
+      });
+    }
+
     const newMargins = { ...localMargins, [washroomId]: numValue };
     setLocalMargins(newMargins);
     onMarginsChange(newMargins);
-    
-    // Force recalculation when margins change
-    if (internalPricing) {
-      calculateInternalPricing(washrooms);
-    }
   };
 
   const handleGstRateChange = (value: string) => {
@@ -229,110 +242,80 @@ const InternalPricingSection: React.FC<InternalPricingProps> = ({
             </CardContent>
           </Card>
 
+          {internalPricingDetails && washrooms.map((washroom) => (
+            <InternalPricingDetails washroom={washroom} pricing={internalPricingDetails.washroomPricing[washroom.id]} key={washroom.id} />
+          ))}
+
           {internalPricingDetails && (
-            <Accordion type="single" collapsible defaultValue="item-1" className="border border-indigo-100 rounded-lg bg-white">
-              <AccordionItem value="item-1" className="border-b-0">
-                <AccordionTrigger className="px-4 py-3 text-indigo-800 hover:bg-indigo-50 hover:no-underline rounded-t-lg">
-                  Internal Pricing Details
-                </AccordionTrigger>
-                <AccordionContent className="p-4">
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium mb-2 text-indigo-800">Washroom Breakdown</h4>
-                      <Table>
-                        <TableHeader className="bg-indigo-50">
-                          <TableRow>
-                            <TableHead className="text-indigo-800">Washroom</TableHead>
-                            <TableHead className="text-right text-indigo-800">Base Price</TableHead>
-                            <TableHead className="text-right text-indigo-800">Margin %</TableHead>
-                            <TableHead className="text-right text-indigo-800">With Margin</TableHead>
-                            <TableHead className="text-right text-indigo-800">GST</TableHead>
-                            <TableHead className="text-right text-indigo-800">Total</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {washrooms.map((washroom) => {
-                            const pricing = internalPricingDetails?.washroomPricing?.[washroom.id] || {
-                              basePrice: 0,
-                              marginPercentage: 0,
-                              marginAmount: 0,
-                              priceWithMargin: 0,
-                              gstAmount: 0,
-                              totalPrice: 0
-                            };
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle>Project Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2 text-gray-800">
+                  <div className="text-sm text-gray-700">Execution Services Base Price:</div>
+                  <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.executionServicesBasePrice || 0)}</div>
 
-                            // Display the user-specified margin percentage
-                            const userMarginPercentage = getMarginDisplay(washroom.id);
+                  <div className="text-sm text-gray-700">Product & Fixtures Price:</div>
+                  <div className="text-right font-medium">₹{formatAmount((internalPricingDetails.projectSummary.totalBasePrice || 0) - (internalPricingDetails.projectSummary.executionServicesBasePrice || 0))}</div>
 
-                            return (
-                              <TableRow key={washroom.id} className="hover:bg-indigo-50/30">
-                                <TableCell className="font-medium text-gray-800">{washroom.name}</TableCell>
-                                <TableCell className="text-right text-gray-800">₹{formatAmount(pricing.basePrice)}</TableCell>
-                                <TableCell className="text-right text-gray-800">{userMarginPercentage}%</TableCell>
-                                <TableCell className="text-right text-gray-800">₹{formatAmount(pricing.priceWithMargin)}</TableCell>
-                                <TableCell className="text-right text-gray-800">₹{formatAmount(pricing.gstAmount)}</TableCell>
-                                <TableCell className="text-right font-medium text-indigo-700">₹{formatAmount(pricing.totalPrice)}</TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
+                  <div className="text-sm text-gray-700 border-t border-indigo-100 pt-1">Total Base Price:</div>
+                  <div className="text-right font-medium border-t border-indigo-100 pt-1">₹{formatAmount(internalPricingDetails.projectSummary.totalBasePrice)}</div>
 
-                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-md shadow-sm border border-indigo-100">
-                      <h4 className="font-medium mb-3 text-indigo-800 flex items-center">
-                        <span>Project Summary</span>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full ml-1">
-                                <Info className="h-4 w-4 text-indigo-600" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-sm">
-                              <p>Complete Margin is the total margin amount calculated based on the margin percentages for each washroom's execution services.</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </h4>
-                      <div className="grid grid-cols-2 gap-2 text-gray-800">
-                        {internalPricingDetails?.projectSummary ? (
-                          <>
-                            <div className="text-sm text-gray-700">Execution Services Base Price:</div>
-                            <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.executionServicesBasePrice || 0)}</div>
+                  <div className="text-sm text-gray-700">Complete Margin:</div>
+                  <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.marginAmount || 0)}</div>
 
-                            <div className="text-sm text-gray-700">Product & Fixtures Price:</div>
-                            <div className="text-right font-medium">₹{formatAmount((internalPricingDetails.projectSummary.totalBasePrice || 0) - (internalPricingDetails.projectSummary.executionServicesBasePrice || 0))}</div>
+                  <div className="text-sm text-gray-700">Price with Margin:</div>
+                  <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.totalWithMargin)}</div>
 
-                            <div className="text-sm text-gray-700 border-t border-indigo-100 pt-1">Total Base Price:</div>
-                            <div className="text-right font-medium border-t border-indigo-100 pt-1">₹{formatAmount(internalPricingDetails.projectSummary.totalBasePrice)}</div>
+                  <div className="text-sm text-gray-700">GST ({gstRate}%):</div>
+                  <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.totalGST)}</div>
 
-                            <div className="text-sm text-gray-700">Complete Margin:</div>
-                            <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.marginAmount || 0)}</div>
-
-                            <div className="text-sm text-gray-700">Price with Margin:</div>
-                            <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.totalWithMargin)}</div>
-
-                            <div className="text-sm text-gray-700">GST ({gstRate}%):</div>
-                            <div className="text-right font-medium">₹{formatAmount(internalPricingDetails.projectSummary.totalGST)}</div>
-
-                            <div className="text-sm border-t pt-1 font-semibold text-indigo-900">Grand Total:</div>
-                            <div className="text-right border-t pt-1 font-semibold text-indigo-900">₹{formatAmount(internalPricingDetails.projectSummary.grandTotal)}</div>
-                          </>
-                        ) : (
-                          <div className="text-sm text-gray-700">No pricing details available</div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+                  <div className="text-sm border-t pt-1 font-semibold text-indigo-900">Grand Total:</div>
+                  <div className="text-right border-t pt-1 font-semibold text-indigo-900">₹{formatAmount(internalPricingDetails.projectSummary.grandTotal)}</div>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </>
       )}
     </div>
   );
 };
+
+export function InternalPricingDetails({ washroom, pricing }: { washroom: any; pricing: any }) {
+  if (!pricing) return null;
+
+  return (
+    <Card className="mt-4">
+      <CardHeader>
+        <CardTitle>Internal Pricing - {washroom.name}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-2">
+            <div>Execution Services:</div>
+            <div>₹{pricing.executionBasePrice?.toFixed(2)}</div>
+
+            <div>Base Price:</div>
+            <div>₹{pricing.basePrice?.toFixed(2)}</div>
+
+            <div>Margin ({pricing.marginPercentage}%):</div>
+            <div>₹{pricing.marginAmount?.toFixed(2)}</div>
+
+            <div>Price with Margin:</div>
+            <div>₹{pricing.priceWithMargin?.toFixed(2)}</div>
+
+            <div>GST Amount ({pricing.gstPercentage}%):</div>
+            <div>₹{pricing.gstAmount?.toFixed(2)}</div>
+
+            <div className="font-bold">Total Price:</div>
+            <div className="font-bold">₹{pricing.totalPrice?.toFixed(2)}</div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default InternalPricingSection;

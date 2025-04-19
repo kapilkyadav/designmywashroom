@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -40,6 +39,7 @@ const formSchema = z.object({
   measuring_unit: z.string().min(1, {
     message: 'Measuring unit is required',
   }),
+  custom_formula: z.string().optional(), // Added custom_formula to schema
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -65,6 +65,7 @@ const ItemForm: React.FC<ItemFormProps> = ({
       item_code: defaultValues?.item_code || '',
       scope_of_work: defaultValues?.scope_of_work || '',
       measuring_unit: defaultValues?.measuring_unit || '',
+      custom_formula: defaultValues?.custom_formula || '', // Added custom_formula to defaultValues
     },
   });
 
@@ -76,6 +77,7 @@ const ItemForm: React.FC<ItemFormProps> = ({
         item_code: defaultValues.item_code,
         scope_of_work: defaultValues.scope_of_work,
         measuring_unit: defaultValues.measuring_unit,
+        custom_formula: defaultValues.custom_formula, // Added custom_formula to reset
       });
     }
   }, [defaultValues, categories, form]);
@@ -165,7 +167,25 @@ const ItemForm: React.FC<ItemFormProps> = ({
             <FormItem>
               <FormLabel>Measuring Unit</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. SFT, Nos, etc." {...field} />
+                <Input placeholder="Enter measuring unit" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="custom_formula"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Custom Formula</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Enter custom calculation formula (optional)"
+                  className="h-20"
+                  {...field} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -25,6 +25,31 @@ interface PricingResult {
 }
 
 export class QuotationService extends BaseService {
+  static validateQuotationData(quotationData: QuotationData): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    if (!quotationData.items || quotationData.items.length === 0) {
+      errors.push('No items found in quotation');
+    }
+
+    if (quotationData.gstRate < 0 || quotationData.gstRate > 100) {
+      errors.push('Invalid GST rate');
+    }
+
+    quotationData.items?.forEach((item, index) => {
+      if (item.amount < 0) {
+        errors.push(`Invalid amount for item at index ${index}`);
+      }
+      if (item.mrp < 0) {
+        errors.push(`Invalid MRP for item at index ${index}`);
+      }
+    });
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
   /**
    * Generate and save a quotation for a project
    */
@@ -73,12 +98,17 @@ export class QuotationService extends BaseService {
       // Calculate internal pricing if enabled
       if (sanitizedQuotationData.internalPricing) {
         // Apply margins to execution services - IMPORTANT: make sure we use original item amounts
-        const cleanItems = sanitizedQuotationData.items.map((item) => ({
-          ...item,
-          appliedMargin: undefined,
-          baseAmount: item.originalAmount, // Reset baseAmount to originalAmount
-          amount: item.originalAmount // Reset amount to originalAmount
-        }));
+        // and preserve custom formula calculations
+        const cleanItems = sanitizedQuotationData.items.map((item) => {
+          const baseAmount = item.customFormulaAmount || item.originalAmount;
+          return {
+            ...item,
+            appliedMargin: undefined,
+            baseAmount: baseAmount,
+            amount: baseAmount,
+            customFormulaAmount: item.customFormulaAmount
+          };
+        });
 
         sanitizedQuotationData.items = QuotationService.applyMarginsToItems(
           washrooms || [],
