@@ -70,18 +70,6 @@ const ProjectDetailTabs: React.FC<ProjectDetailTabsProps> = ({
         </Card>
       </TabsContent>
 
-      <TabsContent value="washroom-fixtures">
-        <Card>
-          <CardHeader>
-            <CardTitle>Washroom Fixtures</CardTitle>
-            <CardDescription>Select fixtures for each washroom</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <WashroomFixturesTab project={project} onUpdate={onUpdate} />
-          </CardContent>
-        </Card>
-      </TabsContent>
-
       <TabsContent value="execution">
         <Card>
           <CardHeader>
