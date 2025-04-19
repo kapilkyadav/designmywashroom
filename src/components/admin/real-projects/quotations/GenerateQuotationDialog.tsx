@@ -137,17 +137,23 @@ export default function GenerateQuotationDialog({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>Base Price:</div>
-                  <div>₹{totalPricing.basePrice.toFixed(2)}</div>
-                  <div>GST:</div>
-                  <div>₹{totalPricing.gstAmount.toFixed(2)}</div>
-                  {totalPricing.hasCustomFormulas && (
+                  <div>Execution Services Cost:</div>
+                  <div>₹{(totalPricing?.executionTotal || 0).toFixed(2)}</div>
+                  <div>Fixtures Cost:</div>
+                  <div>₹{(totalPricing?.fixturesTotal || 0).toFixed(2)}</div>
+                  <div>Product Cost:</div>
+                  <div>₹{(totalPricing?.productTotal || 0).toFixed(2)}</div>
+                  <div className="border-t pt-2">Base Price (Total):</div>
+                  <div className="border-t pt-2">₹{(totalPricing?.basePrice || 0).toFixed(2)}</div>
+                  <div>GST (18% on Execution):</div>
+                  <div>₹{(totalPricing?.gstAmount || 0).toFixed(2)}</div>
+                  {totalPricing?.hasCustomFormulas && (
                     <div className="text-sm text-muted-foreground col-span-2">
                       * Some items use custom pricing formulas
                     </div>
                   )}
-                  <div className="font-bold">Total:</div>
-                  <div className="font-bold">₹{totalPricing.grandTotal.toFixed(2)}</div>
+                  <div className="font-bold border-t pt-2">Grand Total:</div>
+                  <div className="font-bold border-t pt-2">₹{(totalPricing?.grandTotal || 0).toFixed(2)}</div>
                 </div>
               </CardContent>
             </Card>
@@ -162,13 +168,19 @@ export default function GenerateQuotationDialog({
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-2">
-                      <div>Base Price:</div>
-                      <div>₹{washroomPricing[washroom.id]?.basePrice.toFixed(2)}</div>
-                      <div>GST:</div>
-                      <div>₹{washroomPricing[washroom.id]?.gstAmount.toFixed(2)}</div>
-                      <div className="font-bold">Total:</div>
-                      <div className="font-bold">
-                        ₹{washroomPricing[washroom.id]?.totalPrice.toFixed(2)}
+                      <div>Execution Services:</div>
+                      <div>₹{(washroomPricing[washroom.id]?.executionCost || 0).toFixed(2)}</div>
+                      <div>Fixtures:</div>
+                      <div>₹{(washroomPricing[washroom.id]?.fixturesCost || 0).toFixed(2)}</div>
+                      <div>Products:</div>
+                      <div>₹{(washroomPricing[washroom.id]?.productCost || 0).toFixed(2)}</div>
+                      <div className="border-t pt-2">Base Price:</div>
+                      <div className="border-t pt-2">₹{(washroomPricing[washroom.id]?.basePrice || 0).toFixed(2)}</div>
+                      <div>GST (18% on Execution):</div>
+                      <div>₹{(washroomPricing[washroom.id]?.gstAmount || 0).toFixed(2)}</div>
+                      <div className="font-bold border-t pt-2">Total:</div>
+                      <div className="font-bold border-t pt-2">
+                        ₹{(washroomPricing[washroom.id]?.totalPrice || 0).toFixed(2)}
                       </div>
                     </div>
                   </CardContent>
