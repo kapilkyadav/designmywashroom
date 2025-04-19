@@ -32,14 +32,19 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
   const updateWashroomFixture = async (washroomId: string, fixtureId: string, checked: boolean) => {
     try {
       const updatedWashroom = project.washrooms?.find(w => w.id === washroomId);
-      if (!updatedWashroom) return;
-
-      if (!updatedWashroom.fixtures) {
-        updatedWashroom.fixtures = {};
+      if (!updatedWashroom) {
+        throw new Error("Washroom not found");
       }
-      updatedWashroom.fixtures[fixtureId] = checked;
 
-      const success = await WashroomService.updateWashroom(project.id, updatedWashroom);
+      const washroomToUpdate = {
+        ...updatedWashroom,
+        fixtures: {
+          ...(updatedWashroom.fixtures || {}),
+          [fixtureId]: checked
+        }
+      };
+
+      const success = await WashroomService.updateWashroom(project.id, washroomToUpdate);
       
       if (success) {
         onUpdate();
@@ -50,7 +55,7 @@ const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUp
       console.error('Error saving fixture selection:', error);
       toast({
         title: "Error",
-        description: "Failed to save fixture selection. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to save fixture selection. Please try again.",
         variant: "destructive"
       });
     }
