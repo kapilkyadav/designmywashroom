@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { RealProject } from '@/services/real-projects';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { LoadingState, ErrorState } from '@/components/admin/real-projects/ProjectDetailStates';
 import { useQuery } from '@tanstack/react-query';
 import { FixtureService } from '@/services/FixtureService';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,6 +15,21 @@ interface WashroomFixturesTabProps {
 }
 
 const WashroomFixturesTab: React.FC<WashroomFixturesTabProps> = ({ project, onUpdate }) => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (project && project.washrooms) {
+      setIsLoading(false);
+    }
+  }, [project]);
+
+  if (isLoading) {
+    return <LoadingState />;
+  }
+
+  if (!project || !project.washrooms) {
+    return <ErrorState />;
+  }
   const { data: fixtures = [] } = useQuery({
     queryKey: ['fixtures'],
     queryFn: () => FixtureService.getAllFixtures(),
