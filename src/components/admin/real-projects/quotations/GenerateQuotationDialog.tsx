@@ -144,15 +144,15 @@ export default function GenerateQuotationDialog({
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>Execution Services Cost:</div>
-                  <div>₹{(totalPricing?.executionTotal || 0).toFixed(2)}</div>
+                  <div>₹{Number(totalPricing?.executionTotal || 0).toFixed(2)}</div>
                   <div>Fixtures Cost:</div>
-                  <div>₹{(totalPricing?.fixturesTotal || 0).toFixed(2)}</div>
+                  <div>₹{Number(totalPricing?.fixturesTotal || 0).toFixed(2)}</div>
                   <div>Product Cost:</div>
-                  <div>₹{(totalPricing?.productTotal || 0).toFixed(2)}</div>
+                  <div>₹{Number(totalPricing?.productTotal || 0).toFixed(2)}</div>
                   <div className="border-t pt-2">Base Price (Total):</div>
-                  <div className="border-t pt-2">₹{(totalPricing?.basePrice || 0).toFixed(2)}</div>
+                  <div className="border-t pt-2">₹{Number(totalPricing?.basePrice || 0).toFixed(2)}</div>
                   <div>GST (18% on Execution):</div>
-                  <div>₹{(totalPricing?.gstAmount || 0).toFixed(2)}</div>
+                  <div>₹{Number(totalPricing?.gstAmount || 0).toFixed(2)}</div>
                   {totalPricing?.hasCustomFormulas && (
                     <div className="text-sm text-muted-foreground col-span-2">
                       * Some items use custom pricing formulas

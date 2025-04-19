@@ -14,7 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { VendorRateCardService } from '@/services/VendorRateCardService';
 import { BrandService } from '@/services/BrandService';
 import { FixtureService } from '@/services/FixtureService';
-import { WashroomService } from '@/services/WashroomService'; // Import WashroomService
+import { WashroomService } from '@/services/real-projects/WashroomService'; // Import WashroomService
 
 
 interface WashroomsTabProps {
