@@ -15,7 +15,9 @@ import { VendorRateCardService } from '@/services/VendorRateCardService';
 import { BrandService } from '@/services/BrandService';
 import { FixtureService } from '@/services/FixtureService';
 import { WashroomService } from '@/services/real-projects/WashroomService'; // Import WashroomService
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FixtureLibrary } from '@/components/admin/washroom-designer/FixtureLibrary';
+import { WashroomFixture } from '@/components/admin/washroom-designer/hooks/useWashroomLayoutManager';
 
 interface WashroomsTabProps {
   project: RealProject;
@@ -212,31 +214,63 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
     setWashrooms(updatedWashrooms);
   };
 
-  const updateWashroomFixture = async (index: number, fixtureId: string, checked: boolean) => {
+  const handleFixtureSelect = async (washroomIndex: number, fixture: Omit<WashroomFixture, 'id' | 'x' | 'y'>) => {
     try {
       const updatedWashrooms = [...washrooms];
-      if (!updatedWashrooms[index].fixtures) {
-        updatedWashrooms[index].fixtures = {};
-      }
-      updatedWashrooms[index].fixtures[fixtureId] = checked;
+      updatedWashrooms[washroomIndex].fixtures = updatedWashrooms[washroomIndex].fixtures || {};
+      const fixtureId = `${fixture.name}-${Date.now()}`;
+      updatedWashrooms[washroomIndex].fixtures[fixtureId] = {
+        ...fixture,
+        id: fixtureId,
+        x: 0,
+        y: 0
+      };
 
-      // Only update UI after successful save
       const success = await WashroomService.updateProjectWashrooms(project.id, updatedWashrooms);
-      
+
       if (success) {
         setWashrooms(updatedWashrooms);
-      } else {
-        throw new Error("Failed to update washroom");
+        onUpdate();
+        toast({
+          title: "Success",
+          description: "Fixture added successfully",
+        });
       }
     } catch (error) {
-      console.error('Error saving fixture selection:', error);
+      console.error('Error adding fixture:', error);
       toast({
         title: "Error",
-        description: "Failed to save fixture selection. Please try again.",
+        description: "Failed to add fixture",
         variant: "destructive"
       });
     }
   };
+
+  const removeFixture = async (washroomIndex: number, fixtureId: string) => {
+    try {
+      const updatedWashrooms = [...washrooms];
+      delete updatedWashrooms[washroomIndex].fixtures[fixtureId];
+
+      const success = await WashroomService.updateProjectWashrooms(project.id, updatedWashrooms);
+
+      if (success) {
+        setWashrooms(updatedWashrooms);
+        onUpdate();
+        toast({
+          title: "Success",
+          description: "Fixture removed successfully",
+        });
+      }
+    } catch (error) {
+      console.error('Error removing fixture:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove fixture",
+        variant: "destructive"
+      });
+    }
+  };
+
 
   const saveWashrooms = async () => {
     setIsUpdating(true);
@@ -279,172 +313,200 @@ const WashroomsTab: React.FC<WashroomsTabProps> = ({ project, services, onUpdate
         </Button>
       </div>
 
-      {washrooms.map((washroom, index) => (
-        <Card key={washroom.id} className="overflow-hidden mb-6">
-          <CardContent className="p-0">
-            <div className="bg-secondary px-4 py-3 flex justify-between items-center">
-              <h4 className="font-medium">{washroom.name}</h4>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => removeWashroom(index)}
-                disabled={washrooms.length <= 1}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-            <Separator />
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4">
+          {washrooms.map((washroom, index) => (
+            <Card key={washroom.id}>
+              <CardHeader>
+                <CardTitle>{washroom.name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="dimensions">
+                  <TabsList>
+                    <TabsTrigger value="dimensions">Dimensions</TabsTrigger>
+                    <TabsTrigger value="fixtures">Fixtures</TabsTrigger>
+                  </TabsList>
 
-            <div className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div className="space-y-2">
-                  <Label htmlFor={`washroom-name-${index}`}>Washroom Name</Label>
-                  <Input
-                    id={`washroom-name-${index}`}
-                    value={washroom.name}
-                    onChange={(e) => updateWashroomField(index, 'name', e.target.value)}
-                  />
-                </div>
+                  <TabsContent value="dimensions">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="space-y-2">
+                        <Label htmlFor={`washroom-name-${index}`}>Washroom Name</Label>
+                        <Input
+                          id={`washroom-name-${index}`}
+                          value={washroom.name}
+                          onChange={(e) => updateWashroomField(index, 'name', e.target.value)}
+                        />
+                      </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor={`washroom-brand-${index}`}>Preferred Brand</Label>
-                  <Select
-                    value={washroom.selected_brand || ''}
-                    onValueChange={(value) => updateWashroomField(index, 'selected_brand', value)}
-                  >
-                    <SelectTrigger id={`washroom-brand-${index}`}>
-                      <SelectValue placeholder="Select brand" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {brands.map((brand) => (
-                        <SelectItem key={brand.id} value={brand.name}>{brand.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`washroom-brand-${index}`}>Preferred Brand</Label>
+                        <Select
+                          value={washroom.selected_brand || ''}
+                          onValueChange={(value) => updateWashroomField(index, 'selected_brand', value)}
+                        >
+                          <SelectTrigger id={`washroom-brand-${index}`}>
+                            <SelectValue placeholder="Select brand" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {brands.map((brand) => (
+                              <SelectItem key={brand.id} value={brand.name}>{brand.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor={`washroom-length-${index}`}>Length (ft)</Label>
-                  <Input
-                    id={`washroom-length-${index}`}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={washroom.length}
-                    onChange={(e) => updateWashroomField(index, 'length', parseFloat(e.target.value) || 0)}
-                  />
-                </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`washroom-length-${index}`}>Length (ft)</Label>
+                        <Input
+                          id={`washroom-length-${index}`}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={washroom.length}
+                          onChange={(e) => updateWashroomField(index, 'length', parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor={`washroom-width-${index}`}>Width (ft)</Label>
-                  <Input
-                    id={`washroom-width-${index}`}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={washroom.width}
-                    onChange={(e) => updateWashroomField(index, 'width', parseFloat(e.target.value) || 0)}
-                  />
-                </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`washroom-width-${index}`}>Width (ft)</Label>
+                        <Input
+                          id={`washroom-width-${index}`}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={washroom.width}
+                          onChange={(e) => updateWashroomField(index, 'width', parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor={`washroom-height-${index}`}>Height (ft)</Label>
-                  <Input
-                    id={`washroom-height-${index}`}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={washroom.height}
-                    onChange={(e) => updateWashroomField(index, 'height', parseFloat(e.target.value) || 0)}
-                  />
-                </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`washroom-height-${index}`}>Height (ft)</Label>
+                        <Input
+                          id={`washroom-height-${index}`}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={washroom.height}
+                          onChange={(e) => updateWashroomField(index, 'height', parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
 
-                <div className="col-span-2">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="space-y-4 bg-muted p-4 rounded-lg">
-                      <div>
-                        <Label>Floor Area</Label>
-                        <div className="text-lg font-medium">
-                          {(washroom.length * washroom.width).toFixed(2)} sq ft
+                      <div className="col-span-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          <div className="space-y-4 bg-muted p-4 rounded-lg">
+                            <div>
+                              <Label>Floor Area</Label>
+                              <div className="text-lg font-medium">
+                                {(washroom.length * washroom.width).toFixed(2)} sq ft
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Length × Width
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4 bg-muted p-4 rounded-lg">
+                            <div>
+                              <Label>Wall Area</Label>
+                              <div className="text-lg font-medium">
+                                {washroom.wall_area?.toFixed(2) || '0.00'} sq ft
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Perimeter × Height
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4 bg-muted p-4 rounded-lg">
+                            <div>
+                              <Label>Ceiling Area</Label>
+                              <div className="text-lg font-medium">
+                                {washroom.ceiling_area?.toFixed(2) || '0.00'} sq ft
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4 bg-muted p-4 rounded-lg">
+                            <div>
+                              <Label>Total Area</Label>
+                              <div className="text-xl font-bold text-primary">
+                                {washroom.total_area?.toFixed(2) || '0.00'} sq ft
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Floor Area + Wall Area
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          Length × Width
-                        </p>
                       </div>
                     </div>
 
-                    <div className="space-y-4 bg-muted p-4 rounded-lg">
-                      <div>
-                        <Label>Wall Area</Label>
-                        <div className="text-lg font-medium">
-                          {washroom.wall_area?.toFixed(2) || '0.00'} sq ft
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Perimeter × Height
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4 bg-muted p-4 rounded-lg">
-                      <div>
-                        <Label>Ceiling Area</Label>
-                        <div className="text-lg font-medium">
-                          {washroom.ceiling_area?.toFixed(2) || '0.00'} sq ft
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4 bg-muted p-4 rounded-lg">
-                      <div>
-                        <Label>Total Area</Label>
-                        <div className="text-xl font-bold text-primary">
-                          {washroom.total_area?.toFixed(2) || '0.00'} sq ft
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Floor Area + Wall Area
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {Object.keys(servicesByCategory).length > 0 && (
-                <div className="mt-6">
-                  <h5 className="font-medium mb-3">Execution Services</h5>
-                  <div className="space-y-4">
-                    {Object.entries(servicesByCategory).map(([category, categoryServices]) => (
-                      <div key={category} className="border p-3 rounded-md">
-                        <h6 className="font-medium mb-2">{category}</h6>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {categoryServices.map(service => (
-                            <div key={service.id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`service-${washroom.id}-${service.id}`}
-                                checked={washroom.services?.[service.id] || false}
-                                onCheckedChange={(checked) => 
-                                  updateWashroomService(index, service.id, !!checked)
-                                }
-                              />
-                              <Label htmlFor={`service-${washroom.id}-${service.id}`}>
-                                {service.scope_of_work || service.name || "Unnamed Service"}
-                                {service.measuring_unit && <span className="text-xs text-muted-foreground ml-1">({service.measuring_unit})</span>}
-                              </Label>
+                    {Object.keys(servicesByCategory).length > 0 && (
+                      <div className="mt-6">
+                        <h5 className="font-medium mb-3">Execution Services</h5>
+                        <div className="space-y-4">
+                          {Object.entries(servicesByCategory).map(([category, categoryServices]) => (
+                            <div key={category} className="border p-3 rounded-md">
+                              <h6 className="font-medium mb-2">{category}</h6>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {categoryServices.map(service => (
+                                  <div key={service.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`service-${washroom.id}-${service.id}`}
+                                      checked={washroom.services?.[service.id] || false}
+                                      onCheckedChange={(checked) =>
+                                        updateWashroomService(index, service.id, !!checked)
+                                      }
+                                    />
+                                    <Label htmlFor={`service-${washroom.id}-${service.id}`}>
+                                      {service.scope_of_work || service.name || "Unnamed Service"}
+                                      {service.measuring_unit && <span className="text-xs text-muted-foreground ml-1">({service.measuring_unit})</span>}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="fixtures">
+                    <div className="space-y-4">
+                      <FixtureLibrary
+                        onSelectFixture={(fixture) => handleFixtureSelect(index, fixture)}
+                      />
+
+                      {washroom.fixtures && Object.entries(washroom.fixtures).length > 0 && (
+                        <div className="mt-4">
+                          <h4 className="text-sm font-medium mb-2">Selected Fixtures</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {Object.entries(washroom.fixtures).map(([id, fixture]) => (
+                              <div key={id} className="flex items-center justify-between p-2 border rounded">
+                                <span>{fixture.name}</span>
+                                <button
+                                  onClick={() => removeFixture(index, id)}
+                                  className="text-red-500 hover:text-red-700"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
 
       <div className="flex justify-end">
-        <Button 
+        <Button
           onClick={saveWashrooms}
           disabled={isUpdating}
         >
