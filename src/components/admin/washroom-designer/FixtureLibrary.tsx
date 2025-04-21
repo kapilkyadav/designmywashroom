@@ -1,54 +1,78 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WashroomFixture } from './hooks/useWashroomLayoutManager';
+import { fixtureService } from '@/services/fixtures/FixtureService';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 interface FixtureLibraryProps {
   onSelectFixture: (fixture: Omit<WashroomFixture, 'id' | 'x' | 'y'>) => void;
 }
 
 export const FixtureLibrary: React.FC<FixtureLibraryProps> = ({ onSelectFixture }) => {
-  const fixtures = {
-    'Toilets': [
-      { name: 'Standard Toilet', category: 'Toilets', price: 15000 },
-      { name: 'Premium Toilet', category: 'Toilets', price: 25000 },
-    ],
-    'Sinks': [
-      { name: 'Basic Sink', category: 'Sinks', price: 8000 },
-      { name: 'Deluxe Sink', category: 'Sinks', price: 12000 },
-    ],
-    'Accessories': [
-      { name: 'Soap Dispenser', category: 'Accessories', price: 1500 },
-      { name: 'Paper Towel Holder', category: 'Accessories', price: 2000 },
-    ]
-  };
+  const [fixtures, setFixtures] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadFixtures = async () => {
+      try {
+        const data = await fixtureService.getAllFixtures();
+        setFixtures(data);
+      } catch (error) {
+        console.error('Error loading fixtures:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFixtures();
+  }, []);
+
+  const fixturesByCategory = fixtures.reduce((acc, fixture) => {
+    const category = fixture.category || 'Other';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(fixture);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  if (loading) {
+    return <div>Loading fixtures...</div>;
+  }
 
   return (
     <Card>
       <CardContent className="p-4">
-        <Tabs defaultValue="Toilets">
-          <TabsList>
-            {Object.keys(fixtures).map((category) => (
+        <Tabs defaultValue={Object.keys(fixturesByCategory)[0] || 'Other'}>
+          <TabsList className="mb-4">
+            {Object.keys(fixturesByCategory).map((category) => (
               <TabsTrigger key={category} value={category}>
                 {category}
               </TabsTrigger>
             ))}
           </TabsList>
-          {Object.entries(fixtures).map(([category, items]) => (
+
+          {Object.entries(fixturesByCategory).map(([category, categoryFixtures]) => (
             <TabsContent key={category} value={category}>
-              <ScrollArea className="h-[200px]">
-                <div className="grid grid-cols-2 gap-2">
-                  {items.map((fixture) => (
-                    <button
-                      key={fixture.name}
-                      className="p-2 text-left border rounded hover:bg-accent"
-                      onClick={() => onSelectFixture(fixture)}
+              <ScrollArea className="h-[300px] rounded-md border p-4">
+                <div className="grid grid-cols-2 gap-4">
+                  {categoryFixtures.map((fixture) => (
+                    <Button
+                      key={fixture.id}
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => onSelectFixture({
+                        name: fixture.name,
+                        width: fixture.width || 100,
+                        height: fixture.height || 100,
+                      })}
                     >
-                      <div>{fixture.name}</div>
-                      <div className="text-sm text-muted-foreground">₹{fixture.price}</div>
-                    </button>
+                      {fixture.name}
+                    </Button>
                   ))}
                 </div>
               </ScrollArea>

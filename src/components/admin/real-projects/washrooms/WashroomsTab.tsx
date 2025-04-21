@@ -16,7 +16,7 @@ import { BrandService } from '@/services/BrandService';
 import { FixtureService } from '@/services/FixtureService';
 import { WashroomService } from '@/services/real-projects/WashroomService'; // Import WashroomService
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FixtureLibrary } from '@/components/admin/washroom-designer/FixtureLibrary';
+import FixtureLibrary from '@/components/admin/washroom-designer/FixtureLibrary';
 import { WashroomFixture } from '@/components/admin/washroom-designer/hooks/useWashroomLayoutManager';
 
 interface WashroomsTabProps {
