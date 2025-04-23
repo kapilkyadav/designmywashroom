@@ -77,17 +77,6 @@ export class QuotationService extends BaseService {
 
       // Ensure quotationData has valid values
       const sanitizedQuotationData: QuotationData = {
-        totalAmount: parseFloat(quotationData.totalAmount) || 0,
-        items: quotationData.items || [],
-        margins: quotationData.margins || {},
-        gstRate: quotationData.gstRate || 18,
-        internalPricing: quotationData.internalPricing || false,
-        distributeMarginEqually: quotationData.distributeMarginEqually || false,
-        mrpMarkupPercentage: quotationData.mrpMarkupPercentage || 20,
-        internalPricingDetails: quotationData.internalPricingDetails,
-        serviceDetailsMap: quotationData.serviceDetailsMap
-      } = {
->>>>>>> 1e6dbddea3d06cec03d1bbec40a9ef290307159a
         ...quotationData,
         totalAmount: parseFloat(quotationData.totalAmount) || 0,
         items: (quotationData.items || []).map((item: any) => ({
@@ -101,8 +90,6 @@ export class QuotationService extends BaseService {
         margins: quotationData.margins || {},
         gstRate: quotationData.gstRate || 18, // Default 18% GST
         internalPricing: quotationData.internalPricing || false,
-        distributeMarginEqually: quotationData.distributeMarginEqually || false,
-        mrpMarkupPercentage: quotationData.mrpMarkupPercentage || 20, // Default 20% markup for MRP
         internalPricingDetails: quotationData.internalPricingDetails || undefined,
         serviceDetailsMap: quotationData.serviceDetailsMap || {},
         terms: quotationData.terms || undefined
@@ -110,7 +97,6 @@ export class QuotationService extends BaseService {
 
       // Calculate internal pricing if enabled
       if (sanitizedQuotationData.internalPricing) {
-<<<<<<< HEAD
         // Apply margins to execution services - IMPORTANT: make sure we use original item amounts
         // and preserve custom formula calculations
         const cleanItems = sanitizedQuotationData.items.map((item) => {
@@ -142,40 +128,6 @@ export class QuotationService extends BaseService {
           console.error('Error calculating internal pricing', error);
           throw new Error('Failed to calculate internal pricing');
         }
-=======
-        // Clean items before applying any new calculations
-        const cleanItems = sanitizedQuotationData.items.map(item => {
-          // Remove any previously calculated margin data to start fresh
-          const { baseAmount, appliedMargin, mrp, ...cleanItem } = item;
-          return cleanItem;
-        });
-        
-        // Apply margins based on selected distribution method
-        if (sanitizedQuotationData.distributeMarginEqually) {
-          // Apply equal margin distribution method
-          sanitizedQuotationData.items = QuotationService.applyEquallyDistributedMargins(
-            washrooms || [],
-            cleanItems,
-            sanitizedQuotationData.margins,
-            sanitizedQuotationData.mrpMarkupPercentage
-          );
-        } else {
-          // Use the original percentage-based margin calculation
-          sanitizedQuotationData.items = QuotationService.applyMarginsToItems(
-            washrooms || [],
-            cleanItems,
-            sanitizedQuotationData.margins
-          );
-        }
-        
-        // Calculate internal pricing details after applying margins
-        sanitizedQuotationData.internalPricingDetails = QuotationService.calculateInternalPricing(
-          washrooms || [],
-          sanitizedQuotationData.items,
-          sanitizedQuotationData.margins,
-          sanitizedQuotationData.gstRate
-        );
->>>>>>> 1e6dbddea3d06cec03d1bbec40a9ef290307159a
       }
 
       // Fetch all service details to get names
@@ -272,124 +224,6 @@ export class QuotationService extends BaseService {
     }
   }
 
-  /**
-   * New method to apply equally distributed margins to execution services
-   */
-  static applyEquallyDistributedMargins(
-    washrooms: Washroom[],
-    items: any[],
-    margins: Record<string, number>,
-    mrpMarkupPercentage: number = 20
-  ): any[] {
-    // First, group execution services by washroom
-    const washroomServices: Record<string, any[]> = {};
-    
-    // Initialize washroom service groups
-    washrooms.forEach(washroom => {
-      washroomServices[washroom.id] = [];
-    });
-    
-    // Group execution services by washroom ID
-    items.forEach(item => {
-      const washroomId = item.washroomId;
-      const isExecutionService = item.isExecutionService && !item.isBrandProduct && !item.isFixture;
-      
-      if (isExecutionService && washroomId && washroomServices[washroomId]) {
-        // Store the original amount that never changes
-        const originalAmount = parseFloat(item.amount) || 0;
-        washroomServices[washroomId].push({
-          ...item,
-          originalAmount,
-          baseAmount: originalAmount
-        });
-      }
-    });
-    
-    // Calculate total margins and distribute them equally
-    Object.entries(washroomServices).forEach(([washroomId, services]) => {
-      if (services.length === 0 || margins[washroomId] === undefined) return;
-      
-      // Calculate total base cost for execution services in this washroom
-      const totalBaseCost = services.reduce((sum, service) => 
-        sum + (parseFloat(service.baseAmount) || 0), 0);
-      
-      // Calculate total margin amount based on percentage
-      const marginPercentage = margins[washroomId];
-      const totalMarginAmount = totalBaseCost * (marginPercentage / 100);
-      
-      // Calculate equal share of margin for each service
-      const equalMarginShare = services.length > 0 ? totalMarginAmount / services.length : 0;
-      
-      console.log(`Washroom ${washroomId}: Total base cost: ${totalBaseCost}, Margin %: ${marginPercentage}%, Total margin: ${totalMarginAmount}, Equal share: ${equalMarginShare}`);
-      
-      // Apply equal margin to each service
-      services.forEach(service => {
-        const baseAmount = parseFloat(service.baseAmount) || 0;
-        const newAmount = baseAmount + equalMarginShare;
-        
-        // Calculate MRP as new amount + markup percentage
-        const mrp = newAmount * (1 + (mrpMarkupPercentage / 100));
-        
-        service.amount = newAmount;
-        service.appliedMargin = marginPercentage;
-        service.equalMarginShare = equalMarginShare;
-        service.mrp = mrp;
-        
-        console.log(`Service ${service.name}: Base: ${baseAmount}, +Margin: ${newAmount}, MRP: ${mrp}`);
-        
-        // If the service has service details, distribute margin equally among them too
-        if (service.serviceDetails && service.serviceDetails.length > 0) {
-          const serviceDetailsCount = service.serviceDetails.length;
-          const equalServiceDetailMarginShare = serviceDetailsCount > 0 ? 
-            equalMarginShare / serviceDetailsCount : 0;
-          
-          service.serviceDetails = service.serviceDetails.map((detail: any) => {
-            const detailBaseCost = parseFloat(detail.cost) || 0;
-            const detailNewCost = detailBaseCost + equalServiceDetailMarginShare;
-            const detailMrp = detailNewCost * (1 + (mrpMarkupPercentage / 100));
-            
-            return {
-              ...detail,
-              originalCost: detailBaseCost,
-              baseCost: detailBaseCost,
-              cost: detailNewCost,
-              equalMarginShare: equalServiceDetailMarginShare,
-              mrp: detailMrp
-            };
-          });
-        }
-      });
-    });
-    
-    // Process all items including those that aren't execution services
-    return items.map(item => {
-      const washroomId = item.washroomId;
-      const isExecutionService = item.isExecutionService && !item.isBrandProduct && !item.isFixture;
-      
-      // If this is an execution service we've already processed
-      if (isExecutionService && washroomId && washroomServices[washroomId]) {
-        // Find the processed item
-        const processedItem = washroomServices[washroomId].find(s => 
-          s.id === item.id && s.name === item.name);
-        
-        if (processedItem) {
-          return processedItem;
-        }
-      }
-      
-      // For all other items (brand products, fixtures, etc.), preserve as is
-      // But ensure they have originalAmount and mrp properties
-      const originalAmount = parseFloat(item.amount) || 0;
-      return {
-        ...item,
-        originalAmount,
-        baseAmount: originalAmount,
-        // For products and fixtures, MRP is usually provided
-        mrp: item.mrp || originalAmount
-      };
-    });
-  }
-  
   /**
    * Apply margins to execution service items
    */
@@ -925,43 +759,33 @@ export class QuotationService extends BaseService {
     }
 
     const sortedCategories = Object.entries(itemsByCategory).sort((a, b) => {
-      const seqA = categorySequenceMap[a[0]] || 999;
-      const seqB = categorySequenceMap[b[0]] || 999;
+      const seqA = categorySequenceMap[a[0]] ?? Number.MAX_SAFE_INTEGER;
+      const seqB = categorySequenceMap[b[0]] ?? Number.MAX_SAFE_INTEGER;
       return seqA - seqB;
     });
 
-    // Generate the HTML content
-    const html = `
+    const htmlTemplate = `
       <!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Project Quotation</title>
+        <title>Quotation ${project.project_id}</title>
         <style>
-          ${existingStyles}
-          ${cssUpdates}
+          ${existingStyles.replace(/\.header\s*{[^}]+}/s, cssUpdates)}
         </style>
       </head>
       <body>
         <div class="container">
-          <header class="header">
+          <div class="header">
             <div class="header-left">
-              <div>
-                <h1 class="company-name">YDS Interiors</h1>
-                <p class="company-address">
-                  D/1 Prithvi Palace, Near Rajmata Jijau Garden, 
-                  Sus Road, Sus, Pune - 411045, Maharashtra, India
-                </p>
-                <p class="company-gst">GSTIN: 27AAAGB6468H1Z1</p>
-              </div>
+              <img src="/lovable-uploads/0e4ef5ca-8d0e-4e79-a60b-aceb673a33b7.png" alt="Your Dream Space Logo" />
             </div>
             <div class="header-right">
-              <h2 class="quotation-title">QUOTATION</h2>
-              <p><strong>Date:</strong> ${format(new Date(), 'dd/MM/yyyy')}</p>
-              <p><strong>Ref:</strong> #${project.project_id || ''}</p>
+              <div class="company-name">Purebath Interiotech Private Limited</div>
+              <div class="company-address">3rd Floor, Orchid Centre, Golf Course Road, near IILM Institute, Sector 53, Gurugram, Haryana 122002</div>
+              <div class="company-gst">GST No: 06AAPCP1844F1ZC</div>
             </div>
-<<<<<<< HEAD
           </div>
 
         <div class="quotation-title">
@@ -1058,138 +882,24 @@ export class QuotationService extends BaseService {
                                 const serviceUnit = quotationData.serviceDetailsMap?.[service.serviceId]?.unit || '';
                                 const serviceCost = parseFloat(service.cost) || 0;
 
-=======
-          </header>
-
-          <section class="info-grid">
-            <div>
-              <h3>Client Information</h3>
-              <p><strong>Name:</strong> ${project.client_name || ''}</p>
-              <p><strong>Contact:</strong> ${project.client_mobile || ''}</p>
-              <p><strong>Email:</strong> ${project.client_email || ''}</p>
-              <p><strong>Location:</strong> ${project.client_location || ''}</p>
-            </div>
-            <div>
-              <h3>Project Information</h3>
-              <p><strong>Type:</strong> ${project.project_type ? project.project_type.replace('-', ' ') : ''}</p>
-              <p><strong>Overall Area:</strong> ${
-                project.length && project.width ? 
-                `${project.length * project.width} sq.ft.` : 'Not specified'
-              }</p>
-              <p><strong>Project ID:</strong> ${project.project_id || ''}</p>
-            </div>
-          </section>
-
-          <section>
-            <h3 class="section-title">Scope of Work</h3>
-              ${washrooms.map(washroom => {
-                // Get items for this washroom
-                const washroomItems = (quotationData.items || []).filter((item: any) => 
-                  item.washroomId === washroom.id
-                );
-                
-                // Group the items by category
-                const washroomItemsByCategory: Record<string, any[]> = {};
-                washroomItems.forEach((item: any) => {
-                  // Use item's service details category if available, otherwise 'General'
-                  const category = item.serviceDetails?.[0]?.categoryName || 'General';
-                  if (!washroomItemsByCategory[category]) {
-                    washroomItemsByCategory[category] = [];
-                  }
-                  washroomItemsByCategory[category].push(item);
-                });
-                
-                // Sort categories by their sequence for this washroom
-                const sortedWashroomCategories = Object.entries(washroomItemsByCategory).sort((a, b) => {
-                  const seqA = categorySequenceMap[a[0]] || 999;
-                  const seqB = categorySequenceMap[b[0]] || 999;
-                  return seqA - seqB;
-                });
-                
-                // Calculate total YDS offer price and total MRP for the washroom
-                let washroomTotalYdsPrice = 0;
-                let washroomTotalMrp = 0;
-                
-                washroomItems.forEach((item: any) => {
-                  washroomTotalYdsPrice += parseFloat(item.amount) || 0;
-                  washroomTotalMrp += parseFloat(item.mrp) || 0;
-                });
-                
-                // Calculate discount percentage if MRP is higher than YDS price
-                const discountAmount = Math.max(0, washroomTotalMrp - washroomTotalYdsPrice);
-                const discountPercentage = washroomTotalMrp > 0 ? 
-                  (discountAmount / washroomTotalMrp) * 100 : 0;
-                
-                return `
-                  <div class="washroom-card">
-                    <div class="washroom-header">
-                      <h4>${washroom.name}</h4>
-                      <div>
-                        <span>Area: ${washroom.area || 0} sq.ft.</span>
-                      </div>
-                    </div>
-                    <div class="washroom-content">
-                      <div class="area-details">
-                        <div><strong>Length:</strong> ${washroom.length || 0} ft</div>
-                        <div><strong>Width:</strong> ${washroom.width || 0} ft</div>
-                        <div><strong>Height:</strong> ${washroom.height || 0} ft</div>
-                        <div><strong>Wall Area:</strong> ${washroom.wall_area || 0} sq.ft.</div>
-                      </div>
-                      
-                      ${sortedWashroomCategories.length > 0 ? `
-                        <table class="scope-table">
-                          <thead>
-                            <tr>
-                              <th width="40%">Item</th>
-                              <th width="15%">MRP</th>
-                              <th width="30%">YDS Offer Price</th>
-                              <th width="15%">Notes</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            ${sortedWashroomCategories.map(([category, items]) => `
-                              <tr>
-                                <td colspan="4" style="background-color: #f1f5f9; font-weight: 600; color: #334155;">
-                                  ${category}
-                                </td>
-                              </tr>
-                              ${items.map((item: any) => {
-                                // Calculate individual item discount
-                                const itemMrp = parseFloat(item.mrp) || 0;
-                                const itemPrice = parseFloat(item.amount) || 0;
-                                const itemDiscount = Math.max(0, itemMrp - itemPrice);
-                                const itemDiscountPercent = itemMrp > 0 ? (itemDiscount / itemMrp) * 100 : 0;
-                                
->>>>>>> 1e6dbddea3d06cec03d1bbec40a9ef290307159a
                                 return `
                                   <tr>
-                                    <td>${item.name}</td>
-                                    <td>₹${formatAmount(itemMrp)}</td>
-                                    <td>₹${formatAmount(itemPrice)}${
-                                      itemDiscountPercent > 0 ? 
-                                      ` <span style="color: #10b981; font-size: 11px;">(${itemDiscountPercent.toFixed(0)}% off)</span>` : 
-                                      ''
-                                    }</td>
-                                    <td>${item.notes || ''}</td>
+                                    <td>${category}</td>
+                                    <td>${serviceName} ${serviceUnit ? `(${serviceUnit})` : ''}</td>
+                                    <td style="text-align: right;">-</td>
+                                    <td style="text-align: right;">₹${formatAmount(serviceCost)}</td>
                                   </tr>
                                 `;
-<<<<<<< HEAD
                               }).join('');
                             }
 
                             return `
-=======
-                              }).join('')}
->>>>>>> 1e6dbddea3d06cec03d1bbec40a9ef290307159a
                               <tr>
-                                <td colspan="4" style="text-align: right; font-weight: 600; padding-right: 20px; background-color: #f8fafc;">
-                                  Category Subtotal: 
-                                  <span style="margin-left: 10px;">
-                                    ₹${formatAmount(items.reduce((total: number, item: any) => total + (parseFloat(item.amount) || 0), 0))}
-                                  </span>
-                                </td>
+                                <td>${item.categoryName || category}</td>
+                                <td>${item.name} ${itemUnit ? `(${itemUnit})` : ''}</td>
+                                <td style="text-align: right;">₹${formatAmount(itemMrp)}</td>
+                                <td style="text-align: right;">₹${formatAmount(itemAmount)}</td>
                               </tr>
-<<<<<<< HEAD
                             `;
                           }).join('')}
                           <tr>
@@ -1262,79 +972,6 @@ export class QuotationService extends BaseService {
     `;
 
     return htmlTemplate;
-=======
-                            `).join('')}
-                          </tbody>
-                        </table>
-                        <div class="price-box">
-                          <div class="price-row">
-                            <span>Total MRP:</span>
-                            <span>₹${formatAmount(washroomTotalMrp)}</span>
-                          </div>
-                          <div class="price-row">
-                            <span>YDS Offer Price:</span>
-                            <span>₹${formatAmount(washroomTotalYdsPrice)}</span>
-                          </div>
-                          ${discountAmount > 0 ? `
-                            <div class="price-row" style="color: #10b981;">
-                              <span>You Save:</span>
-                              <span>₹${formatAmount(discountAmount)} (${discountPercentage.toFixed(0)}%)</span>
-                            </div>
-                          ` : ''}
-                        </div>
-                      ` : '<p>No items specified for this washroom.</p>'}
-                    </div>
-                  </div>
-                `;
-              }).join('')}
-          </section>
-          
-          <section class="summary-box">
-            <h3 class="section-title">Quotation Summary</h3>
-            <div class="price-box">
-              ${Object.values(costBreakdown).map(category => {
-                if (category.amount <= 0) return '';
-                return `
-                  <div class="price-row cost-category">
-                    <span class="cost-category-title">${category.title}:</span>
-                    <span class="cost-category-amount">₹${formatAmount(category.amount)}</span>
-                  </div>
-                `;
-              }).join('')}
-              
-              <div class="price-row">
-                <span>Subtotal:</span>
-                <span>₹${formatAmount(subtotalBeforeGst)}</span>
-              </div>
-              
-              <div class="price-row">
-                <span>GST (${quotationData.gstRate || 18}%):</span>
-                <span>₹${formatAmount(gstAmount)}</span>
-              </div>
-              
-              <div class="price-row total">
-                <span>Total:</span>
-                <span>₹${formatAmount(grandTotal)}</span>
-              </div>
-            </div>
-            
-            <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
-              <h4>Terms and Conditions:</h4>
-              <p>${quotationData.terms || 'Standard terms and conditions apply.'}</p>
-            </div>
-          </section>
-          
-          <footer class="footer">
-            <p>Thank you for choosing YDS Interiors</p>
-            <p>&copy; ${new Date().getFullYear()} YDS Interiors. All rights reserved.</p>
-          </footer>
-        </div>
-      </body>
-      </html>
-    `;
-    
-    return html;
->>>>>>> 1e6dbddea3d06cec03d1bbec40a9ef290307159a
   }
 
   /**
@@ -1349,21 +986,16 @@ export class QuotationService extends BaseService {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-<<<<<<< HEAD
 
       return data as ProjectQuotation[];
-=======
-      
-      return data || [];
->>>>>>> 1e6dbddea3d06cec03d1bbec40a9ef290307159a
     } catch (error: any) {
-      console.error('Error getting project quotations:', error);
+      console.error('Error fetching project quotations:', error);
       return [];
     }
   }
 
   /**
-   * Get a single quotation by its ID
+   * Get a specific quotation
    */
   static async getQuotation(quotationId: string): Promise<ProjectQuotation | null> {
     try {
@@ -1374,15 +1006,10 @@ export class QuotationService extends BaseService {
         .single();
 
       if (error) throw error;
-<<<<<<< HEAD
 
       return data as ProjectQuotation;
-=======
-      
-      return data;
->>>>>>> 1e6dbddea3d06cec03d1bbec40a9ef290307159a
     } catch (error: any) {
-      console.error('Error getting quotation:', error);
+      console.error('Error fetching quotation:', error);
       return null;
     }
   }
@@ -1398,16 +1025,12 @@ export class QuotationService extends BaseService {
         .eq('id', quotationId);
 
       if (error) throw error;
-<<<<<<< HEAD
 
       toast({
         title: "Quotation deleted",
         description: "The quotation has been deleted successfully.",
       });
 
-=======
-      
->>>>>>> 1e6dbddea3d06cec03d1bbec40a9ef290307159a
       return true;
     } catch (error: any) {
       console.error('Error deleting quotation:', error);

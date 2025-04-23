@@ -54,7 +54,7 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
       if (quotationData.items) {
         quotationData.items = quotationData.items.map((item: any) => {
           // Remove any previously calculated margins to prevent compounding
-          const { baseAmount, appliedMargin, originalAmount, mrp, ...cleanItem } = item;
+          const { baseAmount, appliedMargin, ...cleanItem } = item;
           return cleanItem;
         });
       }
@@ -63,11 +63,6 @@ export const useQuotations = (project: RealProject, onUpdate: () => void) => {
       // This flag controls whether margins are applied to the client-facing quotation
       quotationData.internalPricing = internalPricingEnabled;
       quotationData.marginPercentage = marginPercentage;
-      
-      // Add new equal distribution flag to indicate we want to distribute margins equally
-      quotationData.distributeMarginEqually = true;
-      // Add MRP markup percentage (20% as per requirements)
-      quotationData.mrpMarkupPercentage = 20;
       
       const result = await RealProjectService.generateQuotation(
         project.id, 
