@@ -83,9 +83,9 @@ export class QuotationService extends BaseService {
         gstRate: quotationData.gstRate || 18,
         internalPricing: quotationData.internalPricing || false,
         distributeMarginEqually: quotationData.distributeMarginEqually || false,
-        mrpMarkupPercentage: number;
-        internalPricingDetails?: Record<string, any>;
-        serviceDetailsMap?: Record<string, any>;
+        mrpMarkupPercentage: quotationData.mrpMarkupPercentage || 20,
+        internalPricingDetails: quotationData.internalPricingDetails,
+        serviceDetailsMap: quotationData.serviceDetailsMap
       } = {
 >>>>>>> 1e6dbddea3d06cec03d1bbec40a9ef290307159a
         ...quotationData,
